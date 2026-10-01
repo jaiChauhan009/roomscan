@@ -37,6 +37,7 @@ class Opening:
     sigma_w: float  # 1-sigma of width (m)
     connects: str | None = None  # other room id for doors/openings between rooms
     support: int = 0
+    note: str | None = None  # set when the opening is inferred rather than measured
 
     @property
     def width(self) -> float:
@@ -178,20 +179,20 @@ def _link_rooms(openings: list[Opening], layout: Layout) -> None:
     """Door/opening -> neighbouring room: step through the wall and look up the room label."""
     fr = layout.frame
     walls = {w.id: w for r in layout.rooms for w in r.walls}
-    rooms = {r.id: r for r in layout.rooms}
+    by_label = {r.label_id: r.id for r in layout.rooms}
     for op in openings:
         if op.kind == "window":
             continue
         w = walls[op.wall_id]
         d = (w.end - w.start) / max(w.length, 1e-9)
         mid = w.start + d * (op.u0 + op.u1) / 2
-        for step in np.arange(0.1, 0.8, 0.05):
+        for step in np.arange(0.1, 1.0, 0.05):
             p = mid - w.inward * step
             r, c = fr.to_cell(p[None])
             if 0 <= r[0] < fr.shape[0] and 0 <= c[0] < fr.shape[1]:
-                lab = layout.labels[r[0], c[0]]
-                if lab and rooms.get(f"room_{lab}") is not None and f"room_{lab}" != op.room_id:
-                    op.connects = f"room_{lab}"
+                other = by_label.get(int(layout.labels[r[0], c[0]]))
+                if other is not None and other != op.room_id:
+                    op.connects = other
                     break
 
 

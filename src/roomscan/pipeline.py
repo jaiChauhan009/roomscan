@@ -107,6 +107,12 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
     drift_info["wall_crispness"] = round(crispness(cloud), 3)
     layout = extract_layout(cloud)
     timing["layout"] = time.time() - t
+    if not layout.rooms and cap.tier != "lidar":
+        from roomscan.geometry.boxfit import box_layout
+        bl = box_layout(cloud, noise=0.08)
+        if bl is not None:
+            layout = bl
+            warnings.append("walls do not close into rooms: capture fitted as a single rectangular room")
     if not layout.rooms:
         warnings.append("no closed room found")
 

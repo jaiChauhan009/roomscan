@@ -78,7 +78,7 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
         for o in room_ops:
             ops_out.append(S.Opening(
                 id=o.id, type=o.kind, wall_id=o.wall_id, room_id=o.room_id, connects_to=o.connects,
-                width=measure(o.width, o.sigma_w, tier, "opening_width"),
+                width=measure(o.width, o.sigma_w, tier, "opening_width", note=o.note),
                 height=measure(o.height, 0.03, tier, "opening_height"),
                 sill_height=measure(o.bottom, 0.03, tier, "opening_height"),
                 offset_along_wall=round(o.u0, 4)))
