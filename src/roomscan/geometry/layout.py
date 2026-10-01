@@ -27,6 +27,7 @@ HBIN = 0.10  # height bin for vertical coverage (m)
 LOW = (0.3, 1.9)  # height band (above floor) that must be covered for a full wall
 LINTEL_MIN = 2.15  # door heads sit below this; wall above it and nothing below = doorway
 MIN_ROOM_AREA = 1.0  # m2
+WALL_BAND_FRAC = 0.5  # share of the observed low band a wall must cover (old rule: 0.8 m of 1.6 m)
 
 
 @dataclass
@@ -103,8 +104,22 @@ class Layout:
     grids: dict  # diagnostic rasters
 
 
+def observed_band_top(cloud: Cloud, floor_y: float) -> float:
+    """Top of the height band the capture actually observed on walls.
+
+    90th percentile of wall-point heights, capped at LOW[1]. A capture shot with the phone
+    pointing down sees walls only up to ~1.5 m; the wall test must not demand evidence
+    above that (fix-loop declaration, fixloop/declaration.md).
+    """
+    h = cloud.points[:, 1] - floor_y
+    m = (np.abs(cloud.normals[:, 1]) < WALL_T) & (h > LOW[0])
+    if m.sum() < 500:
+        return LOW[1]
+    return float(np.clip(np.percentile(h[m], 90), LOW[0] + 0.6, LOW[1]))
+
+
 def _coverage_grids(cloud: Cloud, ab: np.ndarray, frame: PlanFrame, floor_y: float,
-                    top_h: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                    top_h: float, band_top: float = LOW[1]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     h = cloud.points[:, 1] - floor_y
     wallm = (np.abs(cloud.normals[:, 1]) < WALL_T) & (h > 0.05) & (h < top_h)
     row, col = frame.to_cell(ab[wallm])
@@ -114,7 +129,7 @@ def _coverage_grids(cloud: Cloud, ab: np.ndarray, frame: PlanFrame, floor_y: flo
     occ[row, col, hb] = True
     # tolerate 1-cell noise in wall position
     occ = ndi.binary_dilation(occ, structure=np.ones((3, 3, 1), bool))
-    lo0, lo1 = int(LOW[0] / HBIN), int(LOW[1] / HBIN)
+    lo0, lo1 = int(round(LOW[0] / HBIN)), int(round(band_top / HBIN))
     hi0, hi1 = int(np.ceil(LINTEL_MIN / HBIN)), max(int((top_h - 0.12) / HBIN), int(np.ceil(LINTEL_MIN / HBIN)) + 3)
     low_cov = occ[:, :, lo0:lo1].sum(-1)
     high_cov = occ[:, :, hi0:hi1].sum(-1)
@@ -273,7 +288,7 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
     return segs
 
 
-def extract_layout(cloud: Cloud, res: float = RES) -> Layout:
+def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -> Layout:
     floor = floor_level(cloud)
     if floor is None:
         raise RuntimeError("no floor found in capture")
@@ -298,10 +313,13 @@ def extract_layout(cloud: Cloud, res: float = RES) -> Layout:
     sub = cloud.subset(inb)
     ab, nab = ab[inb], nab[inb]
 
-    low_cov, high_cov, nbins = _coverage_grids(sub, ab, frame, floor.value, top_h)
-    # full-height surface: well covered in the 0.3-1.9 m band, or partly covered there and
-    # continuing above door-head height (window walls: sill below, wall above)
-    wall = (low_cov >= 8) | ((low_cov >= 5) & (high_cov >= 2))
+    band_top = observed_band_top(sub, floor.value) if adaptive_band else LOW[1]
+    low_cov, high_cov, nbins = _coverage_grids(sub, ab, frame, floor.value, top_h, band_top)
+    # full-height surface: covered over at least half of the observed low band (and never
+    # less than 0.5 m), or partly covered there and continuing above door-head height
+    # (window walls: sill below, wall above)
+    need = max(5, int(np.ceil(WALL_BAND_FRAC * nbins[0]))) if adaptive_band else 8
+    wall = (low_cov >= need) | ((low_cov >= 5) & (high_cov >= 2))
     lintel = (high_cov >= 2) & (low_cov <= 2)
     # lintel underside: narrow downward strips between door-head height and the ceiling.
     # Wide downward areas at that height are dropped ceilings, not door heads.
@@ -391,7 +409,8 @@ def extract_layout(cloud: Cloud, res: float = RES) -> Layout:
     _per_room_levels(rooms, sub, ab, frame, floor, ceil_src)
     return Layout(frame=frame, floor=floor, ceiling=ceil, rooms=rooms, labels=labels,
                   grids={"wall": wall, "lintel": lintel, "footprint": footprint, "free": free,
-                         "floor_obs": floor_obs, "low_cov": low_cov, "high_cov": high_cov})
+                         "floor_obs": floor_obs, "low_cov": low_cov, "high_cov": high_cov,
+                         "band_top": band_top, "wall_need_bins": need})
 
 
 def _ceiling_map(cloud: Cloud, ab: np.ndarray, frame: PlanFrame, floor_y: float) -> np.ndarray:
