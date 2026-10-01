@@ -48,10 +48,10 @@ B's floor and both bedrooms that were missing (see the two plans in `after/runs/
 **What it missed. A second cause, of similar size, was hidden behind the first.**
 Scan B sees walls only up to ~1.6 m. In furnished rooms the lower part of most walls is
 behind beds, wardrobes and sofas, so for many wall segments the only vertical surface B
-saw was the furniture front. The outline snaps to it. B's two bedrooms come out at
-2.41 × 2.54-2.81 m and 2.53 × 1.57-1.68 m against A's 2.73 × 3.07-3.36 m and
-2.29 × 1.29-1.04 m: sides off by 30-50 cm. The repeatability check then refuses to pair
-rooms whose shapes differ that much, so 0 → 1 paired rooms.
+saw was the furniture front. The outline snaps to it. The larger bedroom is
+2.73 m wide and 3.07 m deep in A, but 2.41 m and 2.54 m in B: 32 cm and 53 cm short.
+The repeatability check then refuses to pair rooms whose shapes differ that much, so only
+1 room is paired.
 
 That second cause could not be seen before the fix: rooms that do not exist cannot
 have the wrong size.
