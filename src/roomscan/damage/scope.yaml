@@ -1,0 +1,61 @@
+# Scope line items keyed to surfaces. quantity is one of:
+#   damage_area    region area x factor, at least `minimum`
+#   damage_length  longest side of the region x factor, at least `minimum`
+#   surface_area   whole surface (a wall is painted corner to corner)
+#   each           1
+# Items with once_per_surface are emitted once per surface however many regions it has.
+damage:
+  water_stain:
+    wall:
+      - {code: DRY-RPL, description: Cut out and replace water-damaged wallboard, unit: m2, quantity: damage_area, factor: 1.5, minimum: 0.4}
+      - {code: PNT-SEAL, description: Stain-block primer over repaired area, unit: m2, quantity: damage_area, factor: 2.0, minimum: 1.0}
+      - {code: PNT-WALL, description: Repaint wall corner to corner (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    ceiling:
+      - {code: CLG-RPL, description: Cut out and replace water-damaged ceiling board, unit: m2, quantity: damage_area, factor: 1.5, minimum: 0.4}
+      - {code: PNT-SEAL, description: Stain-block primer over repaired area, unit: m2, quantity: damage_area, factor: 2.0, minimum: 1.0}
+      - {code: PNT-CLG, description: Repaint ceiling (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    floor:
+      - {code: FLR-RPL, description: Remove and replace water-damaged floor finish, unit: m2, quantity: damage_area, factor: 1.5, minimum: 1.0}
+  crack:
+    wall:
+      - {code: CRK-FILL, description: "Rake out, tape and fill crack", unit: m, quantity: damage_length, factor: 1.2, minimum: 0.5}
+      - {code: PNT-WALL, description: Repaint wall corner to corner (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    ceiling:
+      - {code: CRK-FILL, description: "Rake out, tape and fill crack", unit: m, quantity: damage_length, factor: 1.2, minimum: 0.5}
+      - {code: PNT-CLG, description: Repaint ceiling (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    floor:
+      - {code: FLR-CRK, description: Repair cracked floor finish, unit: m, quantity: damage_length, factor: 1.2, minimum: 0.5}
+  mold:
+    wall:
+      - {code: MLD-TRT, description: Antimicrobial treatment of affected area, unit: m2, quantity: damage_area, factor: 2.0, minimum: 1.0}
+      - {code: DRY-RPL, description: Remove and replace mold-affected wallboard, unit: m2, quantity: damage_area, factor: 1.5, minimum: 0.4}
+      - {code: PNT-WALL, description: Repaint wall corner to corner (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    ceiling:
+      - {code: MLD-TRT, description: Antimicrobial treatment of affected area, unit: m2, quantity: damage_area, factor: 2.0, minimum: 1.0}
+      - {code: PNT-CLG, description: Repaint ceiling (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    floor:
+      - {code: MLD-TRT, description: Antimicrobial treatment of affected area, unit: m2, quantity: damage_area, factor: 2.0, minimum: 1.0}
+  peeling_paint:
+    wall:
+      - {code: PNT-PREP, description: "Scrape, sand and prime peeling paint", unit: m2, quantity: damage_area, factor: 1.5, minimum: 0.5}
+      - {code: PNT-WALL, description: Repaint wall corner to corner (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    ceiling:
+      - {code: PNT-PREP, description: "Scrape, sand and prime peeling paint", unit: m2, quantity: damage_area, factor: 1.5, minimum: 0.5}
+      - {code: PNT-CLG, description: Repaint ceiling (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    floor: []
+  hole:
+    wall:
+      - {code: DRY-PATCH, description: Patch hole in wallboard, unit: each, quantity: each}
+      - {code: PNT-WALL, description: Repaint wall corner to corner (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    ceiling:
+      - {code: CLG-PATCH, description: Patch hole in ceiling board, unit: each, quantity: each}
+      - {code: PNT-CLG, description: Repaint ceiling (2 coats), unit: m2, quantity: surface_area, once_per_surface: true}
+    floor:
+      - {code: FLR-PATCH, description: Repair hole in floor finish, unit: each, quantity: each}
+# Items triggered by concealed-damage flags, by risk level
+flags:
+  medium:
+    - {code: INV-MOIST, description: Moisture meter readings of the flagged surface and adjacent materials, unit: each}
+  high:
+    - {code: INV-MOIST, description: Moisture mapping / thermal imaging of the flagged surface and cavity, unit: each}
+    - {code: INV-OPEN, description: Inspection opening (300 x 300 mm) into the cavity and make good, unit: each}

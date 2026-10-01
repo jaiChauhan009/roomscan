@@ -58,10 +58,14 @@ class _WallAcc:
         self.height = height
         self.hit = np.zeros((self.nh, self.nu), np.float32)
         self.pas = np.zeros((self.nh, self.nu), np.float32)
+        self.beyond: list[np.ndarray] = []  # sample of (u, h, depth beyond wall) for the mirror test
 
 
 def detect_openings(cap: PosedCapture, layout: Layout, frame_stride: int = 2,
-                    pixel_stride: int = 3, max_depth: float = 10.0) -> list[Opening]:
+                    pixel_stride: int = 3, max_depth: float = 10.0, cloud=None,
+                    mirrors: list | None = None) -> list[Opening]:
+    """cloud: fused cloud, enables the mirror test. mirrors: list that receives a record
+    for every candidate rejected as a mirror."""
     fr = layout.frame
     accs: list[_WallAcc] = []
     for room in layout.rooms:
@@ -118,12 +122,53 @@ def detect_openings(cap: PosedCapture, layout: Layout, frame_stride: int = 2,
             if m.any():
                 np.add.at(a.pas, (np.clip((hX[m, wi] / HB).astype(int), 0, a.nh - 1),
                                   np.clip((uX[m, wi] / UB).astype(int), 0, a.nu - 1)), 1)
+                if cloud is not None:
+                    sel = np.where(m)[0][::7]
+                    a.beyond.append(np.concatenate([np.stack([uX[sel, wi], hX[sel, wi]], 1), Pw[sel]], 1))
 
+    occupied = _voxel_set(cloud.points, 0.06) if cloud is not None else None
     openings: list[Opening] = []
     for a in accs:
-        openings += _extract(a, len(openings))
+        for op in _extract(a, len(openings)):
+            if occupied is not None and _is_mirror(a, op, fr, occupied):
+                if mirrors is not None:
+                    mirrors.append({"room_id": op.room_id, "wall_id": op.wall_id, "width": round(op.width, 3),
+                                    "bottom": round(op.bottom, 2), "top": round(op.top, 2)})
+                continue
+            op.id = f"op_{len(openings) + 1}"
+            openings.append(op)
     _link_rooms(openings, layout)
     return openings
+
+
+def _voxel_set(points: np.ndarray, voxel: float) -> set:
+    k = np.floor(points / voxel).astype(np.int64)
+    # include the 6-neighbourhood so a point within ~1 voxel of a surface counts
+    allk = [k] + [k + np.array(o) for o in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
+    allk = np.concatenate(allk)
+    return set(map(tuple, np.unique(allk, axis=0)))
+
+
+def _is_mirror(a: _WallAcc, op: Opening, fr, occupied: set, voxel: float = 0.06) -> bool:
+    """A mirror shows the room behind the wall plane. Reflect what is seen "through" the
+    opening back across the wall: if it lands on real surfaces of this room, it is a mirror."""
+    if not a.beyond:
+        return False
+    B = np.concatenate(a.beyond)
+    m = (B[:, 0] > op.u0) & (B[:, 0] < op.u1) & (B[:, 1] > max(op.bottom, 0.2)) & (B[:, 1] < op.top)
+    # floor-level points are excluded: a real doorway shows floor on both sides, which reflects onto floor
+    if m.sum() < 60:
+        return False
+    Pw = B[m, 2:5]
+    n_plan = fr.to_world(a.n_out[None])[0]
+    n3 = np.array([n_plan[0], 0.0, n_plan[1]])
+    s_plan = fr.to_world(a.wall.start[None])[0]
+    s0 = np.array([s_plan[0], 0.0, s_plan[1]])
+    dist = (Pw - s0) @ n3  # > 0 beyond the wall
+    refl = Pw - 2 * dist[:, None] * n3
+    keys = np.floor(refl / voxel).astype(np.int64)
+    frac = np.mean([tuple(k) in occupied for k in keys])
+    return bool(frac > 0.6)
 
 
 def _extract(a: _WallAcc, start_idx: int) -> list[Opening]:

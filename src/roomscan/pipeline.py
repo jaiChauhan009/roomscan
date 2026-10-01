@@ -117,7 +117,11 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
         warnings.append("no closed room found")
 
     t = time.time()
-    openings = detect_openings(cap, layout)
+    mirrors: list = []
+    openings = detect_openings(cap, layout, cloud=cloud if cap.tier == "lidar" else None, mirrors=mirrors)
+    for mi in mirrors:
+        warnings.append(f"{mi['wall_id']}: reflective surface {mi['width']} m wide treated as a mirror, "
+                        f"not reported as an opening")
     timing["openings"] = time.time() - t
 
     dmg, flags, scope = [], [], []

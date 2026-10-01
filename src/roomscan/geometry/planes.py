@@ -38,30 +38,35 @@ def _mode_refine(y: np.ndarray, w: np.ndarray | None = None, bin_m: float = 0.01
 
 
 def floor_level(cloud: Cloud, mask: np.ndarray | None = None) -> Level | None:
+    """The floor is the best-supported upward-facing plane.
+
+    Not "the lowest plane": a glossy floor gives LiDAR ghost points below the real floor
+    (the room mirrored in it), and those would drag a lowest-point rule down.
+    """
     m = cloud.normals[:, 1] > UP_T
     if mask is not None:
         m &= mask
     y = cloud.points[m, 1]
     if len(y) < 50:
         return None
-    # the floor is the dominant upward plane in the lower part of the scene
-    lo = np.percentile(y, 1)
-    y = y[y < lo + 0.6]
-    return _mode_refine(y, cloud.weight[m][cloud.points[m, 1] < lo + 0.6])
+    # tables and beds also face up, but only the lower half of the scene's height can be floor
+    allY = cloud.points[:, 1] if mask is None else cloud.points[mask, 1]
+    low = y < (np.percentile(allY, 1) + np.percentile(allY, 99)) / 2
+    if low.sum() < 50:
+        return None
+    return _mode_refine(y[low], cloud.weight[m][low])
 
 
 def ceiling_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None,
                   min_height: float = 1.9) -> Level | None:
+    """The ceiling is the best-supported downward-facing plane at least min_height above the floor."""
     m = (cloud.normals[:, 1] < -UP_T) & (cloud.points[:, 1] > floor_y + min_height)
     if mask is not None:
         m &= mask
     y = cloud.points[m, 1]
     if len(y) < 200:
         return None
-    # the ceiling is the dominant downward plane near the top of the scene
-    hi = np.percentile(y, 99)
-    sel = y > hi - 0.6
-    return _mode_refine(y[sel], cloud.weight[m][sel])
+    return _mode_refine(y, cloud.weight[m])
 
 
 def wall_top_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None) -> Level | None:

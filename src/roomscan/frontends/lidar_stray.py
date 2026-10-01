@@ -51,21 +51,31 @@ def read_odometry(path: Path) -> np.ndarray:
 
 
 class VideoReader:
-    """Random access to video frames with a small sequential cache."""
+    """Random access to video frames. Decoded frames are kept as JPEG bytes so repeated
+    requests (frame selection, then detection) do not seek the video again."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, max_cache: int = 64):
         self.path = path
         self.cap = None
         self.pos = -1
+        self.cache: dict[int, np.ndarray] = {}
+        self.max_cache = max_cache
 
     def get(self, idx: int) -> np.ndarray | None:
+        if idx in self.cache:
+            return cv2.imdecode(self.cache[idx], cv2.IMREAD_COLOR)[:, :, ::-1].copy()
         if self.cap is None:
             self.cap = cv2.VideoCapture(str(self.path))
         if idx != self.pos + 1:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
         ok, img = self.cap.read()
         self.pos = idx
-        return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if ok else None
+        if not ok:
+            return None
+        if len(self.cache) >= self.max_cache:
+            self.cache.pop(next(iter(self.cache)))
+        self.cache[idx] = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 95])[1]
+        return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     def size(self) -> tuple[int, int]:
         cap = cv2.VideoCapture(str(self.path))

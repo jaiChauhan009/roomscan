@@ -1,0 +1,64 @@
+# Concealed-damage rules. Each rule looks at one visible damage region and its context and,
+# when it fires, flags damage that is likely present but not visible. The id and the
+# sentence in `rule` are written into the output so a reader can see why a flag exists.
+#
+# Conditions (all listed conditions must hold):
+#   class:              visible damage class is one of these
+#   surface:            wall | floor | ceiling
+#   bottom_below:       lowest point of the region is within X m of the floor
+#   top_within_ceiling: highest point is within X m of the ceiling
+#   min_area:           region area >= X m2
+#   min_extent:         longest side of the region >= X m
+#   near_opening:       {types: [...], within: X} region is within X m of such an opening on its wall
+#   shares_wall_with:   the wall backs onto a room with this label (small_room = bathroom-sized)
+rules:
+  - id: CD-01
+    rule: Water stain on a ceiling means water entered from above the ceiling.
+    when: {class: [water_stain], surface: ceiling}
+    risk: high
+    recommendation: Inspect the roof or the plumbing / wet room above; expect wet insulation and ceiling board beyond the visible stain.
+  - id: CD-02
+    rule: Moisture damage reaching within 30 cm of the floor suggests water behind the skirting or in the subfloor.
+    when: {class: [water_stain, peeling_paint, mold], surface: wall, bottom_below: 0.30}
+    risk: medium
+    recommendation: Remove skirting and take moisture readings of the bottom plate and subfloor.
+  - id: CD-03
+    rule: Water stain at the top of a wall suggests water running down inside the wall from above.
+    when: {class: [water_stain], surface: wall, top_within_ceiling: 0.40}
+    risk: high
+    recommendation: Open the wall at the stain and trace the source above; check the cavity for wet insulation.
+  - id: CD-04
+    rule: Moisture damage on a wall that backs onto a bathroom-sized room suggests a plumbing leak inside the shared wall.
+    when: {class: [water_stain, peeling_paint, mold], surface: wall, shares_wall_with: small_room}
+    risk: high
+    recommendation: Pressure-test supply and waste lines in the shared wall; inspect the other side for tile or seal failure.
+  - id: CD-05
+    rule: Visible mold implies a sustained moisture source and growth on the hidden side of the material.
+    when: {class: [mold]}
+    risk: medium
+    recommendation: Find and stop the moisture source; inspect the back of the affected board before any cosmetic repair.
+  - id: CD-06
+    rule: Mold or water staining over more than 1 m2 implies saturated material behind the surface.
+    when: {class: [water_stain, mold], min_area: 1.0}
+    risk: high
+    recommendation: Professional moisture mapping; plan for removal of the board and insulation behind the affected area.
+  - id: CD-07
+    rule: Moisture damage within 50 cm of a window suggests failed flashing or seal, with wet framing around the opening.
+    when: {class: [water_stain, peeling_paint, mold], surface: wall, near_opening: {types: [window], within: 0.5}}
+    risk: medium
+    recommendation: Inspect window flashing and sill; probe the framing below the sill for rot.
+  - id: CD-08
+    rule: Water stain on a floor suggests damage to the subfloor or underlay below the finish.
+    when: {class: [water_stain], surface: floor}
+    risk: medium
+    recommendation: Lift the floor finish at the stain and check the subfloor for swelling or rot.
+  - id: CD-09
+    rule: A crack longer than 1 m suggests structural movement rather than a surface defect.
+    when: {class: [crack], min_extent: 1.0}
+    risk: medium
+    recommendation: Monitor the crack width; have the framing or foundation assessed before cosmetic repair.
+  - id: CD-10
+    rule: A crack running from the corner of a door or window suggests lintel or framing movement behind the finish.
+    when: {class: [crack], surface: wall, near_opening: {types: [door, window, opening], within: 0.4}}
+    risk: medium
+    recommendation: Inspect the lintel and the framing around the opening.
