@@ -66,6 +66,7 @@ class Wall:
     sigma: float  # 1-sigma of the wall plane position (m)
     support: int  # number of 3D points that fixed the plane (0 = raster only)
     coverage: float = 0.0  # fraction of the wall length with surface evidence
+    spread: float = 0.0  # robust std of wall points about the plane (sharpness, m)
 
     @property
     def length(self) -> float:
@@ -266,6 +267,7 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
         mad = float(np.median(np.abs(o[sel] - med))) * 1.4826
         s["coord"] = s["coord"] - med * inward[axis]
         s["sigma"] = max(mad / np.sqrt(sel.sum()), 0.002)
+        s["spread"] = mad
         s["support"] = int(sel.sum())
         s["coverage"] = float(min(1.0, len(np.unique(np.floor(u[sel] / 0.05))) * 0.05 / max(hi - lo, 0.05)))
     return segs
@@ -382,7 +384,7 @@ def extract_layout(cloud: Cloud, res: float = RES) -> Layout:
             inward = np.array([-d[1], d[0]])  # CCW polygon: interior on the left
             walls.append(Wall(id=f"{rid}_w{i + 1}", orient=s["orient"], start=p, end=q, inward=inward,
                               sigma=float(s.get("sigma", 0.03)), support=int(s.get("support", 0)),
-                              coverage=float(s.get("coverage", 0.0))))
+                              coverage=float(s.get("coverage", 0.0)), spread=float(s.get("spread", 0.0))))
         rooms.append(Room(id=rid, label_id=len(rooms) + 1, polygon=verts, walls=walls, floor=floor,
                           ceiling=ceil, ceiling_source=ceil_src, mask=m))
 

@@ -43,6 +43,7 @@ class Wall(BaseModel):
     area: Measurement = Field(description="Gross wall area minus openings")
     opening_ids: list[str]
     evidence_coverage: float = Field(description="Fraction of the wall length with direct surface evidence")
+    plane_spread: float = Field(description="Robust std of wall points about the fitted plane (m); drift blurs it")
 
 
 class Surface(BaseModel):

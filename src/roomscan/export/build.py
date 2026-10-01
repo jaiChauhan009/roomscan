@@ -66,7 +66,7 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
                 height=ceiling,
                 area=measure(max(gross - open_area, 0.0), ls * h_val + w.length * (hs or 0.05), tier, "area", "m2"),
                 opening_ids=[o.id for o in w_ops],
-                evidence_coverage=round(w.coverage, 3)))
+                evidence_coverage=round(w.coverage, 3), plane_spread=round(w.spread, 4)))
             surfaces.append(S.Surface(id=f"{w.id}", type="wall", ref=w.id,
                                       area=walls_out[-1].area))
         per_sigma = float(np.sqrt(sum(w.sigma ** 2 for w in room.walls)))

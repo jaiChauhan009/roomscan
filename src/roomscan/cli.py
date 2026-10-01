@@ -15,7 +15,7 @@ def run(capture: Path = typer.Argument(..., help="Stray Scanner folder, video fi
         out: Path = typer.Option(None, "--out", "-o", help="Output folder (default runs/<capture name>)"),
         tier: str = typer.Option("auto", help="auto | lidar | video | photo"),
         stride: int = typer.Option(5, help="LiDAR: use every Nth frame"),
-        no_drift: bool = typer.Option(False, "--no-drift", help="Disable drift correction (ablation)"),
+        drift: str = typer.Option("loop", help="Drift correction: off | loop | heading | loop+heading"),
         no_damage: bool = typer.Option(False, "--no-damage", help="Skip damage detection"),
         no_cache: bool = typer.Option(False, "--no-cache", help="Recompute everything"),
         quiet: bool = typer.Option(False, "--quiet", "-q")):
@@ -24,7 +24,7 @@ def run(capture: Path = typer.Argument(..., help="Stray Scanner folder, video fi
 
     out = out or Path("runs") / capture.name
     t = time.time()
-    res = run_pipeline(capture, out, tier=tier, stride=stride, drift=not no_drift, damage=not no_damage,
+    res = run_pipeline(capture, out, tier=tier, stride=stride, drift=drift, damage=not no_damage,
                        use_cache=not no_cache, progress=not quiet)
     fp = res["property"]["footprint_area"]
     typer.echo(f"[{res['capture']['tier']}] {len(res['rooms'])} rooms, footprint {fp['value']:.2f} m2 "

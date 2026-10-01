@@ -651,6 +651,11 @@
           "description": "Fraction of the wall length with direct surface evidence",
           "title": "Evidence Coverage",
           "type": "number"
+        },
+        "plane_spread": {
+          "description": "Robust std of wall points about the fitted plane (m); drift blurs it",
+          "title": "Plane Spread",
+          "type": "number"
         }
       },
       "required": [
@@ -661,7 +666,8 @@
         "height",
         "area",
         "opening_ids",
-        "evidence_coverage"
+        "evidence_coverage",
+        "plane_spread"
       ],
       "title": "Wall",
       "type": "object"

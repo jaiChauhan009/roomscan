@@ -53,7 +53,12 @@ def cached_fuse(cap: PosedCapture, key_parts: tuple, voxel: float = 0.02, use_ca
     return cloud
 
 
-def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: bool = True,
+DRIFT_MODES = {"off": None, "loop": dict(loop_closure=True, heading=False),
+               "heading": dict(loop_closure=False, heading=True),
+               "loop+heading": dict(loop_closure=True, heading=True)}
+
+
+def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: str = "loop",
         damage: bool = True, use_cache: bool = True, progress: bool = True) -> dict:
     path, out_dir = Path(path), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -77,7 +82,7 @@ def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: b
                      progress=progress, timing=timing, key=(str(path.resolve()), tier, stride))
 
 
-def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: bool, damage: bool,
+def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage: bool,
               use_cache: bool, progress: bool, timing: dict, key: tuple) -> dict:
     from roomscan.export.build import build_output
     from roomscan.export.render import render_plan
@@ -88,15 +93,18 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: bool, damage
     warnings: list[str] = []
     t = time.time()
     drift_info = {"method": "none", "enabled": False}
-    if drift:
-        cap, drift_info = correct_drift(cap, use_cache=use_cache, key=key, progress=progress)
+    if DRIFT_MODES.get(drift):
+        cap, drift_info = correct_drift(cap, use_cache=use_cache, key=key, progress=progress,
+                                        **DRIFT_MODES[drift])
     timing["drift"] = time.time() - t
 
     t = time.time()
-    cloud = cached_fuse(cap, key + (drift, drift_info.get("method")), use_cache=use_cache, progress=progress)
+    cloud = cached_fuse(cap, key + (drift,), use_cache=use_cache, progress=progress)
     timing["fuse"] = time.time() - t
 
     t = time.time()
+    from roomscan.geometry.metrics import crispness
+    drift_info["wall_crispness"] = round(crispness(cloud), 3)
     layout = extract_layout(cloud)
     timing["layout"] = time.time() - t
     if not layout.rooms:
