@@ -1,0 +1,747 @@
+{
+  "$defs": {
+    "Adjacency": {
+      "properties": {
+        "rooms": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Rooms",
+          "type": "array"
+        },
+        "via": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Opening id joining the two rooms (null = shared wall only)",
+          "title": "Via"
+        },
+        "kind": {
+          "enum": [
+            "door",
+            "opening",
+            "shared_wall"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rooms",
+        "via",
+        "kind"
+      ],
+      "title": "Adjacency",
+      "type": "object"
+    },
+    "CaptureInfo": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "lidar",
+            "video",
+            "photo"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "n_frames_used": {
+          "title": "N Frames Used",
+          "type": "integer"
+        },
+        "meta": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Meta",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "tier",
+        "source",
+        "n_frames_used"
+      ],
+      "title": "CaptureInfo",
+      "type": "object"
+    },
+    "ConcealedFlag": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "surface_id": {
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "rule": {
+          "description": "Human-readable rule that fired",
+          "title": "Rule",
+          "type": "string"
+        },
+        "triggered_by": {
+          "description": "Damage region ids that triggered the rule",
+          "items": {
+            "type": "string"
+          },
+          "title": "Triggered By",
+          "type": "array"
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Risk",
+          "type": "string"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "surface_id",
+        "room_id",
+        "rule_id",
+        "rule",
+        "triggered_by",
+        "risk",
+        "recommendation"
+      ],
+      "title": "ConcealedFlag",
+      "type": "object"
+    },
+    "DamageRegion": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "surface_id": {
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "damage_class": {
+          "enum": [
+            "water_stain",
+            "crack",
+            "mold",
+            "peeling_paint",
+            "hole",
+            "other"
+          ],
+          "title": "Damage Class",
+          "type": "string"
+        },
+        "score": {
+          "description": "Detector confidence 0..1",
+          "title": "Score",
+          "type": "number"
+        },
+        "area": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Metric extent on the surface (m2)"
+        },
+        "extent_u": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Horizontal extent on the surface (m)"
+        },
+        "extent_v": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Vertical extent on the surface (m)"
+        },
+        "center": {
+          "description": "Plan x, plan y, height above floor (m)",
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Center",
+          "type": "array"
+        },
+        "evidence_frames": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Evidence Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "surface_id",
+        "room_id",
+        "damage_class",
+        "score",
+        "area",
+        "extent_u",
+        "extent_v",
+        "center",
+        "evidence_frames"
+      ],
+      "title": "DamageRegion",
+      "type": "object"
+    },
+    "Measurement": {
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Point estimate (metres / square metres). null = not observed",
+          "title": "Value"
+        },
+        "ci90": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "90 % interval [low, high]",
+          "title": "Ci90"
+        },
+        "sigma": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1-sigma standard uncertainty after tier calibration",
+          "title": "Sigma"
+        },
+        "unit": {
+          "default": "m",
+          "enum": [
+            "m",
+            "m2"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "lower_bound": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hard lower bound when value is not observed",
+          "title": "Lower Bound"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "value",
+        "ci90",
+        "sigma"
+      ],
+      "title": "Measurement",
+      "type": "object"
+    },
+    "Opening": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "door",
+            "window",
+            "opening"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "wall_id": {
+          "title": "Wall Id",
+          "type": "string"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "connects_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Neighbouring room id (doors / open passages)",
+          "title": "Connects To"
+        },
+        "width": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "height": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "sill_height": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "offset_along_wall": {
+          "description": "Distance from wall start to opening start (m)",
+          "title": "Offset Along Wall",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "wall_id",
+        "room_id",
+        "connects_to",
+        "width",
+        "height",
+        "sill_height",
+        "offset_along_wall"
+      ],
+      "title": "Opening",
+      "type": "object"
+    },
+    "Property": {
+      "properties": {
+        "footprint_area": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Sum of room floor areas"
+        },
+        "bbox": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Diagonal of the stitched plan bounding box"
+        },
+        "room_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Room Ids",
+          "type": "array"
+        },
+        "adjacency": {
+          "items": {
+            "$ref": "#/$defs/Adjacency"
+          },
+          "title": "Adjacency",
+          "type": "array"
+        },
+        "stitch_method": {
+          "title": "Stitch Method",
+          "type": "string"
+        },
+        "drift_correction": {
+          "additionalProperties": true,
+          "title": "Drift Correction",
+          "type": "object"
+        }
+      },
+      "required": [
+        "footprint_area",
+        "bbox",
+        "room_ids",
+        "adjacency",
+        "stitch_method",
+        "drift_correction"
+      ],
+      "title": "Property",
+      "type": "object"
+    },
+    "Room": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Polygon",
+          "type": "array"
+        },
+        "floor_area": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "perimeter": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "ceiling_height": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "ceiling_source": {
+          "enum": [
+            "ceiling_plane",
+            "wall_top",
+            "none",
+            "model"
+          ],
+          "title": "Ceiling Source",
+          "type": "string"
+        },
+        "walls": {
+          "items": {
+            "$ref": "#/$defs/Wall"
+          },
+          "title": "Walls",
+          "type": "array"
+        },
+        "openings": {
+          "items": {
+            "$ref": "#/$defs/Opening"
+          },
+          "title": "Openings",
+          "type": "array"
+        },
+        "surfaces": {
+          "items": {
+            "$ref": "#/$defs/Surface"
+          },
+          "title": "Surfaces",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "polygon",
+        "floor_area",
+        "perimeter",
+        "ceiling_height",
+        "ceiling_source",
+        "walls",
+        "openings",
+        "surfaces"
+      ],
+      "title": "Room",
+      "type": "object"
+    },
+    "ScopeItem": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "surface_id": {
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "unit": {
+          "enum": [
+            "m2",
+            "m",
+            "each"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "source": {
+          "description": "damage id or flag id this item is keyed to",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "surface_id",
+        "room_id",
+        "code",
+        "description",
+        "quantity",
+        "unit",
+        "source"
+      ],
+      "title": "ScopeItem",
+      "type": "object"
+    },
+    "Surface": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "wall",
+            "floor",
+            "ceiling"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "ref": {
+          "description": "wall id for walls, room id for floor / ceiling",
+          "title": "Ref",
+          "type": "string"
+        },
+        "area": {
+          "$ref": "#/$defs/Measurement"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "ref",
+        "area"
+      ],
+      "title": "Surface",
+      "type": "object"
+    },
+    "Wall": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "start": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Start",
+          "type": "array"
+        },
+        "end": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "End",
+          "type": "array"
+        },
+        "length": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "height": {
+          "$ref": "#/$defs/Measurement"
+        },
+        "area": {
+          "$ref": "#/$defs/Measurement",
+          "description": "Gross wall area minus openings"
+        },
+        "opening_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Opening Ids",
+          "type": "array"
+        },
+        "evidence_coverage": {
+          "description": "Fraction of the wall length with direct surface evidence",
+          "title": "Evidence Coverage",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "start",
+        "end",
+        "length",
+        "height",
+        "area",
+        "opening_ids",
+        "evidence_coverage"
+      ],
+      "title": "Wall",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "units": {
+      "default": "metres; areas in square metres",
+      "title": "Units",
+      "type": "string"
+    },
+    "interval": {
+      "default": "90 % (ci90); sigma = 1-sigma after per-tier calibration",
+      "title": "Interval",
+      "type": "string"
+    },
+    "capture": {
+      "$ref": "#/$defs/CaptureInfo"
+    },
+    "property": {
+      "$ref": "#/$defs/Property"
+    },
+    "rooms": {
+      "items": {
+        "$ref": "#/$defs/Room"
+      },
+      "title": "Rooms",
+      "type": "array"
+    },
+    "damage": {
+      "items": {
+        "$ref": "#/$defs/DamageRegion"
+      },
+      "title": "Damage",
+      "type": "array"
+    },
+    "concealed_damage_flags": {
+      "items": {
+        "$ref": "#/$defs/ConcealedFlag"
+      },
+      "title": "Concealed Damage Flags",
+      "type": "array"
+    },
+    "scope": {
+      "items": {
+        "$ref": "#/$defs/ScopeItem"
+      },
+      "title": "Scope",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "timing_s": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Timing S",
+      "type": "object"
+    }
+  },
+  "required": [
+    "capture",
+    "property",
+    "rooms",
+    "damage",
+    "concealed_damage_flags",
+    "scope",
+    "warnings",
+    "timing_s"
+  ],
+  "title": "Output",
+  "type": "object"
+}

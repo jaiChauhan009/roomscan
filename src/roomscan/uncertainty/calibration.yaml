@@ -1,0 +1,23 @@
+# Per-tier uncertainty terms: sigma = sqrt((inflate * raw)^2 + abs^2 + (rel * value)^2)
+# Initial values are priors from sensor specs; bench/calibrate.py refits them on the benchmark.
+lidar:
+  wall_length:    {inflate: 2.0, abs: 0.008, rel: 0.002}
+  ceiling_height: {inflate: 2.0, abs: 0.006, rel: 0.001}
+  opening_width:  {inflate: 1.5, abs: 0.010, rel: 0.000}
+  opening_height: {inflate: 1.5, abs: 0.030, rel: 0.000}
+  area:           {inflate: 2.0, abs: 0.050, rel: 0.004}
+  damage:         {inflate: 1.0, abs: 0.010, rel: 0.250}
+video:
+  wall_length:    {inflate: 2.0, abs: 0.030, rel: 0.020}
+  ceiling_height: {inflate: 2.0, abs: 0.030, rel: 0.020}
+  opening_width:  {inflate: 1.5, abs: 0.030, rel: 0.030}
+  opening_height: {inflate: 1.5, abs: 0.050, rel: 0.030}
+  area:           {inflate: 2.0, abs: 0.150, rel: 0.040}
+  damage:         {inflate: 1.0, abs: 0.020, rel: 0.350}
+photo:
+  wall_length:    {inflate: 2.0, abs: 0.050, rel: 0.050}
+  ceiling_height: {inflate: 2.0, abs: 0.050, rel: 0.050}
+  opening_width:  {inflate: 1.5, abs: 0.050, rel: 0.060}
+  opening_height: {inflate: 1.5, abs: 0.080, rel: 0.060}
+  area:           {inflate: 2.0, abs: 0.300, rel: 0.100}
+  damage:         {inflate: 1.0, abs: 0.030, rel: 0.450}
