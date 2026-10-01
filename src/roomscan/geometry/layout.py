@@ -277,7 +277,7 @@ def extract_layout(cloud: Cloud, res: float = RES) -> Layout:
     floor = floor_level(cloud)
     if floor is None:
         raise RuntimeError("no floor found in capture")
-    ceil = ceiling_level(cloud, floor.value)
+    ceil = ceiling_level(cloud, floor.value, highest=True)
     ceil_src = "ceiling_plane"
     if ceil is None:
         ceil = wall_top_level(cloud, floor.value)

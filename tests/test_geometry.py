@@ -70,3 +70,16 @@ def test_box_fit_recovers_rectangle_from_noisy_cloud():
     room = fit_box(c, 0.0, "r", noise=0.08)
     assert _dims(room) == pytest.approx([3.0, 3.0, 4.0, 4.0], abs=0.04)
     assert room.height == pytest.approx(2.6, abs=0.03)
+
+
+def test_whole_capture_ceiling_is_the_highest_one_not_the_most_scanned():
+    # a flat with a 3.0 m main room and a densely scanned 2.4 m bathroom: the capture-level
+    # ceiling must stay at 3.0 m or everything above 2.4 m is cut off
+    main = box_room(4.0, 3.0, 3.0, origin=(0, 0), step=0.04)
+    bath = box_room(2.0, 2.0, 2.4, origin=(4.12, 0), step=0.015, seed=1)
+    c = merge(main, bath)
+    f = floor_level(c)
+    assert ceiling_level(c, f.value, highest=True).value - f.value == pytest.approx(3.0, abs=0.01)
+    layout = extract_layout(c)
+    heights = sorted(round(r.height, 2) for r in layout.rooms)
+    assert heights == pytest.approx([2.4, 3.0], abs=0.01)

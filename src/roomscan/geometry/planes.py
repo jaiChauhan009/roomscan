@@ -58,15 +58,32 @@ def floor_level(cloud: Cloud, mask: np.ndarray | None = None) -> Level | None:
 
 
 def ceiling_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None,
-                  min_height: float = 1.9) -> Level | None:
-    """The ceiling is the best-supported downward-facing plane at least min_height above the floor."""
+                  min_height: float = 1.9, highest: bool = False) -> Level | None:
+    """Ceiling plane at least min_height above the floor.
+
+    Default: the best-supported downward-facing plane (the ceiling of one room).
+    highest=True: the highest plane with substantial support. Used for the whole capture,
+    where bathrooms and corridors often have dropped ceilings that outweigh the main one;
+    taking the best-supported plane there cut everything above 2.4 m off a 3.0 m flat.
+    """
     m = (cloud.normals[:, 1] < -UP_T) & (cloud.points[:, 1] > floor_y + min_height)
     if mask is not None:
         m &= mask
     y = cloud.points[m, 1]
     if len(y) < 200:
         return None
-    return _mode_refine(y, cloud.weight[m])
+    w = cloud.weight[m]
+    if highest:
+        bin_m = 0.02
+        h, e = np.histogram(y, bins=np.arange(y.min(), y.max() + bin_m, bin_m), weights=w)
+        if len(h) == 0:
+            return None
+        hs = np.convolve(h, [0.25, 0.5, 0.25], mode="same")
+        strong = np.where(hs >= 0.15 * hs.max())[0]
+        top = e[strong.max()] + bin_m / 2
+        sel = np.abs(y - top) < 0.15
+        return _mode_refine(y[sel], w[sel])
+    return _mode_refine(y, w)
 
 
 def wall_top_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None) -> Level | None:
