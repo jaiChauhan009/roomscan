@@ -1,0 +1,34 @@
+# Ground truth for one capture. Copy to bench/ground_truth/<capture name>.yaml and fill in
+# with a laser measurer or tape. All lengths in metres.
+#
+# How to measure
+#   walls:    stand in the room facing the door you entered by; start with the wall on your
+#             left and go clockwise. One number per straight wall segment, corner to corner,
+#             at about 1 m above the floor. Include short returns (alcoves, columns) >= 25 cm.
+#   ceiling:  floor to ceiling near the middle of the room.
+#   openings: clear width between the jambs (doors: frame to frame, door open;
+#             windows: glass opening). List every door, window and open passage.
+#   adjacency: every pair of rooms joined by a door or open passage.
+capture: my_flat              # name of the capture this file belongs to
+source: laser                 # laser | tape
+measured_by: ""
+date: ""
+footprint: null               # optional: total floor area in m2 if you computed it
+rooms:
+  - name: living_room
+    match: null               # optional: id of the room in result.json (e.g. room_2) if the
+                              # automatic pairing picks the wrong one
+    ceiling_height: 2.70
+    walls: [4.20, 3.50, 4.20, 3.50]
+    openings:
+      - {type: door, width: 0.90}
+      - {type: window, width: 1.40}
+  - name: hall
+    ceiling_height: 2.70
+    walls: [1.10, 3.00, 1.10, 3.00]
+    openings:
+      - {type: door, width: 0.90}
+adjacency:
+  - [living_room, hall]
+damage:                       # staged damage, for the damage rows of the report
+  - {room: living_room, surface: wall, class: water_stain, width: 0.40, height: 0.30}

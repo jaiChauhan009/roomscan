@@ -1,0 +1,21 @@
+# Benchmark set. Paths are relative to data_root (override with the ROOMSCAN_DATA env var).
+#
+# Current contents: the three Stray Scanner sample scans of one apartment that came with
+# the brief, plus the video and photo inputs derived from them. They have NO tape or laser
+# ground truth, so:
+#   * LiDAR captures are scored on repeatability and the drift ablation only
+#   * video / photo captures are scored against the LiDAR-tier output of the same capture
+#     ("reference"), which the report labels as such
+# When a file bench/ground_truth/<name>.yaml exists for a capture it is used instead of
+# the reference. Own captures with laser ground truth are added here the same way.
+data_root: ../data
+captures:
+  - {name: apt_lidar_a, path: single_scan_with_ceiling, tier: lidar}
+  - {name: apt_lidar_b, path: single_scan_floor_only, tier: lidar}
+  - {name: room_lidar, path: single_room, tier: lidar}
+  - {name: apt_video_b, path: single_scan_floor_only/1a8384c3f6/rgb.mp4, tier: video, reference: apt_lidar_b}
+  - {name: apt_photo_a, path: photos_with_ceiling, tier: photo, reference: apt_lidar_a,
+     prepare: "scripts/make_photo_set.py {data_root}/single_scan_with_ceiling {data_root}/photos_with_ceiling"}
+repeatability:
+  - [apt_lidar_a, apt_lidar_b]
+drift_ablation: [apt_lidar_a, apt_lidar_b]

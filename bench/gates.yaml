@@ -1,0 +1,26 @@
+# Pass/fail gates used by bench/evaluate.py.
+# Source: Round 2 brief, except where marked ASSUMED (the Round 1 document was not
+# available when this was written; replace these values when it is).
+wall_length:
+  lidar: {abs_m: 0.02, rel: 0.005}   # ASSUMED Round 1 gate: within 2 cm or 0.5 %
+  video: {rel: 0.03}                 # brief: +-3 %
+  photo: {rel: 0.08}                 # brief: +-8 %
+  pass_fraction: 0.85                # ASSUMED: share of walls that must be inside the gate
+opening_width:
+  abs_m: 0.02                        # brief: <= 2 cm
+  pass_fraction: 0.85                # brief: on >= 85 % of openings; missed and phantom count as misses
+ceiling_height:
+  abs_m: 0.015                       # brief: <= 1.5 cm per room
+  repeat_spread_m: 0.01              # brief: spread across captures <= 1 cm
+repeatability:
+  abs_m: 0.01                        # brief: two captures agree within 1 cm ...
+  rel: 0.005                         # ... or 0.5 % per wall
+footprint:
+  photo: {rel: 0.08}                 # brief: photo-tier stitched footprint within +-8 %
+  video: {rel: 0.03}                 # ASSUMED: same as the video wall gate
+  lidar: {rel: 0.01}                 # ASSUMED
+calibration:
+  nominal: 0.90                      # intervals are 90 %
+  accept: [0.80, 0.98]               # ASSUMED band for "calibrated" given small samples
+head_to_head:
+  win_or_tie_fraction: 0.70          # brief
