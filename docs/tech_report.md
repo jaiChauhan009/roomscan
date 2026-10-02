@@ -12,8 +12,9 @@ CPU-only laptop. The LiDAR geometry is precise on synthetic rooms (under 1 mm, f
 ones included). On four unseen rooms with laser truth (ARKitScenes, Faro scans):
 - footprint within 8 % in all four (−7.6, −2.5, +0.6, −2.0 %);
 - ceilings within 1-5 cm, read low;
-- median wall error 3, 10 and 13 cm in three rooms; the fourth is split in two by a gap
-  between furniture, and its walls are 1.5 m off. Wall gates (1 cm) still fail.
+- median wall error 3-13 cm in all four. The fourth room was split in two by a gap
+  between furniture (walls 1.48 m off); it is now one room, median 0.047 m
+  (`f83f66c`). Wall gates (1 cm) still fail.
 
 On our own captures, an iPhone 16 Pro with Stray Scanner gave a 4-room plan of our flat in
 2.5 minutes. A second scan of one room agrees with it to 1.7 cm on the walls both see. The
@@ -29,6 +30,10 @@ than captured per protocol.
 public rooms (LiDAR tier only). The sample flat has none, so its numbers are
 self-consistency (repeatability, drift) or comparisons against our own LiDAR output,
 labelled as such, and so are our own captures until the flat is taped.
+
+Around the engine there is now a product: a capture check with retake advice, optional
+tape sizes per room, a stage queue with a gate after each stage, an Excel output, and a
+web app (section 10).
 
 ## 2. Architecture
 
@@ -169,7 +174,8 @@ The effect on the laser rooms:
 - Fitting without the term needed scale 99, ±2.3 m on every wall.
 - With it the fit is 5.07, and all 16 walls fall inside their intervals.
 - The scale is pinned by one value: the split room's ceiling, 5 cm off. It could fall to
-  about 3.5 once that room is no longer split.
+  about 3.5 once that room is no longer split. It no longer is (section 9); the refit has
+  not been run yet.
 
 `bench/reports/benchmark.md` is the complete run made *before* this refit: its `calibration`
 rows show coverage at the previous scales, recorded in `benchmark.json` as
@@ -250,14 +256,17 @@ wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
   or the look-back photo cannot be matched (position along the wall is guessed and flagged).
 - **Furnished rooms (LiDAR, laser truth):** furniture taller than about 1.1 m is a barrier
   in the wall grid. Where no wall is seen above it, the outline keeps the notch. A gap
-  between two pieces can cut a room in two (ARKitScenes 42446532). Each laser wall is then
-  paired with a fragment, so wall gates fail while areas and ceilings are close. Next step:
-  outlines from the wall planes that reach the ceiling.
+  between two pieces used to cut a room in two (ARKitScenes 42446532, walls 1.48 m off).
+  A gap now stays inside the room when the ceiling was seen over it and nothing beside it
+  rises above door height; 42446532 is one room, median wall error 0.047 m. Scans that
+  never looked up keep such splits. Next step: outlines from the wall planes that reach
+  the ceiling.
 - **Damage:**
   - No false positive on the undamaged flat.
   - A painted 0.5 m water stain is found as one region, sized to within 13 %
     (`bench/reports/synth_damage.md`).
-  - A painted 6 mm crack is missed: CLIP scores it at most about 0.6, in any view.
+  - A painted 6 mm crack is found as a crack since paint goes only on bare wall
+    (`c26deeb`), width +61 % (a lamp cable joins its outline), height −3 %.
   - On our own iPhone scans, ceiling lights are reported as a "hole": a false positive.
 - **Closed doors** are measured as wall; the protocol asks for doors open.
 - **Mirrors:** rejected as openings by a reflection test, and a mirror's gap in the wall no
@@ -268,3 +277,32 @@ wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
   Every tier warns on a dim capture.
 - **Wet-look surfaces:** not tested.
 - **Not measured at all:** head-to-head against a consumer app (needs the iPhone).
+
+## 10. Product: capture checks, known sizes, stages, web app
+
+- **Capture check** (`capture_quality.py`): before the long run, OK / WARN / RETAKE per
+  check with one line of advice, in seconds (photos 2-12 s, LiDAR < 1 s). It catches what
+  hurt our own captures: 9-55 photos per room taken while walking, chat-app copies
+  (WhatsApp 1280 px), walking too fast (our walk 0.88 picture widths/s, the sample 0.26),
+  a LiDAR scan that never looked up (scan B: 0 % of frames above 20°).
+- **Known sizes** (`known_sizes.py`): an optional `measurements.yaml` with tape sizes per
+  room. Held out on the sample flat (one number per room from the LiDAR reference, the
+  others scored):
+  - photos, one length per room: footprint +109 % → −23 %, held-out walls 1.41 → 0.27 m;
+  - photos, ceiling height alone: +109 % → +177 %. Fitted floor and height are not off by
+    the same factor, so a height is only compared, never used for scale;
+  - video, one length: −70 % → −87 %. The video's error is missing rooms, not scale;
+  - LiDAR is never rescaled; given sizes are a self-check.
+- **Scale marker** (`markers.py`, `docs/scale_marker.md`): a printed A4 ArUco square,
+  180 mm. On real LiDAR frames its scale against LiDAR depth is 1.002 (0.998-1.006, 11
+  frames). Not yet used by the photo / video tiers: the depth model's scale varies per
+  frame, so one frame's marker does not fix the others.
+- **Stages** (`stages.py`): each stage is timed and checked by a gate (frames read, loop
+  closures, rooms without wall evidence, intervals present). A failed gate stops the run
+  and names the stage; the record is `stages.json`.
+- **Outputs:** `result.xlsx` (every number as value and 90 % bounds) beside `result.json`
+  and the plan.
+- **Web app:** a static front end (`web/`) talks to a FastAPI server (`server/`) that
+  verifies uploads, queues one job at a time and shows the stages live. Given sizes are
+  shown beside ours. Exercised by tests and a mock server; not yet used by a non-engineer.
+- **HEIC** is optional: where its decoder is blocked, other formats still work.
