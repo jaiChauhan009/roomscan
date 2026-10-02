@@ -62,6 +62,7 @@ DIM_MAX_GAIN = 8.0  # at most 3 stops: below that there is little left to recove
 # were, none in normal light); with 0.8 none, also 4x darker without noise, while a stain
 # painted on the single-room sample is still found at 4x and 8x (0.94-0.96).
 DIM_THRESHOLD = 0.8
+GROW_STEPS = 12  # px at 960 wide: how far an outline grows from its strong-contrast pixels
 
 
 def lift_dim(img: np.ndarray) -> np.ndarray:
@@ -419,6 +420,7 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
     lab = cv2.cvtColor(cv2.GaussianBlur(small, (0, 0), 2), cv2.COLOR_RGB2LAB).astype(np.float32)
     z_img = cv2.resize(d, (W, H), interpolation=cv2.INTER_LINEAR)
     obs = []
+    bg = None
     for sid in sorted(set(surf)):
         on = idx_img == sid
         for c in set(cl for cl, p, sf in zip(cls, prob, surf) if sf == sid and p >= threshold):
@@ -434,11 +436,25 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
             # damaged pixels = those departing from the local surface colour. The reference
             # is the median inside the positive tiles (damage is the minority there), which
             # follows lighting gradients better than a whole-surface median.
-            med = np.median(lab[region], axis=0)
-            dE = np.linalg.norm(lab - med, axis=-1)
-            mask = region & (dE > max(8.0, 3.0 * np.median(dE[region])))
-            mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+            if bg is None:
+                bg = _background(small)
+            mask = _outline(lab, region, bg)
+            if mask.any():
+                # one damage outline per positive tile: the component with the most colour
+                # contrast inside it (the stain, not the shadow or shelf edge beside it that
+                # the tile also holds)
+                n, cc = cv2.connectedComponents(mask)
+                dE = np.linalg.norm(lab - bg, axis=-1)
+                keep = np.zeros(n, bool)
+                for (x0, y0, size), cl, p, sf in zip(boxes, cls, prob, surf):
+                    if sf == sid and cl == c and p >= threshold:
+                        sub = cc[y0:y0 + size, x0:x0 + size]
+                        mass = np.bincount(sub.ravel(), weights=dE[y0:y0 + size, x0:x0 + size].ravel(),
+                                           minlength=n)
+                        mass[0] = 0
+                        if mass.max() > 0:
+                            keep[int(mass.argmax())] = True
+                mask = keep[cc].astype(np.uint8)
             found = _components(mask, z_img, frame, s, table[sid], sidx, c, best_p, coarse=False)
             if not found:
                 # colour gave nothing usable (patterned background, low contrast): localise
@@ -447,6 +463,46 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
                                     table[sid], sidx, c, best_p, coarse=True)
             obs += found
     return obs
+
+
+def _outline(lab: np.ndarray, region: np.ndarray, bg: np.ndarray) -> np.ndarray:
+    """Damaged pixels inside a positive region (uint8 mask).
+
+    Colour is compared with the surrounding wall (bg: the surface colour around each pixel,
+    a median over a window about twice the size of a 224 tile, so lighting gradients across
+    a wall cancel and a 0.5 m stain does not set its own reference). Strong pixels depart
+    from it by more than max(8, 3x the region's median departure); the outline grows from
+    them into connected weaker pixels (more than max(5, 1.5x)), at most GROW_STEPS pixels,
+    so a stain's faint body joins its tide mark, and holes inside an outline are filled.
+    Pixels within 3 px of the region's edge are left out: there the depth-based surface
+    labels, upsampled from the depth map, spill onto furniture and plants in front."""
+    core = cv2.erode(region.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool)
+    if core.sum() < 200:
+        return np.zeros(region.shape, np.uint8)
+    dE = np.linalg.norm(lab - bg, axis=-1)
+    m = float(np.median(dE[core]))
+    strong = core & (dE > max(8.0, 3.0 * m))
+    strong = cv2.morphologyEx(strong.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    weak = (core & (dE > max(5.0, 1.5 * m))).astype(np.uint8)
+    mask = strong
+    for _ in range(GROW_STEPS):  # bounded: a lighting gradient must not carry it across the wall
+        grown = cv2.dilate(mask, np.ones((3, 3), np.uint8)) & (weak | strong)
+        if (grown == mask).all():
+            break
+        mask = grown
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    filled = np.zeros_like(mask)
+    cv2.drawContours(filled, cnts, -1, 1, thickness=cv2.FILLED)
+    return (filled.astype(bool) & core).astype(np.uint8)
+
+
+def _background(small: np.ndarray) -> np.ndarray:
+    """Blurred-LAB colour of the surroundings of each pixel (see _outline)."""
+    H, W = small.shape[:2]
+    lo = cv2.resize(small, (W // 8, H // 8), interpolation=cv2.INTER_AREA)
+    lo = cv2.medianBlur(cv2.cvtColor(lo, cv2.COLOR_RGB2LAB), 51)
+    return cv2.resize(lo, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.float32)
 
 
 def _coarse_mask(small: np.ndarray, region: np.ndarray, cls: str, k_up: int, threshold: float,
