@@ -30,7 +30,7 @@ Times on the development laptop (CPU only), from `fixloop/round2/after/benchmark
 | whole flat, 115 s floor-only scan, 7 rooms | LiDAR | 131 s |
 | single room, 37 s scan | LiDAR | 41 s |
 | whole flat, 115 s clip | video | ~8 min first run, ~115 s with cached depth |
-| 7 rooms, 34 photos | photo | ~3 min |
+| 7 rooms, 28 photos | photo | ~3 min |
 
 ## Accuracy each tier delivers
 

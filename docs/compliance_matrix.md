@@ -8,7 +8,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Capture route (Route 2: stock tools + one-page protocol) | `docs/capture_protocol.md` | protocol page | done; not yet followed by a non-engineer |
+| Capture route (Route 2: stock tools + one-page protocol) | `docs/capture_protocol.md`, `scripts/walkin.py` | protocol page; hand-off on a USB-C drive, one command for every tier | done; not yet followed by a non-engineer |
 | Photo tier: 2-8 stills per room, folder per room, any iPhone 15+ | `src/roomscan/frontends/photos.py` | `fixloop/*/runs/apt_photo_a/` | partial: runs and stitches; accuracy far from gate |
 | Photo tier produces the stitched whole-property plan | `photos.py` (look-back stitching), `export/render.py` | `runs/apt_photo_a/plan.png` | partial: one plan, no overlaps; 2 of 7 links by photo match, rest by capture order (flagged) |
 | Video tier: handheld clip, any iPhone 15+ | `src/roomscan/frontends/video.py` | `runs/apt_video_b/` | partial: runs; 1 of 6 rooms on the sample clip |
@@ -44,7 +44,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Two rooms, LiDAR tier vs a consumer app, dimension table, ≥ 70 % win or tie | none | none | missing: needs an iPhone to scan the same rooms with the app |
+| Two rooms, LiDAR tier vs a consumer app, dimension table, ≥ 70 % win or tie | `bench/head_to_head.py`, `bench/app_exports/TEMPLATE.yaml`, `docs/iphone_session.md` | tool tested on synthetic and sample data | partial: tooling done; the data needs an iPhone (magicplan recommended: its free tier exports a floor plan) |
 
 ## Part 4: fix loop
 
@@ -67,7 +67,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 |---|---|---|
 | 1. Compliance matrix | this file | done |
 | 2. Capture route + device matrix | `docs/capture_protocol.md`, `docs/device_matrix.md` | done |
-| 3. Repo, README to running in < 15 min, one command per capture | `README.md` | partial: not yet timed on a clean machine |
+| 3. Repo, README to running in < 15 min, one command per capture | `README.md`, `scripts/walkin.py` | partial: timed on a clean Windows copy, 15.5 min to a first LiDAR plan, 12.5 min of it downloads at 0.75 MB/s; under 15 min needs about 3 MB/s. macOS and Linux not run |
 | 4. Reproduction bundle | `scripts/fetch_data.py`, `scripts/fetch_weights.py`, `bench/run_all.py` | done |
 | 5. Benchmark report: gates at three tiers, repeatability, head-to-head, timing | `bench/reports/benchmark.md` (fix-loop runs in `fixloop/`) | partial: no head-to-head, no real ground truth |
 | 6. Fix loop bundle | `fixloop/` | done |
