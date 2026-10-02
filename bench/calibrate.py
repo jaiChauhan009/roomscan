@@ -100,25 +100,38 @@ def _wall_points(ws: list[tuple], step: float = 0.05) -> np.ndarray:
 
 
 def repeat_samples(runs: Path, pairs: list, used: dict | None) -> list[dict]:
-    """LiDAR samples from two captures of the same space: the same wall's length in both.
-
-    Both plans are wall-aligned, so B is turned by a multiple of 90 degrees (picked by
-    correlating rasterised walls) and shifted by the median nearest-wall offset. A wall
-    counts when both of its ends match a wall of the other plan within 30 cm. With
-    independent errors, |L_a - L_b| / sqrt(s_a^2 + s_b^2) is a z score of one capture's
-    sigma. This measures precision only; a bias both captures share is invisible to it.
+    """LiDAR samples from two captures of the same space: the same wall's length in both,
+    walls matched by position (match_walls). With independent errors,
+    |L_a - L_b| / sqrt(s_a^2 + s_b^2) is a z score of one capture's sigma. This measures
+    precision only; a bias both captures share is invisible to it.
     """
-    from scipy.spatial import cKDTree
     scale = float(used["lidar"]["wall_length"].get("scale", 1.0)) if used else 1.0
     out = []
     for a, b in pairs:
         fa, fb = runs / a / "result.json", runs / b / "result.json"
         if not (fa.exists() and fb.exists()):
             continue
-        wa = _axis_walls(json.loads(fa.read_text(encoding="utf-8")))
-        wb = _axis_walls(json.loads(fb.read_text(encoding="utf-8")))
-        if not wa or not wb:
-            continue
+        for (_, _, _, _, sg, rid, L), (_, _, _, _, sg2, _, L2) in match_walls(
+                json.loads(fa.read_text(encoding="utf-8")), json.loads(fb.read_text(encoding="utf-8"))):
+            sigma = float(np.hypot(sg, sg2)) / scale
+            out.append({"kind": "wall_length", "room": f"{a}:{rid}", "pred": L, "truth": L2,
+                        "sigma": sigma * scale, "base_sigma": sigma, "z": abs(L - L2) / sigma,
+                        "source": f"repeatability ({a} vs {b})"})
+    return out
+
+
+def match_walls(res_a: dict, res_b: dict, max_d: float = 0.3) -> list[tuple]:
+    """The same physical wall in two plans of one space: (wall of A, wall of B) pairs.
+
+    Both plans are wall-aligned, so B is turned by a multiple of 90 degrees (picked by
+    correlating rasterised walls) and shifted by the median nearest-wall offset. A wall of
+    A pairs with a wall of B when both of its ends are within `max_d` of B's. Walls are
+    axis-aligned and at least 0.5 m long (_axis_walls).
+    """
+    from scipy.spatial import cKDTree
+    wa, wb = _axis_walls(res_a), _axis_walls(res_b)
+    out = []
+    if wa and wb:
         pa, pb = _wall_points(wa), _wall_points(wb)
         best = None
         for k in range(4):
@@ -142,7 +155,7 @@ def repeat_samples(runs: Path, pairs: list, used: dict | None) -> list[dict]:
         _, R, t = best
         tree = cKDTree(pa)
         for _ in range(20):
-            d, j = tree.query(pb @ R.T + t, distance_upper_bound=0.3)
+            d, j = tree.query(pb @ R.T + t, distance_upper_bound=max_d)
             ok = np.isfinite(d)
             t = t + np.median(pa[j[ok]] - (pb[ok] @ R.T + t), axis=0)
         moved = []
@@ -151,13 +164,12 @@ def repeat_samples(runs: Path, pairs: list, used: dict | None) -> list[dict]:
             horiz = abs(P[1, 0] - P[0, 0]) > abs(P[1, 1] - P[0, 1])
             moved.append(("H" if horiz else "V", P[:, 1 if horiz else 0].mean(),
                           P[:, 0 if horiz else 1].min(), P[:, 0 if horiz else 1].max(), sg, rid, L))
-        for o, c, lo, hi, sg, rid, L in wa:
-            for o2, c2, lo2, hi2, sg2, rid2, L2 in moved:
-                if o2 == o and abs(c - c2) < 0.3 and abs(lo - lo2) < 0.3 and abs(hi - hi2) < 0.3:
-                    sigma = float(np.hypot(sg, sg2)) / scale
-                    out.append({"kind": "wall_length", "room": f"{a}:{rid}", "pred": L, "truth": L2,
-                                "sigma": sigma * scale, "base_sigma": sigma, "z": abs(L - L2) / sigma,
-                                "source": f"repeatability ({a} vs {b})"})
+        for w in wa:
+            o, c, lo, hi = w[:4]
+            for w2, orig in zip(moved, wb):
+                o2, c2, lo2, hi2 = w2[:4]
+                if o2 == o and abs(c - c2) < max_d and abs(lo - lo2) < max_d and abs(hi - hi2) < max_d:
+                    out.append((w, orig))
                     break
     return out
 

@@ -2,9 +2,13 @@
 
 usage: python bench/repeatability.py <result_a.json> <result_b.json> [--out report.json]
 
-Rooms are paired by best agreement of wall lengths; walls are compared in cyclic order.
-Gate (brief): every wall agrees within 1 cm or 0.5 %; ceiling heights within 1 cm.
-Rooms present in only one capture are reported and fail the gate.
+Rooms are paired by best agreement of wall lengths (for ceilings and the room count).
+Walls are paired by position: the second plan is turned by a multiple of 90 degrees and
+shifted onto the first, and a wall pairs with the parallel wall whose ends lie within
+30 cm (calibrate.match_walls; walls of 0.5 m or more). Pairing by the order of walls
+round a room compared different walls whenever a notch split a side differently in the
+two scans. Gate (brief): every wall agrees within 1 cm or 0.5 %; ceiling heights within
+1 cm. Rooms present in only one capture are reported and fail the gate.
 """
 from __future__ import annotations
 
@@ -17,6 +21,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 sys.path.insert(0, str(Path(__file__).parent))
+from calibrate import match_walls  # noqa: E402
 from evaluate import GATES, _wall_cost, pred_walls  # noqa: E402
 
 
@@ -36,21 +41,14 @@ def compare(a: dict, b: dict, max_room_cost: float = 0.35) -> dict:
         if C[i, j] > max_room_cost + 0.1 * A[i]["floor_area"]["value"] * 0.2:
             continue
         paired.append((A[i]["id"], B[j]["id"]))
-        wa, wb = pred_walls(A[i]), pred_walls(B[j])
-        la, lb = [w["length"]["value"] for w in wa], [w["length"]["value"] for w in wb]
-        _, pairs = _wall_cost(la, lb)
-        for x, y in pairs:
-            d = la[x] - lb[y]
-            ok = abs(d) <= max(gate["abs_m"], gate["rel"] * max(la[x], lb[y]))
-            rows.append({"room_a": A[i]["id"], "room_b": B[j]["id"], "a": la[x], "b": lb[y], "diff": round(d, 4),
-                         "ok": bool(ok)})
-        if len(la) != len(lb):
-            rows.append({"room_a": A[i]["id"], "room_b": B[j]["id"], "a": None, "b": None, "diff": None, "ok": False,
-                         "note": f"wall count differs: {len(la)} vs {len(lb)}"})
         ha, hb = A[i]["ceiling_height"]["value"], B[j]["ceiling_height"]["value"]
         if ha is not None and hb is not None:
             ceil.append({"room_a": A[i]["id"], "room_b": B[j]["id"], "a": ha, "b": hb, "spread": round(abs(ha - hb), 4),
                          "ok": bool(abs(ha - hb) <= GATES["ceiling_height"]["repeat_spread_m"])})
+    for (_, _, _, _, _, ra, la), (_, _, _, _, _, rb, lb) in match_walls(a, b):
+        d = la - lb
+        rows.append({"room_a": ra, "room_b": rb, "a": round(la, 4), "b": round(lb, 4), "diff": round(d, 4),
+                     "ok": bool(abs(d) <= max(gate["abs_m"], gate["rel"] * max(la, lb)))})
     diffs = [abs(r["diff"]) for r in rows if r["diff"] is not None]
     res = {
         "a": a["capture"]["id"], "b": b["capture"]["id"], "tier": a["capture"]["tier"],
