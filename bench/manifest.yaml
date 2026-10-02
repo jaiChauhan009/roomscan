@@ -38,6 +38,15 @@ captures:
   - {name: own_lidar_1, path: own/lidar_1/609c9be5d1, tier: lidar}
   - {name: own_video_1, path: own/video_1/VID_20261002_155413025.mp4, tier: video, reference: own_lidar_1}
   - {name: own_photos_1, path: own/photos_1, tier: photo, reference: own_lidar_1}
+  # Later the same day: two more iPhone LiDAR scans (part of the flat; room 4 alone) and an
+  # iPhone video sent through WhatsApp (recompressed to 464x832)
+  - {name: own_lidar_2, path: own/lidar_2/51b6138385, tier: lidar}
+  - {name: own_lidar_3, path: own/lidar_3/84d7fdb836, tier: lidar}
+  - {name: own_video_iphone, path: own/iphone_video_1/iphone_whatsapp.mp4, tier: video, reference: own_lidar_1}
+  # iPhone photos sent through WhatsApp (960x1280, EXIF stripped: no focal length, no capture
+  # time); room folders unnumbered, so the walk order is alphabetical
+  - {name: own_photos_iphone, path: own/iphone_photos_1, tier: photo, reference: own_lidar_1}
 repeatability:
   - [apt_lidar_a, apt_lidar_b]
+  - [own_lidar_1, own_lidar_3]
 drift_ablation: [apt_lidar_a, apt_lidar_b]
