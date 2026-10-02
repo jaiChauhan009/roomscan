@@ -57,6 +57,7 @@ class OrderIn(BaseModel):
 class RunIn(BaseModel):
     damage: bool = True
     force: bool = False
+    email: str | None = None  # send the results here when the job finishes (if email is configured)
 
 
 def _env_float(name: str, default: float) -> float:
@@ -194,7 +195,8 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     # ---------------------------------------------------------------- health
     @app.get("/api/health")
     def health():
-        return {"ok": True, "version": state.get("engine") or _version()}
+        from server import notify
+        return {"ok": True, "version": state.get("engine") or _version(), "email": notify.enabled()}
 
     # ---------------------------------------------------------------- projects / spaces
     @app.post("/api/projects")
@@ -348,6 +350,10 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     @app.post("/api/projects/{pid}/run")
     def run(pid: str, body: RunIn | None = None):
         body = body or RunIn()
+        from server import notify
+        email = (body.email or "").strip() or None
+        if email and not notify.valid_email(email):
+            raise HTTPException(422, f"'{email}' is not an email address")
         with store().lock:
             p = project_or_404(pid)
             if not has_input(p):
@@ -363,8 +369,15 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
             if hit:
                 p["last_job_id"] = hit["job_id"]
                 store().save_project(p)
+                if email:
+                    if hit["status"] == "done":  # already finished: email it now
+                        notify.notify_async({**hit, "notify_email": email}, store().jdir(hit["job_id"]) / "out")
+                    else:  # still running: email when it finishes
+                        hit["notify_email"] = email
+                        store().save_job(hit)
                 return {"job_id": hit["job_id"], "cached": hit["status"] == "done"}
             job = new_job(p, plan_runs(p), body.damage, body.force, key, state["engine"])
+            job["notify_email"] = email
             p["last_job_id"] = job["job_id"]
             store().save_project(p)
             state["worker"].submit(job)

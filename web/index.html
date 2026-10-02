@@ -96,6 +96,11 @@
     <section class="card" aria-labelledby="check-h">
       <h2 id="check-h">Check and compute</h2>
       <p id="upload-summary" class="small muted" aria-live="polite"></p>
+      <div id="email-row" class="field" hidden>
+        <label for="notify-email">Email me the results <span class="muted small">(optional)</span></label>
+        <input id="notify-email" aria-label="Email me the results (optional)" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <p class="small muted">Processing can take several minutes: we send the plan and the spreadsheet when it is done. You can close this page. Results also show here.</p>
+      </div>
       <div class="actions">
         <button type="button" id="verify" class="btn">Check captures</button>
         <button type="button" id="run" class="btn primary" disabled>Start computing</button>

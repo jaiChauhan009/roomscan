@@ -63,7 +63,7 @@ def new_job(p: dict, runs: list[dict], damage: bool, force: bool, key: str, engi
 
 
 def public_job(j: dict) -> dict:
-    keys = ("job_id", "project_id", "status", "stage", "stages", "error", "outputs", "runs", "damage",
+    keys = ("job_id", "project_id", "status", "stage", "stages", "error", "outputs", "runs", "damage", "email_status",
             "created", "started", "finished")
     out = {k: j.get(k) for k in keys}
     out["runs"] = [{k: v for k, v in r.items() if k != "folders"} for r in j.get("runs", [])]
@@ -283,6 +283,27 @@ class Worker:
             self._fail(j, f"{type(e).__name__}: {e}")
         finally:
             shutil.rmtree(work, ignore_errors=True)
+            self._email(jid, out)
+
+    def _email(self, jid: str, out: Path) -> None:
+        """Email the results if the user gave an address (optional; the page shows them anyway)."""
+        from server import notify
+        try:
+            j = self.store.job(jid)  # the saved state: an address may have been added while running
+        except KeyError:
+            return
+        if j.get("status") not in ("done", "failed") or not j.get("notify_email"):
+            return
+
+        def record(status: str, _jid=jid):
+            try:
+                with self.store.lock:
+                    jj = self.store.job(_jid)
+                    jj["email_status"] = status
+                    self.store.save_job(jj)
+            except Exception:  # noqa: BLE001
+                pass
+        notify.notify_async(j, out, record)
 
 
 # ---------------------------------------------------------------- comparison
