@@ -1,23 +1,25 @@
-# Per-tier uncertainty terms: sigma = sqrt((inflate * raw)^2 + abs^2 + (rel * value)^2)
-# Initial values are priors from sensor specs; bench/calibrate.py refits them on the benchmark.
+# Per-tier uncertainty terms: sigma = scale * sqrt((inflate * raw)^2 + abs^2 + (rel * value)^2)
+# inflate / abs / rel: priors from sensor specs. scale: fitted by bench/calibrate.py.
+# Fitted on bench/reports/benchmark.json, run (a88f7ef outputs re-scored for calibration). Truth: lidar_reference, repeatability (apt_lidar_a vs apt_lidar_b).
+# Report with held-out coverage: bench/reports/calibration.md.
 lidar:
-  wall_length:    {inflate: 2.0, abs: 0.008, rel: 0.002}
-  ceiling_height: {inflate: 2.0, abs: 0.006, rel: 0.001}
-  opening_width:  {inflate: 1.5, abs: 0.010, rel: 0.000}
-  opening_height: {inflate: 1.5, abs: 0.030, rel: 0.000}
-  area:           {inflate: 2.0, abs: 0.050, rel: 0.004}
-  damage:         {inflate: 1.0, abs: 0.010, rel: 0.250}
+  wall_length:    {inflate: 2.0, abs: 0.008, rel: 0.002, scale: 2.611}
+  ceiling_height: {inflate: 2.0, abs: 0.006, rel: 0.001, scale: 2.611}
+  opening_width:  {inflate: 1.5, abs: 0.01, rel: 0.0, scale: 2.611}
+  opening_height: {inflate: 1.5, abs: 0.03, rel: 0.0, scale: 2.611}
+  area:           {inflate: 2.0, abs: 0.05, rel: 0.004, scale: 2.611}
+  damage:         {inflate: 1.0, abs: 0.01, rel: 0.25}
 video:
-  wall_length:    {inflate: 2.0, abs: 0.030, rel: 0.020}
-  ceiling_height: {inflate: 2.0, abs: 0.030, rel: 0.020}
-  opening_width:  {inflate: 1.5, abs: 0.030, rel: 0.030}
-  opening_height: {inflate: 1.5, abs: 0.050, rel: 0.030}
-  area:           {inflate: 2.0, abs: 0.150, rel: 0.040}
-  damage:         {inflate: 1.0, abs: 0.020, rel: 0.350}
+  wall_length:    {inflate: 2.0, abs: 0.03, rel: 0.02, scale: 8.292}
+  ceiling_height: {inflate: 2.0, abs: 0.03, rel: 0.02, scale: 8.292}
+  opening_width:  {inflate: 1.5, abs: 0.03, rel: 0.03, scale: 8.292}
+  opening_height: {inflate: 1.5, abs: 0.05, rel: 0.03, scale: 8.292}
+  area:           {inflate: 2.0, abs: 0.15, rel: 0.04, scale: 8.292}
+  damage:         {inflate: 1.0, abs: 0.02, rel: 0.35}
 photo:
-  wall_length:    {inflate: 2.0, abs: 0.050, rel: 0.050}
-  ceiling_height: {inflate: 2.0, abs: 0.050, rel: 0.050}
-  opening_width:  {inflate: 1.5, abs: 0.050, rel: 0.060}
-  opening_height: {inflate: 1.5, abs: 0.080, rel: 0.060}
-  area:           {inflate: 2.0, abs: 0.300, rel: 0.100}
-  damage:         {inflate: 1.0, abs: 0.030, rel: 0.450}
+  wall_length:    {inflate: 2.0, abs: 0.05, rel: 0.05, scale: 6.615}
+  ceiling_height: {inflate: 2.0, abs: 0.05, rel: 0.05, scale: 6.615}
+  opening_width:  {inflate: 1.5, abs: 0.05, rel: 0.06, scale: 6.615}
+  opening_height: {inflate: 1.5, abs: 0.08, rel: 0.06, scale: 6.615}
+  area:           {inflate: 2.0, abs: 0.3, rel: 0.1, scale: 4.519}
+  damage:         {inflate: 1.0, abs: 0.03, rel: 0.45}

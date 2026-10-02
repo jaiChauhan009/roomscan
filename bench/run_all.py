@@ -52,6 +52,8 @@ def main():
     ap.add_argument("--no-cache", action="store_true")
     ap.add_argument("--tag", default="")
     ap.add_argument("--skip-ablation", action="store_true")
+    ap.add_argument("--eval-only", action="store_true",
+                    help="re-score the result.json files already in <out>/runs instead of running the pipeline")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -69,7 +71,14 @@ def main():
             print(f"skip {c['name']}: {src} not found")
             continue
         t = time.time()
-        res = run(src, runs / c["name"], tier=c["tier"], use_cache=not a.no_cache, progress=False)
+        if a.eval_only:
+            f = runs / c["name"] / "result.json"
+            if not f.exists():
+                print(f"skip {c['name']}: no {f}")
+                continue
+            res = json.loads(f.read_text(encoding="utf-8"))
+        else:
+            res = run(src, runs / c["name"], tier=c["tier"], use_cache=not a.no_cache, progress=False)
         timing[c["name"]] = {"wall_s": round(time.time() - t, 1), "stages": res["timing_s"],
                              "rooms": len(res["rooms"]), "footprint_m2": res["property"]["footprint_area"]["value"],
                              "overlap_m2": room_overlap(res)}
@@ -101,16 +110,23 @@ def main():
                 continue
             rows = {}
             for mode in ("off", "loop"):
-                r = results[name] if mode == "loop" and name in results else run(
-                    data_root / c["path"], runs / f"{name}__drift_{mode}", tier=c["tier"], drift=mode,
-                    damage=False, use_cache=not a.no_cache, progress=False)
+                prior = runs / f"{name}__drift_{mode}" / "result.json"
+                if mode == "loop" and name in results:
+                    r = results[name]
+                elif a.eval_only and prior.exists():
+                    r = json.loads(prior.read_text(encoding="utf-8"))
+                else:
+                    r = run(data_root / c["path"], runs / f"{name}__drift_{mode}", tier=c["tier"], drift=mode,
+                            damage=False, use_cache=not a.no_cache, progress=False)
                 d = r["property"]["drift_correction"]
                 rows[mode] = {"footprint_m2": r["property"]["footprint_area"]["value"], "rooms": len(r["rooms"]),
                               "bbox_diag_m": r["property"]["bbox"]["value"], "wall_crispness": d.get("wall_crispness"),
                               "loop_edges": d.get("loop_edges"), "loop_residual_before_m": d.get("loop_residual_m_before"),
                               "loop_residual_after_m": d.get("loop_residual_m_after")}
             ablation[name] = rows
-    report = {"tag": a.tag, "timing": timing, "evaluations": evals, "repeatability": reps, "drift_ablation": ablation}
+    from roomscan.uncertainty.intervals import calibration
+    report = {"tag": a.tag, "timing": timing, "evaluations": evals, "repeatability": reps, "drift_ablation": ablation,
+              "calibration_used": calibration()}  # lets bench/calibrate.py refit from this run without compounding
     (out / "benchmark.json").write_text(json.dumps(report, indent=2))
 
     md = [f"# Benchmark report {a.tag}".rstrip(), "",

@@ -2,8 +2,8 @@
 
 Raw sigmas come from the geometry (plane-fit standard errors, edge sharpness). They only
 describe noise, not bias, so each tier adds an absolute and a relative systematic term and
-an inflation factor. The terms live in calibration.yaml and are refitted from the
-benchmark (bench/calibrate.py) so that the 90 % intervals cover ~90 % of ground truth.
+an inflation factor (priors from sensor specs). A per-tier `scale` on top of that is fitted
+from the benchmark by bench/calibrate.py so the 90 % intervals cover about 90 % of the truth.
 """
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ def calibration() -> dict:
     return yaml.safe_load(CAL_PATH.read_text())
 
 
-def _terms(tier: str, kind: str) -> tuple[float, float, float]:
+def _terms(tier: str, kind: str) -> tuple[float, float, float, float]:
     c = calibration()[tier][kind]
-    return float(c["inflate"]), float(c["abs"]), float(c["rel"])
+    return float(c["inflate"]), float(c["abs"]), float(c["rel"]), float(c.get("scale", 1.0))
 
 
 def measure(value: float | None, raw_sigma: float, tier: str, kind: str, unit: str = "m",
@@ -36,8 +36,8 @@ def measure(value: float | None, raw_sigma: float, tier: str, kind: str, unit: s
         return Measurement(value=None, ci90=None, sigma=None, unit=unit,
                            lower_bound=None if lower_bound is None else round(float(lower_bound), ndigits),
                            note=note)
-    k, a, r = _terms(tier, kind)
-    s = float(np.sqrt((k * raw_sigma) ** 2 + a ** 2 + (r * abs(value)) ** 2))
+    k, a, r, scale = _terms(tier, kind)
+    s = scale * float(np.sqrt((k * raw_sigma) ** 2 + a ** 2 + (r * abs(value)) ** 2))
     lo, hi = value - Z90 * s, value + Z90 * s
     if unit == "m2" or kind in ("wall_length", "ceiling_height", "opening_width", "opening_height"):
         lo = max(lo, 0.0)

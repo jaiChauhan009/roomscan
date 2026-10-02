@@ -88,6 +88,14 @@ def match_rooms(gt_rooms: list[dict], pred_rooms: list[dict]) -> dict[str, str |
     return out
 
 
+def _sample(kind: str, room: str, m: dict, truth: float) -> dict | None:
+    """One predicted measurement with its interval against the truth, for bench/calibrate.py."""
+    if m.get("value") is None or not m.get("sigma"):
+        return None
+    return {"kind": kind, "room": room, "pred": m["value"], "sigma": m["sigma"], "truth": truth,
+            "in_ci": _inside(m, truth)}
+
+
 def _inside(m: dict, truth: float) -> bool | None:
     return None if not m.get("ci90") else bool(m["ci90"][0] <= truth <= m["ci90"][1])
 
@@ -96,7 +104,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
     tier = pred["capture"]["tier"]
     P = {r["id"]: r for r in pred["rooms"]}
     mapping = match_rooms(gt["rooms"], pred["rooms"])
-    walls, ceil, opens, cover = [], [], [], []
+    walls, ceil, opens, cover, samples = [], [], [], [], []
     for g in gt["rooms"]:
         pid = mapping[g["name"]]
         if pid is None:
@@ -107,6 +115,8 @@ def evaluate(pred: dict, gt: dict) -> dict:
                 ceil.append({"room": g["name"], "gt": g["ceiling_height"], "pred": None, "err": None, "ok": False})
             continue
         room = P[pid]
+        if g.get("floor_area"):
+            samples.append(_sample("area", g["name"], room["floor_area"], g["floor_area"]))
         pw = pred_walls(room)
         gw = list(g.get("walls", []))
         if gw:
@@ -121,6 +131,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
                               "err": round(err, 4), "rel": round(err / gw[gi], 4), "ok": bool(ok),
                               "in_ci": _inside(m, gw[gi])})
                 cover.append(_inside(m, gw[gi]))
+                samples.append(_sample("wall_length", g["name"], m, gw[gi]))
                 used.add(gi)
             for gi in set(range(len(gw))) - used:
                 walls.append({"room": g["name"], "gt": gw[gi], "pred": None, "err": None, "ok": False})
@@ -135,6 +146,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
                              "ok": bool(abs(err) <= GATES["ceiling_height"]["abs_m"]),
                              "in_ci": _inside(m, g["ceiling_height"])})
                 cover.append(_inside(m, g["ceiling_height"]))
+                samples.append(_sample("ceiling_height", g["name"], m, g["ceiling_height"]))
         if "openings" in g:
             go = list(g["openings"])
             po = [o for o in room["openings"]]
@@ -156,6 +168,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
                               "status": "ok" if abs(err) <= GATES["opening_width"]["abs_m"] else "off",
                               "in_ci": _inside(po[j]["width"], go[i]["width"])})
                 cover.append(_inside(po[j]["width"], go[i]["width"]))
+                samples.append(_sample("opening_width", g["name"], po[j]["width"], go[i]["width"]))
                 matched_g.add(int(i))
                 matched_p.add(int(j))
             for i, o in enumerate(go):
@@ -166,7 +179,8 @@ def evaluate(pred: dict, gt: dict) -> dict:
                     opens.append({"room": g["name"], "type": p["type"], "gt": None, "pred": p["width"]["value"],
                                   "status": "phantom"})
     res = {"capture": pred["capture"]["id"], "tier": tier, "gt_source": gt.get("source", "unknown"),
-           "room_mapping": mapping, "walls": walls, "ceilings": ceil, "openings": opens, "gates": {}}
+           "room_mapping": mapping, "walls": walls, "ceilings": ceil, "openings": opens, "gates": {},
+           "interval_samples": [x for x in samples if x is not None]}
     g = res["gates"]
     if walls:
         frac = float(np.mean([w["ok"] for w in walls]))

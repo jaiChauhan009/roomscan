@@ -1,4 +1,4 @@
-# Benchmark report (commit a88f7ef)
+# Benchmark report (a88f7ef outputs re-scored for calibration)
 
 Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yaml`.
 
@@ -6,11 +6,11 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 
 | capture | tier | rooms | footprint m2 | room overlap m2 | wall time s | stages |
 |---|---|---|---|---|---|---|
-| apt_lidar_a | lidar | 9 | 49.2465 | 0.0 | 167.3 | load 0.23, drift 18.58, fuse 0.32, layout 5.82, openings 57.66, damage 83.04, export 0.07 |
-| apt_lidar_b | lidar | 7 | 44.1069 | 0.0 | 104.3 | load 0.13, drift 6.26, fuse 0.15, layout 4.07, openings 25.56, damage 67.66, export 0.05 |
-| room_lidar | lidar | 2 | 10.6381 | 0.0 | 33.5 | load 0.04, drift 1.87, fuse 0.05, layout 0.74, openings 4.33, damage 26.23, export 0.0 |
-| apt_video_b | video | 1 | 3.8264 | 0 | 96.1 | load 92.81, drift 0.36, fuse 0.05, layout 0.53, openings 0.45, damage 1.65, export 0.0 |
-| apt_photo_a | photo | 7 | 116.7447 | 0.0 | 164.8 | load+depth 1.31, room_fit 1.68, stitch 121.4, openings 8.6, damage 31.54 |
+| apt_lidar_a | lidar | 9 | 49.2465 | 0.0 | 0.0 | load 0.23, drift 18.58, fuse 0.32, layout 5.82, openings 57.66, damage 83.04, export 0.07 |
+| apt_lidar_b | lidar | 7 | 44.1069 | 0.0 | 0.0 | load 0.13, drift 6.26, fuse 0.15, layout 4.07, openings 25.56, damage 67.66, export 0.05 |
+| room_lidar | lidar | 2 | 10.6381 | 0.0 | 0.0 | load 0.04, drift 1.87, fuse 0.05, layout 0.74, openings 4.33, damage 26.23, export 0.0 |
+| apt_video_b | video | 1 | 3.8264 | 0 | 0.0 | load 92.81, drift 0.36, fuse 0.05, layout 0.53, openings 0.45, damage 1.65, export 0.0 |
+| apt_photo_a | photo | 7 | 116.7447 | 0.0 | 0.0 | load+depth 1.31, room_fit 1.68, stitch 121.4, openings 8.6, damage 31.54 |
 
 ## apt_video_b (tier video) vs lidar_reference
 

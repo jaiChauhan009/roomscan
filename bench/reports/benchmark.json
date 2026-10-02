@@ -1,8 +1,8 @@
 {
-  "tag": "(commit a88f7ef)",
+  "tag": "(a88f7ef outputs re-scored for calibration)",
   "timing": {
     "apt_lidar_a": {
-      "wall_s": 167.3,
+      "wall_s": 0.0,
       "stages": {
         "load": 0.23,
         "drift": 18.58,
@@ -17,7 +17,7 @@
       "overlap_m2": 0.0
     },
     "apt_lidar_b": {
-      "wall_s": 104.3,
+      "wall_s": 0.0,
       "stages": {
         "load": 0.13,
         "drift": 6.26,
@@ -32,7 +32,7 @@
       "overlap_m2": 0.0
     },
     "room_lidar": {
-      "wall_s": 33.5,
+      "wall_s": 0.0,
       "stages": {
         "load": 0.04,
         "drift": 1.87,
@@ -47,7 +47,7 @@
       "overlap_m2": 0.0
     },
     "apt_video_b": {
-      "wall_s": 96.1,
+      "wall_s": 0.0,
       "stages": {
         "load": 92.81,
         "drift": 0.36,
@@ -62,7 +62,7 @@
       "overlap_m2": 0
     },
     "apt_photo_a": {
-      "wall_s": 164.8,
+      "wall_s": 0.0,
       "stages": {
         "load+depth": 1.31,
         "room_fit": 1.68,
@@ -800,7 +800,153 @@
           "matched": 1,
           "pass": false
         }
-      }
+      },
+      "interval_samples": [
+        {
+          "kind": "area",
+          "room": "room_1",
+          "pred": 3.8264,
+          "sigma": 0.92547,
+          "truth": 4.8632,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.6005,
+          "sigma": 0.14807,
+          "truth": 3.62,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.3881,
+          "sigma": 0.14721,
+          "truth": 1.78,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.2758,
+          "sigma": 0.1468,
+          "truth": 1.501,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.1574,
+          "sigma": 0.14641,
+          "truth": 1.22,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.089,
+          "sigma": 0.1462,
+          "truth": 1.14,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 1.005,
+          "sigma": 0.14596,
+          "truth": 0.901,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.9409,
+          "sigma": 0.14579,
+          "truth": 0.88,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.913,
+          "sigma": 0.14572,
+          "truth": 0.781,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.8089,
+          "sigma": 0.14547,
+          "truth": 0.494,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.8062,
+          "sigma": 0.14546,
+          "truth": 0.487,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.68,
+          "sigma": 0.14521,
+          "truth": 0.456,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.5099,
+          "sigma": 0.14493,
+          "truth": 0.42,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.4617,
+          "sigma": 0.14486,
+          "truth": 0.316,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.46,
+          "sigma": 0.14486,
+          "truth": 0.313,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.4472,
+          "sigma": 0.14484,
+          "truth": 0.301,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.4005,
+          "sigma": 0.14479,
+          "truth": 0.286,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 0.4,
+          "sigma": 0.14479,
+          "truth": 0.267,
+          "in_ci": true
+        }
+      ]
     },
     "apt_photo_a": {
       "capture": "photos_with_ceiling",
@@ -1944,7 +2090,385 @@
           "matched": 7,
           "pass": false
         }
-      }
+      },
+      "interval_samples": [
+        {
+          "kind": "area",
+          "room": "room_1",
+          "pred": 19.6693,
+          "sigma": 3.49358,
+          "truth": 9.3556,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 5.0093,
+          "sigma": 0.25555,
+          "truth": 3.094,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 5.0093,
+          "sigma": 0.25555,
+          "truth": 3.015,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 3.9266,
+          "sigma": 0.99489,
+          "truth": 2.008,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_1",
+          "pred": 3.9266,
+          "sigma": 0.99489,
+          "truth": 1.751,
+          "in_ci": false
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_1",
+          "pred": 2.8522,
+          "sigma": 0.25068,
+          "truth": 3.0636,
+          "in_ci": true
+        },
+        {
+          "kind": "area",
+          "room": "room_2",
+          "pred": 24.4547,
+          "sigma": 6.09512,
+          "truth": 9.7906,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_2",
+          "pred": 5.5081,
+          "sigma": 1.02503,
+          "truth": 2.824,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_2",
+          "pred": 5.5081,
+          "sigma": 1.02503,
+          "truth": 2.808,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_2",
+          "pred": 4.4398,
+          "sigma": 0.96542,
+          "truth": 2.731,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_2",
+          "pred": 4.4398,
+          "sigma": 0.96542,
+          "truth": 2.231,
+          "in_ci": false
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_2",
+          "pred": 2.4035,
+          "sigma": 0.13018,
+          "truth": 3.0742,
+          "in_ci": false
+        },
+        {
+          "kind": "area",
+          "room": "room_3",
+          "pred": 11.7417,
+          "sigma": 1.53414,
+          "truth": 3.8485,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_3",
+          "pred": 5.6409,
+          "sigma": 0.28657,
+          "truth": 2.864,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_3",
+          "pred": 5.6409,
+          "sigma": 0.28657,
+          "truth": 1.851,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_3",
+          "pred": 2.0815,
+          "sigma": 0.48329,
+          "truth": 0.987,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_3",
+          "pred": 2.0815,
+          "sigma": 0.48329,
+          "truth": 0.693,
+          "in_ci": false
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_3",
+          "pred": 2.4416,
+          "sigma": 0.13194,
+          "truth": 3.0795,
+          "in_ci": false
+        },
+        {
+          "kind": "area",
+          "room": "room_6",
+          "pred": 4.3811,
+          "sigma": 1.13199,
+          "truth": 1.5351,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 2.8446,
+          "sigma": 0.33581,
+          "truth": 1.536,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 2.8446,
+          "sigma": 0.33581,
+          "truth": 1.099,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.5401,
+          "sigma": 0.60701,
+          "truth": 1.001,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.5401,
+          "sigma": 0.60701,
+          "truth": 0.954,
+          "in_ci": true
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_6",
+          "pred": 2.0351,
+          "sigma": 0.11342,
+          "truth": 2.4633,
+          "in_ci": false
+        },
+        {
+          "kind": "opening_width",
+          "room": "room_6",
+          "pred": 0.8,
+          "sigma": 0.23543,
+          "truth": 0.674,
+          "in_ci": true
+        },
+        {
+          "kind": "area",
+          "room": "room_7",
+          "pred": 5.5456,
+          "sigma": 1.38058,
+          "truth": 3.2168,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_7",
+          "pred": 3.1094,
+          "sigma": 0.16353,
+          "truth": 1.744,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_7",
+          "pred": 3.1094,
+          "sigma": 0.16353,
+          "truth": 1.493,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_7",
+          "pred": 1.7835,
+          "sigma": 0.99136,
+          "truth": 1.291,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_7",
+          "pred": 1.7835,
+          "sigma": 0.99136,
+          "truth": 0.693,
+          "in_ci": true
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_7",
+          "pred": 2.5588,
+          "sigma": 0.13738,
+          "truth": 2.375,
+          "in_ci": true
+        },
+        {
+          "kind": "area",
+          "room": "room_8",
+          "pred": 32.797,
+          "sigma": 4.20919,
+          "truth": 1.5093,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_8",
+          "pred": 7.5016,
+          "sigma": 0.55195,
+          "truth": 1.496,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_8",
+          "pred": 4.372,
+          "sigma": 0.52012,
+          "truth": 1.009,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_8",
+          "pred": 7.5016,
+          "sigma": 0.55195,
+          "truth": 1.496,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_8",
+          "pred": 4.372,
+          "sigma": 0.52012,
+          "truth": 1.009,
+          "in_ci": false
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_8",
+          "pred": 2.2539,
+          "sigma": 0.1233,
+          "truth": 2.4497,
+          "in_ci": true
+        },
+        {
+          "kind": "opening_width",
+          "room": "room_8",
+          "pred": 0.8,
+          "sigma": 0.23543,
+          "truth": 0.67,
+          "in_ci": true
+        },
+        {
+          "kind": "opening_width",
+          "room": "room_8",
+          "pred": 0.6,
+          "sigma": 0.06809,
+          "truth": 0.868,
+          "in_ci": false
+        },
+        {
+          "kind": "opening_width",
+          "room": "room_8",
+          "pred": 0.8,
+          "sigma": 0.23543,
+          "truth": 1.016,
+          "in_ci": true
+        },
+        {
+          "kind": "opening_width",
+          "room": "room_8",
+          "pred": 0.8,
+          "sigma": 0.23543,
+          "truth": 0.851,
+          "in_ci": true
+        },
+        {
+          "kind": "area",
+          "room": "room_9",
+          "pred": 18.1553,
+          "sigma": 2.02744,
+          "truth": 5.4405,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_9",
+          "pred": 5.1708,
+          "sigma": 0.26346,
+          "truth": 2.476,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_9",
+          "pred": 5.1708,
+          "sigma": 0.26346,
+          "truth": 2.287,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_9",
+          "pred": 3.5112,
+          "sigma": 0.41632,
+          "truth": 1.266,
+          "in_ci": false
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_9",
+          "pred": 3.5112,
+          "sigma": 0.41632,
+          "truth": 1.124,
+          "in_ci": false
+        },
+        {
+          "kind": "ceiling_height",
+          "room": "room_9",
+          "pred": 1.9411,
+          "sigma": 0.1092,
+          "truth": 2.3464,
+          "in_ci": false
+        }
+      ]
     }
   },
   "repeatability": [
@@ -2010,6 +2534,104 @@
         "loop_edges": 7,
         "loop_residual_before_m": 0.1691,
         "loop_residual_after_m": 0.0258
+      }
+    }
+  },
+  "calibration_used": {
+    "lidar": {
+      "wall_length": {
+        "inflate": 2.0,
+        "abs": 0.008,
+        "rel": 0.002
+      },
+      "ceiling_height": {
+        "inflate": 2.0,
+        "abs": 0.006,
+        "rel": 0.001
+      },
+      "opening_width": {
+        "inflate": 1.5,
+        "abs": 0.01,
+        "rel": 0.0
+      },
+      "opening_height": {
+        "inflate": 1.5,
+        "abs": 0.03,
+        "rel": 0.0
+      },
+      "area": {
+        "inflate": 2.0,
+        "abs": 0.05,
+        "rel": 0.004
+      },
+      "damage": {
+        "inflate": 1.0,
+        "abs": 0.01,
+        "rel": 0.25
+      }
+    },
+    "video": {
+      "wall_length": {
+        "inflate": 2.0,
+        "abs": 0.03,
+        "rel": 0.02
+      },
+      "ceiling_height": {
+        "inflate": 2.0,
+        "abs": 0.03,
+        "rel": 0.02
+      },
+      "opening_width": {
+        "inflate": 1.5,
+        "abs": 0.03,
+        "rel": 0.03
+      },
+      "opening_height": {
+        "inflate": 1.5,
+        "abs": 0.05,
+        "rel": 0.03
+      },
+      "area": {
+        "inflate": 2.0,
+        "abs": 0.15,
+        "rel": 0.04
+      },
+      "damage": {
+        "inflate": 1.0,
+        "abs": 0.02,
+        "rel": 0.35
+      }
+    },
+    "photo": {
+      "wall_length": {
+        "inflate": 2.0,
+        "abs": 0.05,
+        "rel": 0.05
+      },
+      "ceiling_height": {
+        "inflate": 2.0,
+        "abs": 0.05,
+        "rel": 0.05
+      },
+      "opening_width": {
+        "inflate": 1.5,
+        "abs": 0.05,
+        "rel": 0.06
+      },
+      "opening_height": {
+        "inflate": 1.5,
+        "abs": 0.08,
+        "rel": 0.06
+      },
+      "area": {
+        "inflate": 2.0,
+        "abs": 0.3,
+        "rel": 0.1
+      },
+      "damage": {
+        "inflate": 1.0,
+        "abs": 0.03,
+        "rel": 0.45
       }
     }
   }
