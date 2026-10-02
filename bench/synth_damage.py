@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -159,7 +160,7 @@ def bare_spot(cloud, layout, wall, room, openings, box, v0) -> tuple[float, floa
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("scan", nargs="?", default=str(HERE.parent.parent / "data" / "single_scan_with_ceiling"))
+    ap.add_argument("scan", nargs="?", default=str(Path(os.environ.get("ROOMSCAN_DATA", HERE.parent.parent / "data")) / "single_scan_with_ceiling"))
     ap.add_argument("--out", default=str(HERE / "reports" / "synth_damage.md"))
     a = ap.parse_args()
     t0 = time.time()
