@@ -21,8 +21,11 @@ DEPTH_SCALE_BIAS = 1.137  # median(pred / lidar) over the sample scans
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
 
-@lru_cache(maxsize=1)
-def _model():
+DEPTH_PX = 392  # model input short side (the patch size 14 divides it)
+
+
+@lru_cache(maxsize=2)
+def _model(px: int = DEPTH_PX):
     import torch
     from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
@@ -30,17 +33,19 @@ def _model():
 
     torch.set_num_threads(max(1, os.cpu_count() or 4))
     # 392 px short side instead of 518: ~2x faster on CPU; walls are large smooth surfaces
-    proc = pretrained(AutoImageProcessor, MODEL_ID, size={"height": 392, "width": 392})
+    proc = pretrained(AutoImageProcessor, MODEL_ID, size={"height": px, "width": px})
     model = pretrained(AutoModelForDepthEstimation, MODEL_ID).eval()
     return proc, model
 
 
-def predict_depth(images: list[np.ndarray], batch: int = 4, progress: bool = False) -> list[np.ndarray]:
-    """RGB uint8 images -> metric depth maps (m) at the model's output resolution."""
+def predict_depth(images: list[np.ndarray], batch: int = 4, progress: bool = False,
+                  px: int | None = None) -> list[np.ndarray]:
+    """RGB uint8 images -> metric depth maps (m) at the model's output resolution.
+    px: model input short side (default DEPTH_PX); a multiple of 14."""
     import torch
     from tqdm import tqdm
 
-    proc, model = _model()
+    proc, model = _model() if px in (None, DEPTH_PX) else _model(px)
     # a batch must hold one image shape: a phone's photos mix portrait and landscape, and the
     # processor keeps the aspect ratio, so mixed shapes cannot be stacked into one tensor
     groups: dict[tuple, list[int]] = {}

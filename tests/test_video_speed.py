@@ -67,7 +67,7 @@ def test_solve_poses_with_depth_on_some_keyframes():
 def test_cached_depths_only_wanted(monkeypatch, tmp_path):
     calls = []
 
-    def fake(imgs, progress=False):
+    def fake(imgs, progress=False, px=None):
         calls.append(len(imgs))
         return [np.full((4, 4), float(im[0, 0, 0]), np.float32) for im in imgs]
 
@@ -106,3 +106,28 @@ def test_track_video_threaded_decoder(tmp_path):
     assert len(common) > 100
     dx = np.median(b["pts"][ib, 0] - a["pts"][ia, 0])
     assert abs(dx + 6 * (b["frame"] - a["frame"])) < 2
+
+
+def test_predict_depth_input_size(monkeypatch):
+    """The tier's depth input size reaches the model loader; the default keeps one model."""
+    import torch
+    seen = []
+
+    class _Proc:
+        def __call__(self, images, return_tensors):
+            return {"x": torch.zeros(len(images))}
+
+    class _Model:
+        def __call__(self, x):
+            return type("O", (), {"predicted_depth": torch.ones(len(x), 2, 2)})()
+
+    def loader(px=D.DEPTH_PX):
+        seen.append(px)
+        return _Proc(), _Model()
+
+    monkeypatch.setattr(D, "_model", loader)
+    imgs = [np.zeros((8, 8, 3), np.uint8)]
+    D.predict_depth(imgs)
+    D.predict_depth(imgs, px=D.DEPTH_PX)
+    D.predict_depth(imgs, px=252)
+    assert seen == [D.DEPTH_PX, D.DEPTH_PX, 252]
