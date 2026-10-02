@@ -10,9 +10,11 @@ usage: uv run python scripts/fetch_weights.py      (once, after `uv sync --extra
 Each model is loaded the way the pipeline loads it (transformers `from_pretrained` with the
 model ids from roomscan), so every file the pipeline asks for ends up in the cache. A list
 of file patterns is not enough: openai/clip-vit-base-patch32 publishes its weights only as
-pytorch_model.bin, and on first use transformers also fetches the hub's converted
-model.safetensors copy in a background thread. Both are fetched here instead of during the
-first capture run.
+pytorch_model.bin. transformers loads that file and, unless DISABLE_SAFETENSORS_CONVERSION
+is set, also downloads the hub's converted model.safetensors copy (605 MB) in a background
+thread, a copy it never loads. roomscan and this script set the variable to 1 when it is
+unset, so that copy is not fetched; if you set it to 0 yourself, the copy is fetched here
+instead of during the first capture run.
 
 Cache: the Hugging Face default (~/.cache/huggingface/hub, or $HF_HOME/hub).
 No weights are stored in the repository.
@@ -25,6 +27,8 @@ import time
 from pathlib import Path
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+# as in roomscan.damage.detect: skip the unused safetensors copy of CLIP's pytorch_model.bin (605 MB)
+os.environ.setdefault("DISABLE_SAFETENSORS_CONVERSION", "1")
 
 # The ids the pipeline uses. Importing these modules also applies any hub settings they make.
 from roomscan.damage.detect import CLIP_ID  # noqa: E402
@@ -51,7 +55,7 @@ def load_all(verbose: bool = True) -> None:
         if verbose:
             print("fetching", m, flush=True)
         loaders[m]()
-    # transformers' safetensors conversion runs in a background thread; wait for its download
+    # with DISABLE_SAFETENSORS_CONVERSION=0 the conversion download runs in a background thread: wait for it
     for t in threading.enumerate():
         if t.name.startswith("Thread-auto_conversion"):
             t.join()
