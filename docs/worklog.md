@@ -460,6 +460,57 @@ against the iPhone LiDAR plan.
   - Clean scan A false positives 2 → 0.
   - The crack is still missed: CLIP scores it at most about 0.6.
 
+## Stage 19: product (commits `a5f88b4`-`c60803e`)
+
+Work that makes the engine usable by someone other than us. Several workers in parallel,
+each merged into main.
+
+- **Capture-quality check** (`a5f88b4`, merge `d7c7d5d`; `capture_quality.py`): OK / WARN /
+  RETAKE per check with one line of advice, in seconds, before the long run. Photos: count
+  per room, chat-app copies (long side < 1600 px), blur, look-back photo. Video: resolution,
+  speed of the picture (sample 0.26, our walk 0.88, WhatsApp 1.03 widths/s). LiDAR: looked
+  up at the ceiling, pose jumps, turn rate. Thresholds placed on `../data`. `walkin.py`
+  prints it; `--check-only` exits 3 on RETAKE.
+- **Split room fixed** (`f83f66c`, merge `82f9b9c`; `layout.py` `_furniture_gap`): a neck
+  stays merged when the ceiling was seen over it and nothing beside it has wall above door
+  height. Laser room 42446532: 2 rooms → 1, wall median 1.484 → 0.047 m. The other laser
+  rooms and our captures keep their room counts. All four laser rooms now have median
+  wall error 3-13 cm.
+- **Tape form** (`8d3e187`; `scripts/tape_form.py`): every wall of a plan with our value and
+  a blank; a filled form becomes ground-truth YAML.
+- **Excel output** (`f380254`; `export/sheet.py`): every run also writes `result.xlsx`, each
+  number as value, 90 % low, 90 % high.
+- **Known sizes** (`5cbbb1e`, `f1cdd22`, merge `8a4332d`; `known_sizes.py`): an optional
+  `measurements.yaml` with tape sizes per room. Held out on the sample flat (one number per
+  room from the LiDAR reference, the rest scored):
+  - photos, one length per room: footprint +109 % → −23 %, held-out walls 1.41 → 0.27 m;
+  - photos, ceiling height alone: +109 % → +177 % (worse), so a height is now only compared,
+    never used for scale;
+  - video, one length: −70 % → −87 % (worse): the video's error is missing rooms, not scale.
+  - LiDAR is never rescaled; the given sizes are a self-check.
+- **Printed A4 scale marker** (`d562d80`, merge `efcb51b`; `markers.py`,
+  `docs/scale_marker.md`): ArUco 180 mm square. Pasted on real walls of a LiDAR scan its
+  scale against LiDAR depth is 1.002 (0.998-1.006, 11 frames). Not yet used by the photo /
+  video tiers: the depth model's scale changes from frame to frame, so one marker frame
+  does not fix the others.
+- **Stage queue with gates** (`8fade5e`, fix `62b0a7c`; `stages.py`): every stage is announced,
+  timed and checked; a failed gate stops the run naming the stage. Written to
+  `stages.json`, streamed to the web server.
+- **Web API server** (`21f5809`, merge `aa7612a`; `server/`): FastAPI. Projects of spaces,
+  uploads checked by hash, verify, one job at a time in a queue, cached runs, given-vs-ours
+  comparison, state on disk that survives a restart. Dockerfile for CPU hosts.
+- **Web front end** (`cf5942a`, merge `834999b`, `75feda0`, `c60803e`; `web/`): static, no
+  build step. Spaces, uploads kept in the browser until the server has them, verify badges,
+  live stages, results and downloads, capture-guide diagrams.
+- **HEIC optional** (`113544d`; `heif.py`): where the HEIC decoder cannot load (Application
+  Control blocked it here mid-session), other formats keep working and a HEIC photo fails
+  with a clear hint.
+- **Damage bench** (`c26deeb`, merge `43cb852`): paint goes only on bare, flat wall. The
+  painted crack is now found as a crack (width +61 %, a lamp cable joins its outline;
+  height −3 %).
+- **Benchmark on all 16 captures** (`47368af`): intervals refitted; LiDAR scale 5.07 on laser
+  truth.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,
@@ -471,7 +522,7 @@ against the iPhone LiDAR plan.
    twice per protocol (upward sweep included) and a furnished room with staged damage in
    two classes. Needs an iPhone. (LiDAR now has laser truth on four public rooms.)
 2. LiDAR outlines on furnished rooms: build them from the wall planes that reach the
-   ceiling, and stop furniture from splitting a room at a gap (ARKitScenes 42446532).
+   ceiling. (Furniture no longer splits a room at a gap: ARKitScenes 42446532, stage 19.)
 3. Damage recall: each wall patch is seen in too few frames to confirm a stain.
 4. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
 5. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the

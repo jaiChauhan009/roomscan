@@ -13,7 +13,8 @@ Input: one capture of a property made with an iPhone, in one of three forms.
 | video | one video clip | colour video only |
 | photo | one folder of photos per room | 2 to 8 still photos per room, nothing else |
 
-Output (the same for every tier): `result.json` and `plan.png`.
+Output (the same for every tier): `result.json`, `result.xlsx`, `plan.png` / `plan.svg`
+and `stages.json`.
 
 - every room: outline, wall lengths, ceiling height, floor area, doors and windows
 - one stitched plan of the whole property, with which rooms connect to which
@@ -22,7 +23,8 @@ Output (the same for every tier): `result.json` and `plan.png`.
 - repair line items tied to the damaged surface
 - a 90 % interval on every number; wider for video, widest for photos
 
-One command runs everything: `roomscan run <capture>`.
+One command runs everything: `roomscan run <capture>`. The same engine also runs behind a
+web app (section 12).
 
 ## 2. The central design decision
 
@@ -60,6 +62,11 @@ roomscan/
 │   ├── pipeline.py               tier detection, stage order, caching, timing
 │   ├── capture.py                Frame and PosedCapture (the common form)
 │   ├── schema.py                 output contract as pydantic models
+│   ├── stages.py                 stage queue, a gate after each stage, stages.json
+│   ├── capture_quality.py        quick capture check, OK / WARN / RETAKE with advice
+│   ├── known_sizes.py            optional tape sizes per room (measurements.yaml)
+│   ├── markers.py                optional printed A4 ArUco scale marker
+│   ├── heif.py                   optional HEIC decoder, loaded once
 │   ├── frontends/
 │   │   ├── lidar_stray.py        reads a Stray Scanner folder
 │   │   ├── video.py              video -> poses and depth
@@ -85,7 +92,10 @@ roomscan/
 │   │   └── calibration.yaml      per-tier terms: priors + a fitted scale
 │   └── export/
 │       ├── build.py              assembles result.json
-│       └── render.py             draws plan.png / plan.svg
+│       ├── render.py             draws plan.png / plan.svg
+│       └── sheet.py              result.json -> result.xlsx
+├── server/                       web API (FastAPI): projects, uploads, verify, job queue
+├── web/                          static web front end (HTML, CSS, ES modules; no build)
 ├── bench/
 │   ├── gates.yaml                pass/fail thresholds
 │   ├── manifest.yaml             which captures form the benchmark
@@ -194,7 +204,9 @@ depth edges are dropped. Points are merged into 2 cm voxels; near observations w
 5. **Rooms**: regions sealed by walls and lintels, after closing wall gaps under 50 cm. A
    region that is not sealed keeps the cells with a (gap-closed) wall in all four
    directions. Regions joined through a narrow neck are split unless the opening is as
-   wide as the room and the ceilings match.
+   wide as the room and the ceilings match, or the neck is a gap between furniture
+   (`_furniture_gap`: ceiling seen right over it, no wall above door height beside it).
+   This keeps laser room 42446532 whole (wall median 1.48 → 0.047 m).
 6. **Polygon**: each room outline is simplified to axis-aligned segments, and each
    segment is snapped onto the real wall plane using the 3D points, searching up to 0.9 m
    outward (the room's floor stops at furniture) but never into another room.
@@ -256,6 +268,10 @@ schema. Top level: `capture`, `property` (footprint, adjacency, drift info), `ro
 `render.py` draws the plan: walls, doors (green), windows (blue dashed), each wall's
 length ± interval, each room's area and height, damage markers.
 
+`sheet.py` writes `result.xlsx` from `result.json` (Summary, Rooms, Walls, Openings,
+Damage, Flags, Scope, Warnings). Each measurement is three columns: value, 90 % low,
+90 % high; a missing value is blank with its lower bound.
+
 ## 9. Benchmark (`bench/`)
 
 - `evaluate.py` matches predicted rooms to ground-truth rooms and scores wall lengths,
@@ -287,3 +303,52 @@ about 12 minutes cold, 2 minutes with cached depth; photo set of 7 rooms about 3
 | CLIP ViT-B/32 | MIT | damage classification |
 
 Everything runs locally on CPU. Weights are downloaded once by `scripts/fetch_weights.py`.
+
+## 12. Around the engine: checks, sizes, stages, web app
+
+### 12.1 Capture check (`capture_quality.py`)
+
+Runs in seconds before the long run and returns OK / WARN / RETAKE per check, each with
+one line of advice. Photos: count per room, chat-app copies, blur, look-back photo. Video:
+resolution, speed of the picture. LiDAR: did the scan look up at the ceiling, pose jumps,
+turn rate. `walkin.py` prints it (`--check-only` stops there); the server's verify uses it.
+
+### 12.2 Known sizes and the scale marker (`known_sizes.py`, `markers.py`)
+
+Optional. A `measurements.yaml` next to the capture gives tape sizes per room (length,
+width, height). Photos: each room is scaled by its given length / width before
+stitching; a height alone is compared, never used for scale (held out it made the
+footprint worse, +109 % → +177 %). Video: one global scale. LiDAR: never rescaled, the
+differences are printed. The measured quantity gets the tape's interval.
+
+The printed A4 ArUco marker (`docs/scale_marker.md`) measures the depth model's scale at
+the marker. It is detected and tested, but not yet wired into the photo / video tiers,
+because the model's scale varies from frame to frame.
+
+### 12.3 Stage queue (`stages.py`)
+
+Each tier has a fixed list of stages (LiDAR / video: load, drift, fuse, layout, openings,
+damage, export; photo: load+depth, room_fit, stitch, openings, damage, export). A stage is
+announced, timed, then checked by a gate that records ok / warn / fail with a note. A
+failed gate stops the run and names the stage. Everything goes to an optional callback
+(`pipeline.run(..., on_stage=...)`) and to `stages.json`. The caches (drift, fused cloud,
+video depth) act as checkpoints.
+
+### 12.4 Web app (`web/`, `server/`)
+
+```
+ browser (web/)                 API (server/app.py)          job queue (server/jobs.py)
+ spaces, uploads  ──HTTP/JSON─► projects, files by hash ───► one worker thread, one job
+ kept in IndexedDB              verify (capture check)       at a time; cached by input
+ verify, run, poll ◄─────────── job status, live stages ◄─── pipeline.run(on_stage=...)
+ results, downloads ◄────────── files: result.json/.xlsx,    per tier: load ► ... ► export
+                                plan.png/.svg, stages.json   (gate after each stage)
+```
+
+- The front end is static (no build step); the API address is in `web/config.js`.
+- Uploads are checked by SHA-256 and are idempotent, so an interrupted upload resumes.
+- Photo spaces of one project form one walk (a folder per space, in walk order, plus a
+  `measurements.yaml` from the sizes typed in). Each video or LiDAR space is its own run.
+- State is JSON on disk (`server_data/`) and survives a restart.
+- A comparison endpoint shows the sizes the user typed beside ours.
+- API: `server/README.md`. Hosting: `docs/deploy.md`.

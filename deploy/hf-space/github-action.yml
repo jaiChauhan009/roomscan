@@ -1,0 +1,22 @@
+# Optional: deploy the server to the Hugging Face Space on every push to main.
+# To enable, copy this file to .github/workflows/hf-space.yml and add to the GitHub repo
+# (Settings > Secrets and variables > Actions):
+#   secret   HF_TOKEN   a Hugging Face token with write access
+#   variable HF_SPACE   <hf-user>/<space-name>, e.g. jaichauhan/roomscan
+name: Deploy server to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "server/**", "scripts/**", "pyproject.toml", "uv.lock", "deploy/hf-space/**"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: sh deploy/hf-space/push.sh "${{ vars.HF_SPACE }}"

@@ -90,23 +90,23 @@ the container runs offline. Give it at least 4 GB of memory (8 GB for long video
 
 ## Deploy
 
-**Hugging Face Spaces** (free CPU: 2 vCPU, 16 GB RAM): create a Space with the *Docker* SDK,
-push this repository to it with `server/Dockerfile` copied to `Dockerfile` at the root (Spaces
-build the root Dockerfile) and this front matter at the top of the Space's `README.md`:
+Step-by-step guide (Vercel front end, Hugging Face Space back end, connecting them, a
+Cloudflare Tunnel demo from a laptop, costs, security): [docs/deploy.md](../docs/deploy.md).
 
-```
----
-title: roomscan
-sdk: docker
-app_port: 7860
----
-```
+**Hugging Face Spaces** (free CPU: 2 vCPU, 16 GB RAM): create a Space with the *Docker* SDK
+and run `HF_TOKEN=hf_... sh deploy/hf-space/push.sh <hf-user>/<space>`. It pushes the files
+the image needs, with `server/Dockerfile` as the root `Dockerfile` (Spaces build the root
+Dockerfile) and `deploy/hf-space/README.md` (front matter `sdk: docker`, `app_port: 7860`) as
+the root `README.md`. `deploy/hf-space/github-action.yml` does the same on every push to
+`main`. The container runs as uid 1000 with a writable `HOME`, as Spaces require.
 
 Without paid persistent storage the Space's disk is wiped on restart (projects and results
-are lost); with it, storage is mounted at `/data`, which is `DATA_DIR`. Set `ROOMSCAN_CORS`
-to the web front end's origin under Settings > Variables.
+are lost); with it, storage is mounted at `/data`, which is `DATA_DIR`. The image sets
+`ROOMSCAN_RESULT_TTL_DAYS=2`. Set `ROOMSCAN_CORS` to the web front end's origin (e.g.
+`https://roomscan.vercel.app`, no trailing slash) under Settings > Variables and secrets; the
+front end's API URL goes in `web/env.js`.
 
-**Alternatives** (all build `server/Dockerfile`; set the port to 7860 or pass `--port $PORT`):
+**Alternatives** (all build `server/Dockerfile`; the server listens on `$PORT`, default 7860):
 
 * **Railway**: new project from the repository, set `RAILWAY_DOCKERFILE_PATH=server/Dockerfile`,
   add a volume mounted at `/data`.

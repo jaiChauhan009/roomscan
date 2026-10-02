@@ -14,6 +14,43 @@ One command per capture. The input tier is detected from what you give it:
 
 How to capture: [docs/capture_protocol.md](docs/capture_protocol.md) (one page).
 
+## Use it
+
+Setup first (next section). Then either of two ways.
+
+**1. Web app, locally.** Two terminals in the repository folder:
+
+```bash
+uv run --extra server uvicorn server.app:app --port 8000   # API + job queue (runs the engine)
+python -m http.server -d web 5173                          # the static web front end
+```
+
+Open http://localhost:5173. Add a space per room (photos, a video or a LiDAR zip), upload,
+press verify (OK / Check / Retake per space, with advice), run, and download the results.
+Typed-in room sizes are optional; the results show them beside ours. API details:
+[server/README.md](server/README.md). Hosting it: [docs/deploy.md](docs/deploy.md).
+
+**2. Command line.**
+
+```bash
+uv run python scripts/walkin.py <capture or drive root>         # quality check, cold run, per-room table
+uv run python scripts/walkin.py <capture> --check-only          # quality check only (exit 3 on RETAKE)
+uv run roomscan run <capture>                                   # writes runs/<capture name>/
+```
+
+**Outputs** (one folder per run):
+
+| File | Content |
+|---|---|
+| `result.json` | everything, to [schema/output.schema.json](schema/output.schema.json) |
+| `result.xlsx` | the same as sheets: Summary, Rooms, Walls, Openings, Damage, Flags, Scope, Warnings; each number as value, 90 % low, 90 % high |
+| `plan.png`, `plan.svg` | the stitched, dimensioned floor plan |
+| `stages.json` | every stage with its time and its gate (ok / warn / fail, with a note) |
+| `walkin.txt` | `walkin.py` only: the printed per-room report |
+
+Optional: a `measurements.yaml` with a tape length per room sets the photo / video scale
+(see "Known sizes" in [docs/architecture.md](docs/architecture.md)).
+
 ## Setup (once)
 
 Needs git and [uv](https://docs.astral.sh/uv/); no GPU. Tested on Windows 11 (x86_64). The
@@ -148,7 +185,9 @@ Output folder:
 | File | Content |
 |---|---|
 | `result.json` | everything, to the schema in [schema/output.schema.json](schema/output.schema.json) |
+| `result.xlsx` | the same, as spreadsheet sheets (`python -m roomscan.export.sheet <result.json>` converts an older run) |
 | `plan.png`, `plan.svg` | the stitched, dimensioned floor plan |
+| `stages.json` | stage times and gate results |
 
 Useful options: `--drift off` (drift-correction ablation), `--no-damage` (geometry only,
 faster), `--no-cache` (recompute cached stages), `--tier lidar|video|photo` (override detection).
@@ -219,7 +258,12 @@ src/roomscan/
   geometry/                  pointcloud, planes, layout, boxfit, openings, drift, metrics
   damage/                    detect.py, rules.yaml, scope.yaml, pipeline.py
   uncertainty/               intervals.py, calibration.yaml
-  export/                    build.py (output contract), render.py (plan)
+  export/                    build.py (output contract), render.py (plan), sheet.py (xlsx)
+  capture_quality.py         quick check before the long run, with retake advice
+  stages.py                  stage queue with a gate after each stage
+  known_sizes.py, markers.py optional tape sizes and printed A4 marker
+server/                      web API (FastAPI): projects, uploads, verify, job queue
+web/                         static web front end (no build step)
 bench/                       gates, evaluation, repeatability, run_all, ground truth
 docs/                        capture protocol, device and compliance matrices, report,
                              design Q&A, architecture, worklog, iPhone session plan
