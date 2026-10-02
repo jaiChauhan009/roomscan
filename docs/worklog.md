@@ -381,8 +381,11 @@ background, cheaper wall assignment, faster openings. Damage stage on the flat 1
 and openings 70 -> 5 s, each stage timed alone; outputs bit-identical. The final benchmark
 shared the machine with the iPhone session (openings 7 s, damage 133 s). A clean cold
 walk-in on the flat afterwards took 3 min 39 s (drift 28, fuse 39, layout 10, openings 6,
-damage 131 s). In the full pipeline the damage stage is slower than Worker E's stage-alone
-85 s; not yet explained. Dim frames are brightened before CLIP, with a
+damage 131 s). The damage stage is slower than Worker E's stage-alone 85 s for two reasons,
+both measured. CLIP took 69-73 ms per tile on the plugged-in, Balanced-plan laptop that
+afternoon, against E's 35 ms earlier. And round 3's rooms reach their walls, so 1,448 tiles
+qualify instead of 1,213. Skipping blank wall tiles before CLIP would cut this, but recall is
+the damage stage's weak point already, so it is left for a validation set. Dim frames are brightened before CLIP, with a
 stricter threshold. A rendered mirror is rejected and a doorway kept (`tests/test_speed_lowlight.py`).
 
 **Offline models** (`819c547`, `616a211`): weights load from the local cache without asking
