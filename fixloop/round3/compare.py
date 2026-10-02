@@ -46,6 +46,9 @@ def main():
         print(f"\n{cap}")
         for k in b:
             print(f"  {k:32s} {b[k]}  ->  {a[k]}")
+    if not (Path(after) / "benchmark.json").exists():
+        print("\n(after run not finished: no benchmark.json yet)")
+        return
     rb, ra = (_load(d, "benchmark.json") for d in (before, after))
     for name, x in (("before", rb), ("after", ra)):
         for rep in x.get("repeatability", []):

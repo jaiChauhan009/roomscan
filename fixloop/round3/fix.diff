@@ -1,0 +1,179 @@
+﻿diff --git a/src/roomscan/geometry/layout.py b/src/roomscan/geometry/layout.py
+index 659957d..1799afb 100644
+--- a/src/roomscan/geometry/layout.py
++++ b/src/roomscan/geometry/layout.py
+@@ -8,6 +8,8 @@ Pipeline:
+   4. free floor space minus walls and lintels -> connected components = rooms
+   5. room mask -> rectilinear polygon -> each edge snapped to the real wall plane
+      using the 3D points (sub-centimetre)
++  6. the snapped outline settled: steps between walls that snapped onto one plane
++     removed (furniture notches), conflicting snaps undone one at a time
+ """
+ from __future__ import annotations
+ 
+@@ -28,6 +30,8 @@ LOW = (0.3, 1.9)  # height band (above floor) that must be covered for a full wa
+ LINTEL_MIN = 2.15  # door heads sit below this; wall above it and nothing below = doorway
+ MIN_ROOM_AREA = 1.0  # m2
+ WALL_BAND_FRAC = 0.5  # share of the observed low band a wall must cover (old rule: 0.8 m of 1.6 m)
++STEP_TOL = 0.06  # m: parallel walls this close to one plane after snapping are one wall
++FULL_HEIGHT_GAP = 0.3  # m: a plane reaching this close to the ceiling is a wall, not furniture
+ 
+ 
+ @dataclass
+@@ -265,12 +269,15 @@ def _clearance(others: np.ndarray, frame: PlanFrame, axis: int, coord: float, lo
+ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, cloud: Cloud,
+                   floor_y: float, poly: Polygon, search_in: float = 0.15,
+                   search_out: float = 0.9, others: np.ndarray | None = None,
+-                  frame: PlanFrame | None = None) -> list[dict]:
++                  frame: PlanFrame | None = None, ceiling_h: float | None = None) -> list[dict]:
+     """Snap each axis-aligned edge onto the real wall plane seen in the 3D points.
+ 
+     An edge searches up to `search_out` outward (the room's mask stops at furniture in front
+     of a wall), but never past the first cell of another room (`others`): the best-covered
+     plane beyond that belongs to the neighbour, and snapping to it made rooms overlap.
++    A wall rises to the ceiling and furniture does not: given the room's ceiling height, a
++    plane whose points reach within FULL_HEIGHT_GAP of it beats a lower one if it covers at
++    least 80 % as much of the edge (a wardrobe front against the wall seen above it).
+     """
+     n = len(segs)
+     h = cloud.points[:, 1] - floor_y
+@@ -301,11 +308,13 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
+             continue
+         o = off[cand_idx]
+         u = cloud_ab[cand_idx, along]
++        hc = h[cand_idx]
+         # candidate planes = peaks in offset; score by how much of the wall length they cover
+         bins = np.arange(-search_in, search_out + 0.01, 0.01)
+         hist, e = np.histogram(o, bins=bins, weights=cloud.weight[cand_idx])
+         hs = np.convolve(hist, [0.25, 0.5, 0.25], mode="same")
+-        best, best_score = None, 0.0
++        best, best_score, best_cov, best_full = None, 0.0, 0.0, False
++        tall, tall_score, tall_cov = None, 0.0, 0.0  # the best plane that reaches the ceiling
+         for pk in np.argsort(hs)[::-1][:6]:
+             if hs[pk] <= 0:
+                 break
+@@ -314,8 +323,13 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
+             ub = np.unique(np.floor(u[sel] / 0.05))
+             cov = len(ub) * 0.05 / max(hi - lo - 2 * shrink, 0.05)
+             score = cov - 0.05 * max(c0, 0)  # prefer nearer planes at equal coverage
++            full = ceiling_h is not None and float(np.percentile(hc[sel], 95)) >= ceiling_h - FULL_HEIGHT_GAP
+             if score > best_score:
+-                best, best_score = c0, score
++                best, best_score, best_cov, best_full = c0, score, cov, full
++            if full and score > tall_score:
++                tall, tall_score, tall_cov = c0, score, cov
++        if tall is not None and not best_full and tall_cov >= 0.8 * best_cov:
++            best = tall
+         if best is None:
+             s["sigma"], s["support"], s["coverage"] = 0.03, 0, 0.0
+             continue
+@@ -330,6 +344,82 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
+     return segs
+ 
+ 
++def _outline_ok(segs: list[dict]) -> bool:
++    """A simple polygon, still counter-clockwise (wall normals point inside)."""
++    v = _vertices(segs)
++    if len(v) < 3:
++        return False
++    p = Polygon(v)
++    return p.is_valid and p.area > 0 and p.exterior.is_ccw
++
++
++def _merge_walls(a: dict, b: dict) -> dict:
++    """One wall from two parallel ones: the line their points support, both their evidence."""
++    wa, wb = a.get("support", 0), b.get("support", 0)
++    if wa + wb:
++        coord = (a["coord"] * wa + b["coord"] * wb) / (wa + wb)
++    else:
++        coord = (a["coord"] * a["len"] + b["coord"] * b["len"]) / max(a["len"] + b["len"], 1e-9)
++    sig = [x["sigma"] for x in (a, b) if x.get("support", 0)]
++    return {**a, "coord": coord, "len": a["len"] + b["len"], "q": b["q"], "support": wa + wb,
++            "sigma": float(np.sqrt(1 / sum(1 / s ** 2 for s in sig))) if sig else 0.03,
++            "coverage": (a.get("coverage", 0.0) * a["len"] + b.get("coverage", 0.0) * b["len"])
++            / max(a["len"] + b["len"], 1e-9),
++            "spread": max(a.get("spread", 0.0), b.get("spread", 0.0))}
++
++
++def _collapse_steps(segs: list[dict]) -> list[dict]:
++    """Merge parallel walls that run the same way and that snapping put within STEP_TOL of
++    one plane, dropping the step between them: a furniture notch whose front snapped back
++    onto the wall behind it. A step left between two such walls is at most STEP_TOL long."""
++    segs = list(segs)
++    i = 0
++    while len(segs) > 4 and i < len(segs):
++        n = len(segs)
++        ia, ib = (i - 1) % n, (i + 1) % n
++        a, s, b = segs[ia], segs[i], segs[ib]
++        if (a["orient"] == b["orient"] in ("H", "V") and s["orient"] != a["orient"]
++                and abs(a["coord"] - b["coord"]) <= STEP_TOL):
++            v = _vertices(segs)
++            k = 0 if a["orient"] == "H" else 1
++            if (v[i][k] - v[ia][k]) * (v[(ib + 1) % n][k] - v[ib][k]) > 0:  # a and b run the same way
++                m = _merge_walls(a, b)
++                segs = [m if t == ia else segs[t] for t in range(n) if t not in (i, ib)]
++                i = 0
++                continue
++        i += 1
++    return segs
++
++
++def _revert(segs: list[dict], i: int) -> list[dict]:
++    """The outline with edge i back where the raster put it, as an edge without evidence."""
++    out = list(segs)
++    out[i] = {**segs[i], "coord": segs[i]["_c0"], "sigma": 0.03, "support": 0, "coverage": 0.0, "spread": 0.0}
++    return out
++
++
++def _settle(segs: list[dict]) -> list[dict] | None:
++    """The snapped outline as a simple polygon, without steps snapping flattened.
++
++    Snaps can conflict: one edge of a notch snaps past its neighbour and the outline crosses
++    itself. Undo the snap whose undoing resolves it (the least covered one if several do; if
++    none does alone, the least covered) and try again, rather than discarding every snap in
++    the room. None when even the unsnapped outline fails.
++    """
++    cur = list(segs)
++    moved = [i for i, s in enumerate(cur) if s["orient"] != "D" and s["coord"] != s["_c0"]]
++    while True:
++        out = _collapse_steps(cur)
++        if _outline_ok(out):
++            return out
++        if not moved:
++            return cur if _outline_ok(cur) else None
++        fixes = [i for i in moved if _outline_ok(_collapse_steps(_revert(cur, i)))]
++        pick = min(fixes or moved, key=lambda i: (cur[i].get("coverage", 0.0), i))
++        cur = _revert(cur, pick)
++        moved.remove(pick)
++
++
+ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -> Layout:
+     floor = floor_level(cloud)
+     if floor is None:
+@@ -427,10 +517,22 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
+             continue
+         for s in segs:
+             s["_nrm"] = nab
+-        segs = _refine_walls(segs, verts, ab, sub, floor.value, poly, others=(region > 0) & (region != li),
+-                             frame=frame)
+-        verts = _vertices(segs)
+-        if not Polygon(verts).is_valid:
++            s["_c0"] = s["coord"]  # where the raster put it, for undoing a snap
++        # the room's own ceiling (rooms of one flat differ), where the capture saw it
++        seen = ceil_map[m][np.isfinite(ceil_map[m])]
++        room_ceil = float(np.median(seen)) if len(seen) >= 50 else (top_h if ceil_src == "ceiling_plane" else None)
++        others = (region > 0) & (region != li)
++        segs = _refine_walls(segs, verts, ab, sub, floor.value, poly, others=others, frame=frame,
++                             ceiling_h=room_ceil)
++        settled = _settle(segs)
++        if settled is not None:
++            # each final wall's evidence, measured where it ended up (merged walls span the old step)
++            v = _vertices(settled)
++            polished = _refine_walls([dict(s) for s in settled], v, ab, sub, floor.value, Polygon(v),
++                                     search_in=0.03, search_out=0.03, others=others, frame=frame)
++            segs = polished if _outline_ok(polished) else settled
++            verts = _vertices(segs)
++        else:  # last resort: the raster contour, without snapping
+             segs = _fallback_segments(m, frame)
+             verts = _vertices(segs)
+             if not Polygon(verts).is_valid:
