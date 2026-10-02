@@ -31,6 +31,13 @@ captures:
      prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/47332890/raw {data_root}/arkitscenes/47332890/arkit_47332890"}
   - {name: arkit_47331988, path: arkitscenes/47331988/arkit_47331988, tier: lidar,
      prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/47331988/raw {data_root}/arkitscenes/47331988/arkit_47331988"}
+  # Our own captures, 2026-10-02 (raw data in ../data/own, not in the repository): LiDAR with an
+  # iPhone 16 Pro (Stray Scanner); video and photos with a motorola moto g45 5G. The photos are not
+  # per protocol (taken while walking, 9-55 per room). Video and photos are scored against the
+  # LiDAR plan until tape measurements exist (bench/ground_truth/own_*.yaml).
+  - {name: own_lidar_1, path: own/lidar_1/609c9be5d1, tier: lidar}
+  - {name: own_video_1, path: own/video_1/VID_20261002_155413025.mp4, tier: video, reference: own_lidar_1}
+  - {name: own_photos_1, path: own/photos_1, tier: photo, reference: own_lidar_1}
 repeatability:
   - [apt_lidar_a, apt_lidar_b]
 drift_ablation: [apt_lidar_a, apt_lidar_b]
