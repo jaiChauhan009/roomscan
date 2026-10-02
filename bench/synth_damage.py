@@ -8,7 +8,8 @@ every frame shows them where its own depth and pose put that wall (furniture in 
 hides them, as it would hide real damage):
   - a water stain: a brown blob with a darker tide mark, about 0.5 m across;
   - a crack: a dark jagged line about 0.7 m long and 6 mm wide.
-Each goes where the fused cloud shows bare, well-observed wall away from openings. The
+Each goes where the fused cloud shows bare, well-observed wall away from openings and
+the frames' depth shows a solid, flat wall (not a curtain, window or glass). The
 damage stage runs on the clean capture (anything reported there is a false positive)
 and on the painted one, which is scored by the benchmark's own staged-damage scoring
 (evaluate._score_damage: right wall and class, width and height against the painted
@@ -135,9 +136,70 @@ def paint(cap: PosedCapture, layout, regions: list[dict], stats: dict) -> PosedC
     return PosedCapture(cap.tier, cap.name, [wrap(f) for f in cap.frames], dict(cap.meta))
 
 
-def bare_spot(cloud, layout, wall, room, openings, box, v0) -> tuple[float, float] | None:
+def _box_points(layout, wall, room, box, u0, v0, step=0.02) -> np.ndarray:
+    """World points on a grid over the box on the wall plane."""
+    x0, x1, y0, y1 = box
+    d = (wall.end - wall.start) / wall.length
+    uu, vv = np.meshgrid(np.arange(u0 + x0, u0 + x1, step), np.arange(v0 + y0, v0 + y1, step))
+    xz = layout.frame.to_world(wall.start + np.outer(uu.ravel(), d))
+    return np.stack([xz[:, 0], room.floor.value + vv.ravel(), xz[:, 1]], 1)
+
+
+DEPTH_ON_PLANE = 0.95  # fraction of the box's pixels whose depth puts them on the wall plane
+DEPTH_MAX_STD = 0.015  # m: spread of depth about the plane (curtain folds are wider)
+
+
+def depth_check(frames, layout, wall, room, box, u0, v0, max_frames: int = 16) -> tuple[float, float, int]:
+    """(fraction on the plane, depth spread about it, frames used) over the box, from the
+    frames that see it (90 % of it in the image, 0.4-4 m, at most 50 deg off the normal).
+
+    The fused cloud cannot tell a wall from a curtain or a window hung in its plane: a few
+    points on the plane fill its cells. Each frame's depth can: through a window or a gap
+    between curtains it reads beyond the wall (or nothing), and curtain folds scatter it
+    about the plane. A pixel is on the plane when its depth is within max(3 cm, 3 %) of
+    the frame's median offset from the plane (a pose or plane error shifts the whole box);
+    the spread is the median absolute deviation (x 1.4826) of those pixels' depth."""
+    P = _box_points(layout, wall, room, box, u0, v0)
+    n3 = layout.frame.to_world(wall.inward[None])[0]
+    n3 = np.array([n3[0], 0.0, n3[1]])
+    seeing = []
+    for f in frames:
+        R, t = f.T_wc[:3, :3], f.T_wc[:3, 3]
+        pc = (P - t) @ R
+        z = pc[:, 2]
+        ctr = P.mean(0)
+        dist = np.linalg.norm(t - ctr)
+        if (z <= 0.4).any() or (z >= 4.0).any() or (t - ctr) @ n3 < np.cos(np.deg2rad(50)) * dist:
+            continue
+        seeing.append((f, pc))
+    if not seeing:
+        return 0.0, float("inf"), 0
+    seeing = [seeing[i] for i in np.unique(np.linspace(0, len(seeing) - 1, max_frames).astype(int))]
+    fracs, spreads = [], []
+    for f, pc in seeing:
+        d = f.depth_fn()
+        h, w = d.shape
+        u = f.K[0, 0] * pc[:, 0] / pc[:, 2] + f.K[0, 2]
+        v = f.K[1, 1] * pc[:, 1] / pc[:, 2] + f.K[1, 2]
+        inside = (u >= 0) & (u < w) & (v >= 0) & (v < h)
+        if inside.mean() < 0.9:
+            continue
+        dz = d[v[inside].astype(int), u[inside].astype(int)] - pc[inside, 2]
+        off = float(np.median(dz))
+        on = np.abs(dz - off) < np.maximum(0.03, 0.03 * pc[inside, 2])
+        fracs.append(float(on.mean()))
+        if on.sum() > 10:
+            spreads.append(float(1.4826 * np.median(np.abs(dz[on] - np.median(dz[on])))))
+    if not fracs:
+        return 0.0, float("inf"), 0
+    return float(np.median(fracs)), float(np.median(spreads)) if spreads else float("inf"), len(fracs)
+
+
+def bare_spot(cloud, layout, wall, room, openings, box, v0, frames=None) -> tuple[float, float] | None:
     """(u0, visible fraction): where along the wall the region's box is most completely
-    covered by fused points on the wall plane (not behind furniture), clear of openings."""
+    covered by fused points on the wall plane (not behind furniture), clear of openings.
+    With frames: only where their depth also shows a solid, flat wall (depth_check), the
+    best-covered such spot (at most 0.1 m short of the best coverage)."""
     ab = layout.frame.to_plan(cloud.points[:, [0, 2]])
     s, u, v = _wall_coords(ab, cloud.points[:, 1], wall, room)
     x0, x1, y0, y1 = box
@@ -145,6 +207,7 @@ def bare_spot(cloud, layout, wall, room, openings, box, v0) -> tuple[float, floa
     u, v = u[keep], v[keep]
     nu, nv = max(1, round((x1 - x0) / 0.04)), max(1, round((y1 - y0) / 0.04))  # ~4 cm cells: 2 cm voxels fill them
     best = None
+    spots = []
     for u0 in np.arange(0.4 - x0, wall.length - 0.4 - x1, 0.1):  # 40 cm from the corners
         if any(o.wall_id == wall.id and o.u0 - 0.3 < u0 + x1 and u0 + x0 < o.u1 + 0.3 for o in openings):
             continue
@@ -152,10 +215,19 @@ def bare_spot(cloud, layout, wall, room, openings, box, v0) -> tuple[float, floa
         iu = np.minimum(((u[m] - u0 - x0) / (x1 - x0) * nu).astype(int), nu - 1)
         iv = np.minimum(((v[m] - v0 - y0) / (y1 - y0) * nv).astype(int), nv - 1)
         frac = len(np.unique(iu * nv + iv)) / (nu * nv)
+        spots.append((float(u0), float(frac)))
         if best is None or frac > best[1] + 1e-9 or (abs(frac - best[1]) < 1e-9 and abs(u0 - wall.length / 2)
                                                       < abs(best[0] - wall.length / 2)):
             best = (float(u0), float(frac))
-    return best
+    if frames is None or best is None:
+        return best
+    for u0, frac in sorted(spots, key=lambda x: (-round(x[1], 6), abs(x[0] - wall.length / 2))):
+        if frac < best[1] - 0.1:
+            break
+        on, spread, n = depth_check(frames, layout, wall, room, box, u0, v0)
+        if n >= 1 and on >= DEPTH_ON_PLANE and spread <= DEPTH_MAX_STD:
+            return u0, frac
+    return None
 
 
 def main():
@@ -183,7 +255,7 @@ def main():
         for w, r in order:
             if any(rg["wall"].id == w.id for rg in regions):
                 continue
-            spot = bare_spot(cloud, layout, w, r, ops, spec["box"], v0)
+            spot = bare_spot(cloud, layout, w, r, ops, spec["box"], v0, frames=cap.frames)
             if spot and spot[1] >= 0.9:
                 regions.append({**spec, "wall": w, "room": r, "u0": spot[0], "v0": v0, "rgb": rgb,
                                 "visible": spot[1]})
