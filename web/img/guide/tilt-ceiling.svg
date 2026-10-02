@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="tc-t tc-d">
+  <title id="tc-t">In every room: tilt up to the ceiling once, then down to the floor</title>
+  <desc id="tc-d">Side view of a person holding the phone at chest height. Once in every room, tilt the phone up until the ceiling and the top of the walls are in view, then down to the floor. This finds the ceiling height and the door tops.</desc>
+  <style>
+    .tc-line{stroke:currentColor;stroke-width:4;stroke-linecap:round;fill:none}
+    .tc-thin{stroke:currentColor;stroke-width:2;fill:none;opacity:.6}
+    .tc-up{stroke:#2f80ed;stroke-width:2.5;fill:none;stroke-linecap:round}
+    .tc-down{stroke:#27ae60;stroke-width:2.5;fill:none;stroke-linecap:round}
+    .tc-lbl{font:13px system-ui,sans-serif;fill:currentColor}
+    .tc-b{font:600 13px system-ui,sans-serif}
+  </style>
+  <line class="tc-line" x1="20" y1="25" x2="300" y2="25"/>
+  <line class="tc-line" x1="20" y1="190" x2="300" y2="190"/>
+  <line class="tc-line" x1="290" y1="25" x2="290" y2="190"/>
+  <text class="tc-lbl" x="24" y="18">ceiling</text>
+  <text class="tc-lbl" x="24" y="208">floor</text>
+  <circle class="tc-thin" cx="90" cy="70" r="13"/>
+  <line class="tc-thin" x1="90" y1="83" x2="90" y2="145"/>
+  <line class="tc-thin" x1="90" y1="145" x2="75" y2="188"/><line class="tc-thin" x1="90" y1="145" x2="105" y2="188"/>
+  <line class="tc-thin" x1="90" y1="100" x2="115" y2="108"/>
+  <rect x="113" y="98" width="6" height="18" rx="2" fill="#eb5757"/>
+  <path class="tc-up" d="M122 104 L250 32"/><polygon points="244,30 256,29 249,40" fill="#2f80ed"/>
+  <path class="tc-down" d="M122 110 L250 182"/><polygon points="244,184 256,185 249,174" fill="#27ae60"/>
+  <text class="tc-lbl tc-b" x="196" y="88" style="fill:#2f80ed">1 · tilt up</text>
+  <text class="tc-lbl tc-b" x="196" y="132" style="fill:#27ae60">2 · tilt down</text>
+  <text class="tc-lbl" x="110" y="208">phone at chest height</text>
+</svg>
