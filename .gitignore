@@ -20,3 +20,6 @@ weights/
 Thumbs.db
 .vscode/
 .idea/
+
+# web API server data (projects, uploads, results)
+/server_data/

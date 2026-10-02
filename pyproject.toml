@@ -49,3 +49,7 @@ packages = ["src/roomscan"]
 
 [tool.uv]
 python-preference = "managed"
+
+[tool.pytest.ini_options]
+# the repository root, so tests can import the web server package (server/)
+pythonpath = ["."]
