@@ -156,6 +156,9 @@ def compare(gt: dict, pred: dict, app: dict, label: str | None = None, src: str 
     unknown = [a.get("name") for a in app_rooms if a.get("name") not in gt_rooms]
     if unknown:
         raise InputError(f"{app_src}: rooms {unknown} are not in the ground truth ({src} has {sorted(gt_rooms)})")
+    twice = sorted({a["name"] for a in app_rooms if sum(b["name"] == a["name"] for b in app_rooms) > 1})
+    if twice:
+        raise InputError(f"{app_src}: rooms {twice} are listed more than once")
     label = label or gt.get("capture") or pred["capture"]["id"]
     mapping = match_rooms(gt["rooms"], pred["rooms"])
     P = {r["id"]: r for r in pred["rooms"]}
