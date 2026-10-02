@@ -112,23 +112,20 @@ def find_rooms(path: Path, warnings: list[str] | None = None) -> dict[str, list[
     return rooms
 
 
-_heif_registered = False
+def _is_heif(p: Path) -> bool:
+    """HEIC / HEIF by its content (an 'ftyp' box with a HEIF brand), whatever the name."""
+    try:
+        head = Path(p).read_bytes()[:32]
+    except OSError:
+        return False
+    return head[4:8] == b"ftyp" and any(b in head[8:32] for b in (b"heic", b"heix", b"mif1", b"msf1", b"heim"))
 
 
 def _register_heif() -> None:
-    """Open HEIC whatever the file is called (a HEIC renamed .jpg is still a HEIC)."""
-    global _heif_registered
-    if not _heif_registered:
-        try:
-            import os
-
-            import pillow_heif
-            pillow_heif.register_heif_opener()
-            # iPhone HEIC is a grid of 512 px tiles: decode them in parallel (default 4 threads)
-            pillow_heif.options.DECODE_THREADS = max(pillow_heif.options.DECODE_THREADS, min(8, os.cpu_count() or 4))
-        except ImportError:  # HEIC photos are then reported as unreadable
-            pass
-        _heif_registered = True
+    """Open HEIC whatever the file is called (a HEIC renamed .jpg is still a HEIC). Where the
+    decoder cannot load, HEIC photos are reported as unreadable with roomscan.heif.hint()."""
+    from roomscan.heif import register
+    register()
 
 
 # EXIF orientation -> PIL transpose (as ImageOps.exif_transpose), applied after shrinking
@@ -179,6 +176,9 @@ def read_photo(p: Path) -> tuple[np.ndarray, np.ndarray, dict]:
     except MemoryError:
         raise
     except Exception as e:  # not an image, truncated copy, broken HEIC container ...
+        from roomscan import heif
+        if type(e).__name__ == "UnidentifiedImageError" and not heif.register() and _is_heif(p):
+            raise InputError(f"cannot read photo {p.name}: {heif.hint()}") from e
         why = "not an image or a format this build cannot read" if type(e).__name__ == "UnidentifiedImageError" \
             else f"{type(e).__name__}: {e}"
         raise InputError(f"cannot read photo {p.name} ({why})") from e

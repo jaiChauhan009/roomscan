@@ -102,8 +102,8 @@ def load_gray(path: Path, side: int = WORK_SIDE) -> np.ndarray:
     """Greyscale, long side `side`; JPEGs are decoded at reduced scale (fast)."""
     from PIL import Image, ImageOps
     if path.suffix.lower() in (".heic", ".heif"):
-        import pillow_heif
-        pillow_heif.register_heif_opener()
+        from roomscan.heif import register
+        register()
     with warnings.catch_warnings(), Image.open(path) as im:
         warnings.simplefilter("ignore")
         im.draft("L", (side, side))
@@ -170,8 +170,8 @@ def is_blank(gray: np.ndarray) -> bool:
 def _focal_and_size(p: Path) -> tuple[bool, int]:
     from PIL import Image
     if p.suffix.lower() in (".heic", ".heif"):
-        import pillow_heif
-        pillow_heif.register_heif_opener()
+        from roomscan.heif import register
+        register()
     with warnings.catch_warnings(), Image.open(p) as im:
         warnings.simplefilter("ignore")
         ex = dict(im.getexif().get_ifd(0x8769))

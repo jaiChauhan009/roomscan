@@ -122,8 +122,8 @@ def _exif(p: Path, decode: bool = False) -> dict:
     """The photo's EXIF sub-IFD (capture time, focal length); decode=True also decodes the pixels."""
     from PIL import Image
     if p.suffix.lower() in HEIF:
-        import pillow_heif
-        pillow_heif.register_heif_opener()
+        from roomscan.heif import register
+        register()
     with warnings.catch_warnings(), Image.open(p) as im:
         warnings.simplefilter("ignore")  # PIL's "Corrupt EXIF data" on some exports
         if decode:

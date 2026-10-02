@@ -64,11 +64,18 @@ def stored(up: np.ndarray, orientation: int) -> Image.Image:
             3: im.transpose(Image.Transpose.ROTATE_180)}.get(orientation, im)
 
 
+def need_heif() -> None:
+    """Skip a test that writes HEIC where the decoder cannot load (e.g. its DLL is blocked)."""
+    from roomscan import heif
+    if not heif.register():
+        pytest.skip(f"HEIC unavailable on this machine: {heif.unavailable_reason()}")
+
+
 def save_photo(p: Path, orientation: int = 1, size=(300, 400), fmt: str | None = None) -> Path:
-    import pillow_heif
-    pillow_heif.register_heif_opener()
     p.parent.mkdir(parents=True, exist_ok=True)
     fmt = fmt or {".heic": "HEIF", ".heif": "HEIF", ".png": "PNG"}.get(p.suffix.lower(), "JPEG")
+    if fmt == "HEIF":
+        need_heif()
     im = stored(pattern(*size), orientation)
     kw = {} if fmt == "PNG" else {"exif": exif(orientation), "quality": 85}
     im.save(p, format=fmt, **kw, **(FAST_X265 if fmt == "HEIF" else {}))
@@ -88,6 +95,7 @@ def test_photo_formats_and_exif_orientation(tmp_path, name, orientation):
 def test_tiled_heic_as_an_iphone_writes_it(tmp_path, monkeypatch):
     """iPhone HEIC: a grid of tiles, an `irot` rotation property and EXIF orientation 6 in
     the file. libheif applies irot and pillow_heif reports orientation 1: rotated once."""
+    need_heif()
     import pillow_heif
     monkeypatch.setattr(pillow_heif.options, "GRID_TILE_SIZE", 256)
     p = save_photo(tmp_path / "IMG_0001.HEIC", 6, size=(600, 800))
@@ -117,6 +125,7 @@ def test_heic_named_jpg_in_a_fresh_process(tmp_path):
 
 @pytest.mark.parametrize("w,h,fmt", [(8064, 6048, "JPEG"), (4032, 3024, "HEIF")])  # 48 MP JPEG, 12 MP HEIC
 def test_large_photos_are_shrunk_while_decoding(tmp_path, w, h, fmt):
+    need_heif()
     import pillow_heif
     pillow_heif.register_heif_opener()
     up = np.empty((w, h, 3), np.uint8)  # upright portrait: w rows, h columns
@@ -233,6 +242,7 @@ _MATRIX = {0: (0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000), 90: (0, 0x10000,
 
 def hevc_still(img: np.ndarray) -> tuple[bytes, bytes]:
     """x265-coded picture via pillow_heif: (hvcC box, length-prefixed NAL units)."""
+    need_heif()
     import pillow_heif
     b = io.BytesIO()
     pillow_heif.from_pillow(Image.fromarray(img)).save(b, quality=60, **FAST_X265)
