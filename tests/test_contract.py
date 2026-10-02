@@ -149,3 +149,21 @@ def test_staged_damage_is_scored_by_surface_class_and_size(layout):
     assert (g["found"], g["wrong_class"], g["missed"], g["phantom"]) == (1, 1, 0, 1) and not g["pass"]
     out["damage"] = [region("d1", 1, "water_stain", 0.44, 0.28, 0.25), region("d2", 2, "crack", 0.65, 0.8, 1.7)]
     assert evaluate(out, gt)["gates"]["damage"]["pass"]
+
+
+def test_walls_without_plane_evidence_keep_a_valid_contract(layout):
+    """Walls ended by walls without evidence get wide length intervals, never a negative bound."""
+    import copy
+    lay = copy.deepcopy(layout)
+    for r in lay.rooms:
+        for w in r.walls:
+            w.coverage, w.sigma = 0.0, 0.03
+    out = json.loads(_output(lay).model_dump_json())
+    Output.model_validate(out)
+    base = json.loads(_output(layout).model_dump_json())
+    for r, r0 in zip(out["rooms"], base["rooms"]):
+        for w, w0 in zip(r["walls"], r0["walls"]):
+            lo, hi = w["length"]["ci90"]
+            assert 0.0 <= lo <= w["length"]["value"] <= hi
+            assert w["length"]["sigma"] >= w0["length"]["sigma"]
+            assert w["evidence_coverage"] == 0.0

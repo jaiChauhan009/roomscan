@@ -12,6 +12,59 @@ from roomscan.uncertainty.intervals import measure
 
 SHARED_WALL_GAP = 0.40  # rooms whose walls are closer than this share a wall
 
+# Where a wall ends. A wall's length is fixed by the two walls that end it, and layout gives each
+# wall the standard error of its plane fit: noise only (0.03 m when no plane was found). When an
+# end wall has no plane evidence over part of its length it may be a furniture side or a raster
+# edge rather than a wall: the outline then stops the wall at a notch and the real corner can be
+# a metre or more further on (laser rooms: such walls 0.17-2.3 m short of the true wall). So a
+# wall's length sigma combines its end walls' end_sigma = hypot(plane sigma, EVIDENCE_K * deficit),
+# deficit = (FULL_COVERAGE - coverage) / FULL_COVERAGE clipped to [0, 1]: 0 for a wall with plane
+# evidence along its whole length, 1 for a wall without a plane. Raw metres, before the tier's
+# inflate and scale. FULL_COVERAGE: layout measures coverage between 10 cm end margins, so a wall
+# of 2 m or more seen end to end reads 0.90 or more (the laser rooms' true walls: 0.92-0.97).
+# Per tier: video and photo keep the plane sigmas their scales were fitted with.
+# Floor area and perimeter keep the plane sigmas: a notch displaces the outline by the
+# furniture's depth, not by the hidden stretch of wall (laser rooms: the two notched rooms' areas
+# are off by -0.58 and +0.03 m2, inside their plane-sigma intervals; this term would have
+# multiplied those sigmas by 5).
+# Not every end wall without evidence hides a corner. Doorways and windows are gaps in a wall
+# whose plane the rest of the wall fixes, so their width counts as covered. A short step
+# (< STEP_MAX) between two parallel, fully covered walls is a jog of the wall line (a raster
+# step, a reveal), not a furniture side, so it adds nothing. EVIDENCE_CAP bounds one end's term.
+# Values (layouts after aa554d3): with the cap at 0.20 m, k = 0.50 is the smallest k at which the
+# laser rooms' walls ending at a wall below full coverage have the median |error| / sigma of walls
+# between fully covered walls (3.33 vs 3.32; 22.2 without the term). The cap keeps a wall with
+# no plane at 0.20 m raw (k 0.30 uncapped gave 0.30 m and a truth-fit scale of 5.07 instead of 3.46).
+FULL_COVERAGE = 0.90
+STEP_MAX = 0.35
+EVIDENCE_K = {"lidar": 0.50}
+EVIDENCE_CAP = {"lidar": 0.20}
+
+
+def evidence_deficit(w, open_width: float = 0.0) -> float:
+    """0 for a wall with plane evidence along its whole length (openings count as evidence),
+    1 for one without a plane."""
+    cov = float(w.coverage) + (open_width / w.length if open_width and w.length > 0 else 0.0)
+    return float(np.clip((FULL_COVERAGE - cov) / FULL_COVERAGE, 0.0, 1.0))
+
+
+def _is_step(w, prev_w, next_w) -> bool:
+    """A short jog between two parallel walls seen along their whole length."""
+    if prev_w is None or next_w is None or w.length >= STEP_MAX:
+        return False
+    dp = (prev_w.end - prev_w.start) / max(prev_w.length, 1e-9)
+    dn = (next_w.end - next_w.start) / max(next_w.length, 1e-9)
+    return (abs(float(dp @ dn)) > 0.98 and prev_w.coverage >= FULL_COVERAGE
+            and next_w.coverage >= FULL_COVERAGE)
+
+
+def end_sigma(w, tier: str, prev_w=None, next_w=None, open_width: float = 0.0) -> float:
+    """1-sigma (raw, m) of where wall w ends the walls next to it: plane noise plus missing evidence."""
+    if _is_step(w, prev_w, next_w):
+        return float(w.sigma)
+    term = min(EVIDENCE_K.get(tier, 0.0) * evidence_deficit(w, open_width), EVIDENCE_CAP.get(tier, float("inf")))
+    return float(np.hypot(w.sigma, term))
+
 
 def room_label(poly: Polygon, height: float | None, n_doors: int) -> str:
     minx, miny, maxx, maxy = poly.bounds
@@ -55,9 +108,10 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
         walls_out, surfaces = [], []
         room_ops = ops_by_room.get(room.id, [])
         n = len(room.walls)
+        ends = [end_sigma(w, tier, room.walls[i - 1], room.walls[(i + 1) % n],
+                          sum(o.width for o in room_ops if o.wall_id == w.id)) for i, w in enumerate(room.walls)]
         for i, w in enumerate(room.walls):
-            prev_w, next_w = room.walls[i - 1], room.walls[(i + 1) % n]
-            ls = float(np.hypot(prev_w.sigma, next_w.sigma))
+            ls = float(np.hypot(ends[i - 1], ends[(i + 1) % n]))  # the two walls that end it
             w_ops = [o for o in room_ops if o.wall_id == w.id]
             open_area = sum(o.width * o.height for o in w_ops)
             gross = w.length * h_val
