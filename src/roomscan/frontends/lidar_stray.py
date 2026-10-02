@@ -166,14 +166,21 @@ class VideoReader:
     def get(self, idx: int) -> np.ndarray | None:
         if idx in self.cache:
             return cv2.imdecode(self.cache[idx], cv2.IMREAD_COLOR)[:, :, ::-1].copy()
-        if self.cap is None:
-            self.cap = self._open()
-        if idx != self.pos + 1:
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        # Decode forward to frame idx; never seek. Stray's rgb.mp4 has a variable frame rate
+        # and OpenCV seeks by time (N / average fps), which on the sample scan landed 4-80
+        # frames late: colour no longer matched its pose and depth. Going back reopens.
+        if self.cap is None or idx <= self.pos:
+            if self.cap is not None:
+                self.cap.release()
+            self.cap, self.pos = self._open(), -1
+        while self.pos < idx - 1:
+            if not self.cap.grab():
+                return None
+            self.pos += 1
         ok, img = self.cap.read()
-        self.pos = idx
         if not ok:
             return None
+        self.pos = idx
         if len(self.cache) >= self.max_cache:
             self.cache.pop(next(iter(self.cache)))
         self.cache[idx] = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 95])[1]

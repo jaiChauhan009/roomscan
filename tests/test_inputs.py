@@ -609,3 +609,18 @@ def test_calibration_file_is_turned_with_a_rotated_clip(tmp_path):
     ray_stored = np.array([(25 - 160) / 300, (25 - 120) / 300])
     ray_turned = np.array([(xs.mean() - K[0, 2]) / K[0, 0], (ys.mean() - K[1, 2]) / K[1, 1]])
     assert np.allclose(ray_turned, [-ray_stored[1], ray_stored[0]], atol=1.5 / 300)
+
+
+def test_stray_video_frames_are_exact_on_variable_frame_rate(tmp_path):
+    # Stray's rgb.mp4 has a variable frame rate. OpenCV's seek to frame N goes by time
+    # (N / average fps), which lands 4-80 frames late on the sample scan, so colour frames
+    # did not match their pose and depth. Every frame here carries its index as brightness.
+    from roomscan.frontends.lidar_stray import VideoReader
+    frames = [np.full((64, 96, 3), 4 * i + 10, np.uint8) for i in range(40)]
+    deltas = [10 if i % 3 else 40 for i in range(40)]  # irregular frame times
+    clip = write_hevc_clip(tmp_path / "rgb.mp4", frames, deltas)
+    reader = VideoReader(clip)
+    for idx in [0, 7, 3, 25, 12, 39, 38]:  # forward, backward and repeated requests
+        img = reader.get(idx)
+        assert img is not None
+        assert abs(float(img.mean()) - (4 * idx + 10)) < 2.5, f"asked for frame {idx}, got brightness {img.mean():.1f}"

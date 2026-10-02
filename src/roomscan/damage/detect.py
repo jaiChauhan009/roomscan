@@ -487,6 +487,9 @@ def detect_damage(cap: PosedCapture, layout: Layout, threshold: float = 0.6, max
     tol = 0.06 if cap.tier == "lidar" else 0.20
     sidx = SurfaceIndex(layout, tol)
     obs = []
-    for f in tqdm(select_frames_coverage(cap, layout, max_frames), desc="damage", disable=not progress):
+    # in time order: a LiDAR capture's colour frames are decoded forward from the video, and
+    # every step back means decoding from the start again
+    frames = sorted(select_frames_coverage(cap, layout, max_frames), key=lambda f: f.timestamp)
+    for f in tqdm(frames, desc="damage", disable=not progress):
         obs += detect_frame(f, sidx, threshold)
     return merge(obs)
