@@ -94,6 +94,8 @@ def run(capture: Path = typer.Argument(..., help="Stray Scanner folder, video fi
         typer.echo(f"error: processing {capture.name} failed ({type(e).__name__}: {_one_line(e)[:300] or 'no message'}); "
                    f"traceback saved to {log}", err=True)
         raise typer.Exit(1)
+    from roomscan.export.sheet import write_sheet
+    write_sheet(res, Path(out) / "result.xlsx")  # the same result as a spreadsheet
     typer.echo(_summary(res, out, time.time() - t))
 
 

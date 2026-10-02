@@ -22,7 +22,7 @@ offline. The pipeline is the one `roomscan run` calls, with the same defaults.
 
 Prints the time of every stage, then one block per room: floor area, every wall with its
 90 % interval and the side of plan.png it is on, ceiling height (or "not observed"),
-openings with widths. Writes result.json, plan.png, plan.svg and this report (walkin.txt)
+openings with widths. Writes result.json, result.xlsx, plan.png, plan.svg and this report (walkin.txt)
 to --out (default runs/walkin_<capture>_<date>_<time>).
 Before the run, the capture's quality is checked (roomscan.capture_quality, seconds): per
 check OK / WARN / RETAKE with one line of advice (too many photos taken while walking,
@@ -458,7 +458,7 @@ def report(res: dict, out: Path, times: dict) -> list[str]:
              + f". Scope items: {len(res['scope'])}.")
     if res["warnings"]:
         L += ["", "Warnings from the pipeline:"] + [f"  - {w}" for w in res["warnings"]]
-    L += ["", f"Outputs in {out}: result.json, plan.png, plan.svg, walkin.txt",
+    L += ["", f"Outputs in {out}: result.json, result.xlsx, plan.png, plan.svg, walkin.txt",
           f"Done in {times['total']:.0f} s."]
     return L
 
@@ -535,6 +535,8 @@ def main(argv: list[str] | None = None) -> int:
         lines = report(res, out, times)
         text = "\n".join(head + lines) + "\n"
         (out / "walkin.txt").write_text(text, encoding="utf-8", newline="\n")
+        from roomscan.export.sheet import write_sheet
+        write_sheet(res, out / "result.xlsx")  # the same result as a spreadsheet
         print("\n".join(lines), flush=True)
         return 0
     finally:
