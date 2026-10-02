@@ -19,7 +19,9 @@ os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 def _model():
     from transformers import AutoImageProcessor, AutoModelForKeypointMatching
 
-    return AutoImageProcessor.from_pretrained(MODEL_ID), AutoModelForKeypointMatching.from_pretrained(MODEL_ID).eval()
+    from roomscan.ml.hub import pretrained
+
+    return pretrained(AutoImageProcessor, MODEL_ID), pretrained(AutoModelForKeypointMatching, MODEL_ID).eval()
 
 
 def match_pair(img_a: np.ndarray, img_b: np.ndarray, threshold: float = 0.3,

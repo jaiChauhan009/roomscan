@@ -26,10 +26,12 @@ def _model():
     import torch
     from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
+    from roomscan.ml.hub import pretrained
+
     torch.set_num_threads(max(1, os.cpu_count() or 4))
     # 392 px short side instead of 518: ~2x faster on CPU; walls are large smooth surfaces
-    proc = AutoImageProcessor.from_pretrained(MODEL_ID, size={"height": 392, "width": 392})
-    model = AutoModelForDepthEstimation.from_pretrained(MODEL_ID).eval()
+    proc = pretrained(AutoImageProcessor, MODEL_ID, size={"height": 392, "width": 392})
+    model = pretrained(AutoModelForDepthEstimation, MODEL_ID).eval()
     return proc, model
 
 
