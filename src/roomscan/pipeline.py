@@ -2,8 +2,13 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
+import re
+import shutil
 import time
+import zipfile
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -12,27 +17,189 @@ from roomscan.capture import PosedCapture
 from roomscan.geometry.pointcloud import Cloud, fuse_capture
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v"}
-IMAGE_EXT = {".jpg", ".jpeg", ".png", ".heic"}
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
+RAW_EXT = {".dng"}  # iPhone ProRAW / RAW; other cameras' raw formats are rejected as unknown types
 CACHE_DIR = Path(".cache")
+TIERS = ("auto", "lidar", "video", "photo")
+# OS and sync-tool metadata that sits next to real files (compared lower-case)
+_JUNK = {"__macosx", "thumbs.db", "ehthumbs.db", "desktop.ini", "$recycle.bin", "system volume information",
+         "@eadir", ".ds_store"}
+DNG_HINT = ("ProRAW / RAW .dng photos are not supported: set Settings > Camera > Formats to High Efficiency "
+            "or Most Compatible with ProRAW off and take the photos again, or export them as JPEG")
+
+
+class InputError(ValueError):
+    """The capture cannot be used as given: missing, empty, unsupported or damaged.
+
+    The message tells the person running the command what is wrong and what to do; the CLI
+    prints it as one line without a traceback."""
+
+
+def visible(p: Path) -> bool:
+    """False for hidden files and OS metadata that travel with photos: .DS_Store, macOS
+    '._' AppleDouble files, __MACOSX, Thumbs.db, desktop.ini, Synology @eaDir."""
+    n = p.name
+    return not (n.startswith(".") or n.startswith("~$") or n.lower() in _JUNK)
+
+
+def natural_key(p: Path):
+    """Sort key matching Explorer / Finder order: case-insensitive, numbers by value
+    ("room 2" before "room 10")."""
+    return [(0, int(t), "") if t.isdigit() else (1, 0, t) for t in re.split(r"(\d+)", p.name.casefold())]
+
+
+def listdir(path: Path) -> list[Path]:
+    """Visible entries of a folder in natural order; InputError if it cannot be read."""
+    try:
+        return sorted((p for p in Path(path).iterdir() if visible(p)), key=natural_key)
+    except PermissionError as e:
+        raise InputError(f"cannot read folder {path}: permission denied") from e
+    except NotADirectoryError as e:
+        raise InputError(f"{path} is not a folder") from e
+    except OSError as e:
+        raise InputError(f"cannot read folder {path}: {e.strerror or e}") from e
+
+
+def is_image(p: Path) -> bool:
+    return p.suffix.lower() in IMAGE_EXT and p.is_file() and visible(p)
+
+
+def capture_videos(folder: Path) -> list[Path]:
+    """Video files in a folder, without Live Photo companions (IMG_0001.MOV next to
+    IMG_0001.HEIC is the moving part of a photo, not a walk-through clip)."""
+    entries = [p for p in listdir(folder) if p.is_file()]
+    stems = {p.stem.casefold() for p in entries if p.suffix.lower() in IMAGE_EXT | RAW_EXT}
+    return [p for p in entries if p.suffix.lower() in VIDEO_EXT and p.stem.casefold() not in stems]
+
+
+def unwrap(path: Path, max_levels: int = 3) -> Path:
+    """Step into folders whose only content is one folder without photos of its own, e.g.
+    the `x/x/...` that Windows "Extract all" makes of a zipped folder."""
+    path = Path(path)
+    for _ in range(max_levels):
+        if not path.is_dir():
+            break
+        entries = listdir(path)
+        if len(entries) != 1 or not entries[0].is_dir() or any(is_image(q) for q in listdir(entries[0])):
+            break
+        path = entries[0]
+    return path
+
+
+def _has_images(d: Path) -> bool:
+    try:
+        return d.is_dir() and any(is_image(q) for q in listdir(d))
+    except InputError:  # unreadable sub-folder: not a room
+        return False
+
+
+def _describe(path: Path) -> str:
+    """What a folder holds, by file type, for error messages."""
+    counts: Counter = Counter()
+    try:
+        for p in itertools.islice(path.rglob("*"), 5000):
+            if p.is_file() and visible(p):
+                counts[p.suffix.lower() or "(no extension)"] += 1
+    except OSError:
+        pass
+    if not counts:
+        return "it is empty (hidden and system files are ignored)"
+    return "it holds " + ", ".join(f"{n} {ext}" for ext, n in counts.most_common(6))
+
+
+def _unsupported_file(path: Path) -> str:
+    ext = path.suffix.lower() or "(no extension)"
+    if ext in RAW_EXT:
+        return f"{path.name}: {DNG_HINT}"
+    return (f"{path.name}: unsupported file type {ext}. Give a video (.mov, .mp4), a photo (.heic, .jpg, .png), "
+            f"a folder of per-room photo folders, a Stray Scanner folder, or a .zip of one of these")
+
+
+def _unzip(zpath: Path) -> Path:
+    """Extract a .zip once into .cache/inputs/ (reused while the zip is unchanged)."""
+    st = zpath.stat()
+    key = hashlib.sha1(f"{zpath.resolve()}|{st.st_size}|{st.st_mtime_ns}".encode()).hexdigest()[:12]
+    dest = CACHE_DIR / "inputs" / key / (zpath.stem.strip() or "capture")
+    done = dest.parent / ".complete"
+    if done.exists() and dest.is_dir():
+        return dest
+    shutil.rmtree(dest.parent, ignore_errors=True)
+    try:
+        with zipfile.ZipFile(zpath) as z:
+            members = [m for m in z.infolist() if not m.is_dir()]
+            if not members:
+                raise InputError(f"{zpath.name} is an empty zip file")
+            need = sum(m.file_size for m in members)
+            dest.mkdir(parents=True, exist_ok=True)
+            free = shutil.disk_usage(dest).free
+            if need > free:
+                raise InputError(f"not enough disk space to unzip {zpath.name}: needs {need / 1e9:.1f} GB, "
+                                 f"{free / 1e9:.1f} GB free")
+            z.extractall(dest)  # zipfile drops absolute paths and '..' components
+    except InputError:
+        shutil.rmtree(dest.parent, ignore_errors=True)
+        raise
+    except zipfile.BadZipFile as e:
+        shutil.rmtree(dest.parent, ignore_errors=True)
+        raise InputError(f"{zpath.name} is not a readable zip file ({e}): copy it again, or unzip it and "
+                         f"pass the folder") from e
+    except (NotImplementedError, RuntimeError, OSError) as e:  # compression method, password, file names
+        shutil.rmtree(dest.parent, ignore_errors=True)
+        raise InputError(f"cannot unzip {zpath.name} ({type(e).__name__}: {e}): unzip it by hand and pass "
+                         f"the folder") from e
+    done.write_text("ok")
+    return dest
+
+
+def prepare_input(path: Path) -> Path:
+    """What the user passed -> the file or folder the front ends read: a .zip (or a folder
+    holding nothing but one .zip) is extracted."""
+    path = Path(path)
+    if not path.exists():
+        raise InputError(f"{path} does not exist")
+    if path.is_dir():
+        entries = listdir(unwrap(path))
+        if len(entries) == 1 and entries[0].is_file() and entries[0].suffix.lower() == ".zip":
+            path = entries[0]
+    if path.is_file() and path.suffix.lower() == ".zip":
+        return _unzip(path)
+    return path
 
 
 def detect_tier(path: Path) -> str:
+    """lidar | video | photo for a capture folder or file; InputError when nothing fits.
+
+    A folder with photos is the photo tier even when Live Photo .MOV files sit next to the
+    photos; a folder is the video tier only when it holds a clip and no photos."""
     from roomscan.frontends.lidar_stray import find_stray_root
 
-    if path.is_file() and path.suffix.lower() in VIDEO_EXT:
-        return "video"
-    if path.is_dir():
-        if find_stray_root(path) is not None:
-            return "lidar"
-        files = [p for p in path.iterdir() if p.is_file()]
-        if any(p.suffix.lower() in VIDEO_EXT for p in files) and not any(p.suffix.lower() in IMAGE_EXT for p in files):
+    path = Path(path)
+    if not path.exists():
+        raise InputError(f"{path} does not exist")
+    if path.is_file():
+        ext = path.suffix.lower()
+        if ext in VIDEO_EXT:
             return "video"
-        subdirs = [p for p in path.iterdir() if p.is_dir()]
-        if any(p.suffix.lower() in IMAGE_EXT for p in files) or any(
-                any(q.suffix.lower() in IMAGE_EXT for q in d.iterdir()) for d in subdirs):
+        if ext in IMAGE_EXT:
             return "photo"
-    raise ValueError(f"cannot tell which tier {path} is: expected a Stray Scanner folder, a video, "
-                     f"or folders of photos")
+        raise InputError(_unsupported_file(path))
+    if find_stray_root(path) is not None:
+        return "lidar"
+    inner = unwrap(path)
+    for d in dict.fromkeys([path, inner]):
+        missing = [n for n in ("odometry.csv", "depth/") if not (d / n).exists()]
+        if len(missing) == 1 and (d / "rgb.mp4").is_file():  # a Stray Scanner export with a part missing
+            raise InputError(f"{d} looks like a Stray Scanner export without its {missing[0]}: export the scan "
+                             f"again, or pass {d / 'rgb.mp4'} to run it as a video")
+        entries = listdir(d)
+        if any(is_image(p) for p in entries) or any(_has_images(p) for p in entries):
+            return "photo"
+        if capture_videos(d):
+            return "video"
+    if any(p.suffix.lower() in RAW_EXT and visible(p) for p in itertools.islice(inner.rglob("*"), 5000)):
+        raise InputError(f"{path}: {DNG_HINT}")
+    raise InputError(f"cannot use {path}: {_describe(path)}. Expected a Stray Scanner folder, a video "
+                     f"(.mov, .mp4), or a folder of per-room photo folders (.heic, .jpg, .png)")
 
 
 def _cache_key(*parts) -> str:
@@ -62,9 +229,15 @@ DRIFT_MODES = {"off": None, "loop": dict(loop_closure=True, heading=False),
 
 def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: str = "loop",
         damage: bool = True, use_cache: bool = True, progress: bool = True) -> dict:
-    path, out_dir = Path(path), Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if tier not in TIERS:
+        raise InputError(f"unknown tier '{tier}': use one of {', '.join(TIERS)}")
+    if drift not in DRIFT_MODES:
+        raise InputError(f"unknown drift mode '{drift}': use one of {', '.join(DRIFT_MODES)}")
+    if stride < 1:
+        raise InputError(f"stride must be 1 or more (got {stride})")
+    path, out_dir = prepare_input(Path(path)), Path(out_dir)
     tier = detect_tier(path) if tier == "auto" else tier
+    out_dir.mkdir(parents=True, exist_ok=True)
     timing: dict[str, float] = {}
     t0 = time.time()
 
@@ -92,7 +265,7 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
     from roomscan.geometry.layout import extract_layout
     from roomscan.geometry.openings import detect_openings
 
-    warnings: list[str] = []
+    warnings: list[str] = list(cap.meta.pop("input_warnings", []))  # what the loader skipped or assumed
     t = time.time()
     drift_info = {"method": "none", "enabled": False}
     if DRIFT_MODES.get(drift):
@@ -140,6 +313,7 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
     out = build_output(layout, openings, cap.tier, info, drift_info, dmg, flags, scope, warnings, timing)
     timing["export"] = time.time() - t
     out.timing_s = {k: round(v, 2) for k, v in timing.items()}
-    (out_dir / "result.json").write_text(out.model_dump_json(indent=2))
+    # UTF-8, not the Windows locale code page: names come from the user's folder and file names
+    (out_dir / "result.json").write_text(out.model_dump_json(indent=2), encoding="utf-8")
     render_plan(out, out_dir / "plan.png")
     return json.loads(out.model_dump_json())
