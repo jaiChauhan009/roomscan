@@ -51,9 +51,29 @@ def test_end_sigma_adds_the_evidence_term_for_lidar_only():
     full = SimpleNamespace(coverage=0.95, sigma=0.004)
     none = SimpleNamespace(coverage=0.0, sigma=0.03)
     assert end_sigma(full, "lidar") == pytest.approx(0.004)  # fully covered: the plane fit alone
-    assert end_sigma(none, "lidar") == pytest.approx(np.hypot(0.03, B.EVIDENCE_K["lidar"]))
+    term = min(B.EVIDENCE_K["lidar"], B.EVIDENCE_CAP["lidar"])
+    assert end_sigma(none, "lidar") == pytest.approx(np.hypot(0.03, term))
     for tier in ("video", "photo"):  # their scales were fitted on plane sigmas: unchanged
         assert end_sigma(none, tier) == pytest.approx(0.03)
+
+
+def test_doorways_count_as_evidence_and_short_steps_add_nothing():
+    w = SimpleNamespace(coverage=0.6, sigma=0.003, length=3.0)
+    assert evidence_deficit(w, open_width=1.0) == 0.0  # 0.6 + 1.0 / 3 >= full coverage
+    assert evidence_deficit(w) > 0
+    run = lambda a, b, c: SimpleNamespace(start=np.array(a, float), end=np.array(b, float), coverage=c,  # noqa: E731
+                                          sigma=0.003, length=float(np.linalg.norm(np.subtract(b, a))))
+    step = run((2, 0), (2, 0.2), 0.0)  # a 20 cm jog between two parallel, fully covered walls
+    before, after = run((0, 0), (2, 0), 0.95), run((2, 0.2), (4, 0.2), 0.95)
+    assert end_sigma(step, "lidar", before, after) == pytest.approx(0.003)
+    assert end_sigma(step, "lidar", before, run((2, 0.2), (4, 0.2), 0.3)) > 0.05  # the far wall is not seen
+    long_side = run((2, 0), (2, 0.6), 0.0)  # a furniture side, deeper than a step
+    assert end_sigma(long_side, "lidar", before, run((2, 0.6), (4, 0.6), 0.95)) > 0.05
+
+
+def test_one_end_contributes_at_most_the_cap():
+    none = SimpleNamespace(coverage=0.0, sigma=0.03)
+    assert end_sigma(none, "lidar") <= np.hypot(0.03, min(B.EVIDENCE_K["lidar"], B.EVIDENCE_CAP["lidar"])) + 1e-12
 
 
 def test_wall_lengths_stay_tight_between_fully_covered_walls(room_layout):
