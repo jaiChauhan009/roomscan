@@ -51,6 +51,7 @@ NOISE = 0.10  # wall thickness of a fused monocular reconstruction (m)
 WALL_T = 0.10  # assumed wall thickness between adjacent rooms (m)
 MIN_STEP_DEG = 12.0  # two sweep photos are at least this far apart in heading
 DEFAULT_CAM_H = 1.40  # phone held at chest height (m), used only when no floor is visible
+MAX_PER_ROOM = 8  # photos used per room (the protocol asks for 2 to 8); more are thinned evenly
 _EXT_RANK = {".heic": 0, ".heif": 1, ".jpg": 2, ".jpeg": 3, ".png": 4}  # same photo in two formats: keep first
 
 
@@ -474,6 +475,18 @@ def place_child(child: RoomFit, parent: RoomFit, door_xz: np.ndarray, look_headi
     child.door_global = pos.copy()
 
 
+def thin_room(files: list, n: int = MAX_PER_ROOM) -> list:
+    """At most n photos of a room: the last (the look-back photo) and n - 1 evenly spaced others.
+
+    A room photographed while walking can hold dozens of photos. Its look-back photo is
+    matched against every other photo of the room before it, so the run time grew without
+    bound (186 photos in 6 rooms: over 40 minutes)."""
+    if len(files) <= n:
+        return list(files)
+    keep = sorted(set(np.linspace(0, len(files) - 2, n - 1).round().astype(int)))
+    return [files[i] for i in keep] + [files[-1]]
+
+
 def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: bool = True,
                    damage: bool = True) -> dict:
     import json
@@ -491,6 +504,11 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
     rooms = find_rooms(path, warnings)
     if not rooms:
         raise InputError(f"no photos (.heic, .jpg, .png) found in {path}")
+    for rn, fl in rooms.items():
+        if len(fl) > MAX_PER_ROOM:
+            rooms[rn] = thin_room(fl)
+            warnings.append(f"{rn}: {len(fl)} photos; {len(rooms[rn])} used, evenly spaced, the last kept as "
+                            f"the look-back (the protocol asks for 2 to 8 from the doorway)")
     read: dict[Path, tuple] = {}
     errors: list[str] = []
     for rn, fl in rooms.items():
