@@ -487,8 +487,45 @@ def thin_room(files: list, n: int = MAX_PER_ROOM) -> list:
     return [files[i] for i in keep] + [files[-1]]
 
 
+def scale_room_fit(rf: RoomFit, s: float) -> None:
+    """Multiply every length of a fitted room by s: rectangle, levels, camera height, the photos'
+    depth scale and positions, the fused cloud. Done before stitching, so the door placement
+    and the look-back match work in the corrected units."""
+    from roomscan.geometry.pointcloud import Cloud
+    from roomscan.known_sizes import scale_room
+
+    if abs(s - 1.0) < 1e-6:
+        return
+    scale_room(rf.room, s)
+    rf.cam_height *= s
+    for ph in rf.sweep:
+        ph.scale *= s
+        ph.T_wc = ph.T_wc.copy()
+        ph.T_wc[:3, 3] *= s
+    if rf.cloud is not None:
+        rf.cloud = Cloud(rf.cloud.points * np.float32(s), rf.cloud.normals, rf.cloud.weight)
+
+
+def apply_known_sizes(fits: list[RoomFit], known, warnings: list[str]):
+    """Per-room scale from the user's tape numbers (median of given / fitted over the numbers
+    given for that room), applied before stitching. Returns the plan or None."""
+    from roomscan import known_sizes as KS
+
+    if known is None or known.empty() or not fits:
+        return None
+    p = KS.plan(known, [KS.dims_of(rf.room) for rf in fits], "room")
+    if p is None:
+        return None
+    warnings += p.warnings
+    if not p.ratios:
+        return None
+    for rf in fits:
+        scale_room_fit(rf, p.per_room.get(rf.name, 1.0))
+    return p
+
+
 def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: bool = True,
-                   damage: bool = True) -> dict:
+                   damage: bool = True, known=None) -> dict:
     import json
     import time
 
@@ -558,6 +595,7 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
         why = "; ".join(w for w in warnings if "room missing" in w)[:300]
         raise InputError(f"no room could be reconstructed from the photos in {path} ({why or 'no floor or walls'}): "
                          f"each photo should show floor, walls and ceiling (docs/capture_protocol.md)")
+    ks_plan = apply_known_sizes(fits, known, warnings)
     timing["room_fit"] = time.time() - t
 
     t = time.time()
@@ -643,6 +681,9 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
     drift_info = {"enabled": False, "method": "not applicable (independent stills, no odometry to drift)"}
     stitch = "look-back photo located in parent room (EfficientLoFTR + depth PnP); capture-order fallback"
     out = build_output(layout, openings, "photo", info, drift_info, dmg, flags, scope, warnings, timing, stitch)
+    if ks_plan is not None:
+        from roomscan.known_sizes import finish
+        finish(out, ks_plan, [rf.room for rf in placed], known, mode="room")
     out_dir.mkdir(parents=True, exist_ok=True)
     # UTF-8, not the Windows locale code page: room names are the user's folder names
     (out_dir / "result.json").write_text(out.model_dump_json(indent=2), encoding="utf-8")

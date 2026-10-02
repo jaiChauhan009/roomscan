@@ -67,6 +67,46 @@ more than one spot.
 room > Share > Save to Files > the drive > new-folder icon > name it `01_<room>` (e.g.
 `01_hall`) > Save. Repeat for each room in walk order: `02_kitchen`, `03_bedroom`, ...
 
+## Measure one thing per room (video and photo tiers; LiDAR: optional check)
+
+Video and photos get their metric scale from a depth model that guesses sizes from single
+images: per room it is off by 0.4x to 3.4x and footprints come out -70 % to +137 %. No way of
+filming fixes that; one number per room with a tape or laser measure does. In every room
+measure the **length**: the longer side, wall to wall, at about 1 m above the floor (two
+numbers, length and width, are better: their agreement is checked). The ceiling height also
+works for video but is a poor reference for photos (held-out test on the sample flat: one
+length per room took the photo footprint from +109 % to -23 %; the ceiling height made it worse,
++177 %), so give it only in addition to a length.
+
+Write the numbers in metres into a text file `measurements.yaml`:
+
+    rooms:
+      01_hall:    {length: 4.20, width: 3.10, height: 2.60}   # any subset
+      02_kitchen: {length: 3.55}
+      any:        {height: 2.60}     # every room without its own line (optional)
+    scale_reference: {length: 1.00}  # optional note, not used
+
+* Photos: put it in the capture folder next to the room folders; room names are the folder
+  names (`01_hall` or just `hall`).
+* Video: put it next to the clip as `<clip>.measurements.yaml` (e.g.
+  `IMG_0042.MOV.measurements.yaml`). A video has no room names: give a list, matched to the
+  rooms by shape and size, largest with largest:
+
+      rooms:
+        - {length: 4.20, width: 3.10}
+        - {length: 3.55, width: 2.40}
+
+* LiDAR: the scan is never rescaled; each given number is printed next to the scanned one
+  (a quick check of the scan, or of the tape).
+
+What happens: per room, scale = median of given / fitted over the numbers given. Photos: each
+room is rescaled before the rooms are joined; rooms without a number get the median of the
+others. Video: one scale for the whole clip, the median over the measured rooms. The result
+says the scale and where it came from (`capture.meta.known_size_*` and a warning line). A
+measured quantity's interval becomes the tape's (1 cm, widened by any disagreement with the
+fitted room); other quantities keep the tier's interval. Numbers that disagree with each other
+by more than 10 % are reported and widen every interval.
+
 ## Hand-off (all tiers)
 
 The drive must hold this one capture only. Plug it into the computer and, in the roomscan
