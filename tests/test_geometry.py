@@ -108,6 +108,17 @@ def test_box_fit_recovers_rectangle_from_noisy_cloud():
     assert room.height == pytest.approx(2.6, abs=0.03)
 
 
+def test_ceiling_found_when_every_point_lies_in_one_bin():
+    # a perfectly flat ceiling puts every point in one 2 cm histogram bin; np.convolve's
+    # "same" mode then returned 3 values for 1 bin and the lookup raised IndexError
+    pts = np.column_stack([np.random.default_rng(0).uniform(0, 3, 500), np.full(500, 2.5),
+                           np.random.default_rng(1).uniform(0, 3, 500)]).astype(np.float32)
+    nrm = np.tile(np.float32([0, -1, 0]), (500, 1))
+    c = Cloud(pts, nrm, np.ones(500, np.float32))
+    assert ceiling_level(c, 0.0, highest=True).value == pytest.approx(2.5, abs=1e-6)
+    assert ceiling_level(c, 0.0).value == pytest.approx(2.5, abs=1e-6)
+
+
 def test_whole_capture_ceiling_is_the_highest_one_not_the_most_scanned():
     # a flat with a 3.0 m main room and a densely scanned 2.4 m bathroom: the capture-level
     # ceiling must stay at 3.0 m or everything above 2.4 m is cut off

@@ -18,6 +18,17 @@ class Level:
     support: int  # number of points supporting it
 
 
+def _smooth(h: np.ndarray) -> np.ndarray:
+    """[0.25, 0.5, 0.25] smoothing that keeps the length.
+
+    np.convolve(mode="same") returns at least as many values as the kernel, so for a
+    histogram of one or two bins (every point of a plane within 2 cm) indices would not
+    line up with the bin edges.
+    """
+    h = np.asarray(h, float)
+    return h if len(h) < 3 else np.convolve(h, [0.25, 0.5, 0.25], mode="same")
+
+
 def _mode_refine(y: np.ndarray, w: np.ndarray | None = None, bin_m: float = 0.01,
                  band: float = 0.03) -> Level | None:
     if len(y) < 50:
@@ -28,7 +39,7 @@ def _mode_refine(y: np.ndarray, w: np.ndarray | None = None, bin_m: float = 0.01
         return Level(float(np.median(y)), 0.01, len(y))
     h, e = np.histogram(y, bins=edges, weights=w)
     # light smoothing so a plane straddling two bins still wins
-    hs = np.convolve(h, [0.25, 0.5, 0.25], mode="same")
+    hs = _smooth(h)
     c = e[np.argmax(hs)] + bin_m / 2
     sel = np.abs(y - c) < band
     ys = y[sel]
@@ -78,7 +89,7 @@ def ceiling_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None,
         h, e = np.histogram(y, bins=np.arange(y.min(), y.max() + bin_m, bin_m), weights=w)
         if len(h) == 0:
             return None
-        hs = np.convolve(h, [0.25, 0.5, 0.25], mode="same")
+        hs = _smooth(h)
         strong = np.where(hs >= 0.15 * hs.max())[0]
         top = e[strong.max()] + bin_m / 2
         sel = np.abs(y - top) < 0.15
