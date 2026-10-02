@@ -1,7 +1,13 @@
 """Photo tier: 2-8 stills per room, one folder per room, no depth, no poses.
 
     <capture>/<NN_room name>/*.jpg|heic     folders sorted by name = walk order
-    (images directly in <capture> = a single room)
+    (images directly in <capture> = a single room; a single photo file is also accepted)
+
+Accepted: .heic / .heif (iPhone default), .jpg / .jpeg, .png, any case, any size (large
+photos are shrunk while decoding), EXIF orientation applied. Ignored: hidden and system
+files (.DS_Store, ._*, Thumbs.db, desktop.ini), Live Photo .mov, .aae edit sidecars, and
+an edited copy IMG_E0001 next to its original IMG_0001. ProRAW .dng is not supported and
+is reported as such. A photo that cannot be decoded is skipped with a warning.
 
 Capture protocol this code relies on (docs/capture_protocol.md):
   * in each room, stand in the doorway you entered through and take the photos sweeping
@@ -27,6 +33,8 @@ The result goes through the same openings / damage / export code as the other ti
 from __future__ import annotations
 
 import hashlib
+import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,50 +43,155 @@ import numpy as np
 
 from roomscan.capture import Frame, PosedCapture
 from roomscan.frontends.video import DEPTH_W, cached_depths
+from roomscan.pipeline import DNG_HINT, IMAGE_EXT, RAW_EXT, InputError, listdir, unwrap
 
-IMAGE_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 WORK_LONG = 960
 DEFAULT_F35 = 26.0  # iPhone main camera, 35 mm equivalent
 NOISE = 0.10  # wall thickness of a fused monocular reconstruction (m)
 WALL_T = 0.10  # assumed wall thickness between adjacent rooms (m)
 MIN_STEP_DEG = 12.0  # two sweep photos are at least this far apart in heading
 DEFAULT_CAM_H = 1.40  # phone held at chest height (m), used only when no floor is visible
+_EXT_RANK = {".heic": 0, ".heif": 1, ".jpg": 2, ".jpeg": 3, ".png": 4}  # same photo in two formats: keep first
 
 
-def find_rooms(path: Path) -> dict[str, list[Path]]:
+def _photos_in(d: Path, notes: list[str]) -> tuple[list[Path], int]:
+    """Photos of one folder in sweep order, and how many .dng files were passed over."""
+    files = [p for p in listdir(d) if p.is_file()]
+    n_raw = sum(p.suffix.lower() in RAW_EXT for p in files)
+    imgs = [p for p in files if p.suffix.lower() in IMAGE_EXT]
+    by_stem: dict[str, list[Path]] = {}
+    for p in imgs:
+        by_stem.setdefault(p.stem.casefold(), []).append(p)
+    drop = set()
+    for stem, ps in by_stem.items():
+        if len(ps) > 1:  # IMG_0001.HEIC and IMG_0001.JPG: one photo, two formats
+            drop |= set(sorted(ps, key=lambda p: _EXT_RANK[p.suffix.lower()])[1:])
+        m = re.fullmatch(r"img_e(\d+)", stem)
+        if m and f"img_{m.group(1)}" in by_stem:  # iOS edit exported next to its original
+            drop |= set(ps)
+    if drop:
+        notes.append(f"{d.name}: {len(drop)} duplicate or edited copies ignored "
+                     f"({', '.join(sorted(p.name for p in drop)[:3])})")
+    return [p for p in imgs if p not in drop], n_raw
+
+
+def find_rooms(path: Path, warnings: list[str] | None = None) -> dict[str, list[Path]]:
+    """Room name -> photos in sweep order (natural file-name order, as Explorer shows it).
+
+    `path`: a folder of per-room folders, one room's folder, or a single photo. What is
+    ignored or dropped is appended to `warnings`."""
+    notes = warnings if warnings is not None else []
     path = Path(path)
-    rooms = {}
-    for d in sorted(p for p in path.iterdir() if p.is_dir()):
-        imgs = sorted(p for p in d.iterdir() if p.suffix.lower() in IMAGE_EXT)
+    if path.is_file():
+        ext = path.suffix.lower()
+        if ext in RAW_EXT:
+            raise InputError(f"{path.name}: {DNG_HINT}")
+        if ext not in IMAGE_EXT:
+            raise InputError(f"{path.name} is not a photo (.heic, .jpg, .png)")
+        return {path.stem: [path]}
+    path = unwrap(path)
+    if (path / "odometry.csv").is_file():  # its depth/ PNGs are not photos
+        raise InputError(f"{path} is a Stray Scanner export, not photos: run it with --tier lidar (or auto)")
+    rooms, n_raw = {}, 0
+    for d in (p for p in listdir(path) if p.is_dir()):
+        imgs, nr = _photos_in(d, notes)
+        n_raw += nr
         if imgs:
             rooms[d.name] = imgs
-    direct = sorted(p for p in path.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXT)
+    direct, nr = _photos_in(path, notes)
+    n_raw += nr
     if direct and not rooms:
         rooms[path.name] = direct
+    elif direct:
+        notes.append(f"{len(direct)} photos next to the room folders ignored: put them in a room folder")
+    if n_raw and not rooms:
+        raise InputError(f"{path}: {DNG_HINT}")
+    if n_raw:
+        notes.append(f"{n_raw} .dng (ProRAW) photos skipped: not supported")
     return rooms
 
 
-def read_photo(p: Path) -> tuple[np.ndarray, np.ndarray, dict]:
-    """Upright RGB image (long side WORK_LONG), intrinsics, metadata."""
-    from PIL import Image, ImageOps
+_heif_registered = False
 
-    if p.suffix.lower() in {".heic", ".heif"}:
-        import pillow_heif
-        pillow_heif.register_heif_opener()
+
+def _register_heif() -> None:
+    """Open HEIC whatever the file is called (a HEIC renamed .jpg is still a HEIC)."""
+    global _heif_registered
+    if not _heif_registered:
+        try:
+            import os
+
+            import pillow_heif
+            pillow_heif.register_heif_opener()
+            # iPhone HEIC is a grid of 512 px tiles: decode them in parallel (default 4 threads)
+            pillow_heif.options.DECODE_THREADS = max(pillow_heif.options.DECODE_THREADS, min(8, os.cpu_count() or 4))
+        except ImportError:  # HEIC photos are then reported as unreadable
+            pass
+        _heif_registered = True
+
+
+# EXIF orientation -> PIL transpose (as ImageOps.exif_transpose), applied after shrinking
+_TRANSPOSE = {2: "FLIP_LEFT_RIGHT", 3: "ROTATE_180", 4: "FLIP_TOP_BOTTOM", 5: "TRANSPOSE",
+              6: "ROTATE_270", 7: "TRANSVERSE", 8: "ROTATE_90"}
+
+
+def _decode(p: Path):
+    """Upright RGB PIL image and the 35 mm equivalent focal length if recorded. Photos of
+    4x WORK_LONG or more (12-48 MP) are cut to about 2x WORK_LONG early: JPEG while
+    decoding (draft mode, the full-size image never exists), HEIC right after decoding
+    (box reduce), so the resampling and colour conversion run on the small image."""
+    from PIL import Image
+
+    _register_heif()
     im = Image.open(p)
-    f35 = None
-    try:
-        f35 = im.getexif().get_ifd(0x8769).get(0xA405)
+    f35, orientation = None, 1
+    try:  # a malformed EXIF block costs the focal length / orientation, not the photo
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # PIL's "Corrupt EXIF data": nothing the user can act on
+            exif = im.getexif()
+            orientation = exif.get(0x0112, 1)
+            f35 = exif.get_ifd(0x8769).get(0xA405)
     except Exception:
         pass
-    im = ImageOps.exif_transpose(im).convert("RGB")
+    w0, h0 = im.size
+    if max(w0, h0) >= 4 * WORK_LONG:  # 12-48 MP: decode reduced, then box-shrink to ~2x target
+        s = 2 * WORK_LONG / max(w0, h0)
+        im.draft(None, (int(w0 * s) + 1, int(h0 * s) + 1))  # JPEG: DCT-domain scaling; others: no-op
+        if im.mode not in ("RGB", "RGBA", "L"):
+            im = im.convert("RGB")
+        f = max(im.size) // (2 * WORK_LONG)
+        if f >= 2:
+            im = im.reduce(f)
+    im = im.convert("RGB")
+    if isinstance(orientation, int) and orientation in _TRANSPOSE:
+        im = im.transpose(getattr(Image.Transpose, _TRANSPOSE[orientation]))
+    return im, f35
+
+
+def read_photo(p: Path) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Upright RGB image (long side WORK_LONG), intrinsics, metadata. InputError if the file
+    is not a readable photo."""
+    from PIL import Image
+
+    try:
+        im, f35 = _decode(p)
+    except MemoryError:
+        raise
+    except Exception as e:  # not an image, truncated copy, broken HEIC container ...
+        why = "not an image or a format this build cannot read" if type(e).__name__ == "UnidentifiedImageError" \
+            else f"{type(e).__name__}: {e}"
+        raise InputError(f"cannot read photo {p.name} ({why})") from e
     w0, h0 = im.size
     s = WORK_LONG / max(w0, h0)
     im = im.resize((int(round(w0 * s)), int(round(h0 * s))), Image.LANCZOS)
     img = np.asarray(im)
     h, w = img.shape[:2]
-    src = "exif" if f35 else "default"
-    f35 = float(f35) if f35 else DEFAULT_F35
+    try:
+        f35 = float(f35) if f35 else None
+    except (TypeError, ValueError):
+        f35 = None
+    src = "exif" if f35 and 5.0 < f35 < 500.0 else "default"
+    f35 = f35 if src == "exif" else DEFAULT_F35
     f = f35 / 43.267 * float(np.hypot(w, h))  # 35 mm equivalent is defined on the diagonal
     K = np.array([[f, 0, w / 2], [0, f, h / 2], [0, 0, 1.0]])
     return img, K, {"f35": f35, "focal_source": src}
@@ -375,11 +488,25 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
 
     timing, warnings = {}, []
     t0 = time.time()
-    rooms = find_rooms(path)
+    rooms = find_rooms(path, warnings)
     if not rooms:
-        raise FileNotFoundError(f"no photos found under {path}")
+        raise InputError(f"no photos (.heic, .jpg, .png) found in {path}")
+    read: dict[Path, tuple] = {}
+    errors: list[str] = []
+    for rn, fl in rooms.items():
+        for f in fl:
+            try:
+                read[f] = read_photo(f)
+            except InputError as e:  # one bad file must not cost the whole capture
+                errors.append(str(e))
+                warnings.append(f"{rn}: {e}; photo skipped")
+    for rn in [rn for rn, fl in rooms.items() if not any(f in read for f in fl)]:
+        warnings.append(f"{rn}: no readable photo; room left out")
+    rooms = {rn: [f for f in fl if f in read] for rn, fl in rooms.items() if any(f in read for f in fl)}
+    if not rooms:
+        raise InputError(f"none of the photos in {path} could be read: {errors[0]}")
     files = [f for fl in rooms.values() for f in fl]
-    loaded = [read_photo(f) for f in files]
+    loaded = [read[f] for f in files]
     if any(m["focal_source"] == "default" for _, _, m in loaded):
         warnings.append("some photos have no EXIF focal length: iPhone main-camera default used")
     key = hashlib.sha1("|".join(f"{f.resolve()}:{f.stat().st_size}" for f in files).encode()).hexdigest()[:16]
@@ -410,7 +537,9 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
             photo_geometry(rf.look_back)
         fits.append(rf)
     if not fits:
-        raise RuntimeError("photo tier: no room could be reconstructed")
+        why = "; ".join(w for w in warnings if "room missing" in w)[:300]
+        raise InputError(f"no room could be reconstructed from the photos in {path} ({why or 'no floor or walls'}): "
+                         f"each photo should show floor, walls and ceiling (docs/capture_protocol.md)")
     timing["room_fit"] = time.time() - t
 
     t = time.time()
@@ -463,7 +592,7 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
             frames.append(Frame(index=len(frames), timestamp=float(len(frames)), T_wc=ph.T_wc, K=ph.Kd,
                                 depth_fn=(lambda d=ph.depth * ph.scale: d), rgb_fn=(lambda im=ph.img: im),
                                 K_rgb=ph.K, depth_sigma_rel=0.08))
-    cap = PosedCapture("photo", Path(path).name, frames,
+    cap = PosedCapture("photo", Path(path).stem if Path(path).is_file() else Path(path).name, frames,
                        meta={"source": "photos", "n_photos": len(files), "n_rooms": len(rooms),
                              "depth_model": "Depth-Anything-V2-Metric-Indoor-Small",
                              "matcher": "EfficientLoFTR (look-back photos only)"})
@@ -497,7 +626,8 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
     stitch = "look-back photo located in parent room (EfficientLoFTR + depth PnP); capture-order fallback"
     out = build_output(layout, openings, "photo", info, drift_info, dmg, flags, scope, warnings, timing, stitch)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "result.json").write_text(out.model_dump_json(indent=2))
+    # UTF-8, not the Windows locale code page: room names are the user's folder names
+    (out_dir / "result.json").write_text(out.model_dump_json(indent=2), encoding="utf-8")
     render_plan(out, out_dir / "plan.png")
     return json.loads(out.model_dump_json())
 
