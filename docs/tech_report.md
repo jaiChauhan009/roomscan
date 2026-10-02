@@ -56,6 +56,10 @@ development machine. Instead:
 - Metric scale = median of the model's own scale over all keyframes ÷ 1.137. On the
   sample scans the model's single-frame scale ranges 0.4×-3.4× against LiDAR, while its
   many-frame median is stable at 1.09-1.18×.
+- iPhone clips filmed upright are stored landscape with a rotation flag that OpenCV does
+  not apply by default; the tier applies it (and turns a calibration file with the
+  frames). Before, every upright clip was processed sideways: 0.31 m² instead of 10.1 m²
+  on a single-room clip. The benchmark clip is the scan's own video with that flag added.
 
 **Photos.** Stills of white rooms barely match (SIFT: 8 of 703 pairs), so room shape
 uses no matching:
@@ -133,13 +137,13 @@ of the two scans, 58 % for LiDAR walls: confident garbage on thin input.
 | Tier | Truth used | Samples | Scale | Held-out coverage | 3 m wall, 90 % |
 |---|---|---|---|---|---|
 | LiDAR | same wall in both scans of the flat | 19 walls, 8 rooms | 2.61 | 0.95 | ±6 cm |
-| video | LiDAR reference | 17 walls, 1 room | 8.29 | not measurable | ±0.93 m |
+| video | LiDAR reference | 32 walls, 2 rooms | 2.58 | 0.91 | ±0.29 m |
 | photo | LiDAR reference | 40 lengths, 7 rooms | 6.62 | 0.90 | ±1.72 m |
 
 Held-out coverage is leave-one-room-out: fitted on the other rooms, scored on the room left
 out. In-sample coverage is 90 % or more by construction and is not evidence. Limits, stated
 plainly: LiDAR is calibrated for precision only (a bias both scans share is invisible);
-video rests on one room; photo and video are scored against our own LiDAR, not a laser;
+video rests on two rooms; photo and video are scored against our own LiDAR, not a laser;
 and the photo set does not follow the capture protocol, so protocol photos may well come
 out better than these intervals say. Thinner data never gets a narrower interval than
 richer data: the script checks a reference measurement per tier and raises the thinner

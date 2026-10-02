@@ -9,11 +9,11 @@ For the structure of the finished system see [architecture.md](architecture.md).
 | Area | State |
 |---|---|
 | LiDAR tier | Works end to end. Accurate on synthetic rooms (under 1 mm). Two real scans of the sample flat now agree as point clouds (7 mm median) but are divided into different rooms (9 vs 7, none paired), so they are **not repeatable** by the gate. Footprint B vs A −10.4 % (it was −45 % before round 1). Room outlines no longer overlap. |
-| Video tier | Runs end to end. Weak: 1 of 6 rooms recovered on the sample flat. |
+| Video tier | Runs end to end on upright iPhone-style clips. Weak: 2 of 7 rooms on the sample flat, footprint −70 % vs the LiDAR reference. |
 | Photo tier | Runs end to end and stitches rooms without overlaps. Sizes far off on the proxy photo set (footprint +133 %). |
 | Damage, rules, scope | Working. 0-2 small false positives on the undamaged flat; a painted test stain is found in 3 of 5 frames, area underestimated. |
 | Benchmark harness | Working. All numbers regenerate with `python bench/run_all.py`. |
-| Tests | 25 tests on synthetic rooms, a synthetic drifting loop and the calibration maths pass. |
+| Tests | 60 tests pass (synthetic rooms, a drifting loop, calibration, every iPhone input type, exact video frames, photo-set recipe, head-to-head); 1 needs ffmpeg and is skipped. |
 | Not done yet | Head-to-head against a consumer app, real captures with laser ground truth, interval calibration on real truth, clean-machine install timing. All need an iPhone or a second machine. |
 
 Two limits apply to every number below:
@@ -303,6 +303,57 @@ in both scans: precision only.
 ×6.6 (held out 0.90). A 3 m wall now reads ±6 cm (LiDAR), ±0.93 m (video), ±1.72 m (photo).
 The photo set does not follow the protocol, so real protocol photos may be tighter than
 these intervals; that errs on the safe side until real captures refit them.
+
+## Stage 14: ready for a reviewer's iPhone (merges `0d09250`, `dbf80bd`, `cee589e`)
+
+Three parallel pieces of work, each on its own branch, merged when its tests passed.
+
+**Inputs from a real iPhone.** Every file type an iPhone 15+ produces was generated and run:
+HEIC (also renamed .JPG), EXIF orientations, 24 and 48 MP photos (now decoded small:
+48 MP JPEG 631 MB -> 73 MB peak memory), Live Photo .MOV / .AAE / macOS `._` files next to
+photos, HEVC Main and Main 10 video, variable frame rate, zipped Stray recordings,
+non-ASCII and space-containing Windows paths, unreadable files. Biggest finding: OpenCV
+does not apply the iPhone's rotation flag by default, so every upright clip, which is what
+the protocol asks for, was processed sideways. On the single-room footage made into an
+iPhone-style clip, sideways gave 1 room of 0.31 m²; upright gives 10.12 m² (LiDAR 10.64).
+Also fixed: depth reads and result.json crashed on non-ASCII paths, and a noise-free
+ceiling crashed `ceiling_level` (all points in one histogram bin). Bad input now ends with
+one line and exit code 2, not a traceback.
+
+**Manual testing and the walk-in.** `scripts/walkin.py` takes whatever arrives (Stray
+folder or its zip, a clip, photo folders, a drive root) and runs cold with a per-room table
+to check against a laser. `bench/head_to_head.py` builds the Part 3 table against a
+consumer app. `docs/iphone_session.md` plans the 2-3 h iPhone session minute by minute;
+`docs/capture_protocol.md` now ends every tier with a USB-C drive and one command.
+
+**Clean machine.** The README was followed literally on an isolated copy: 15.5 min to a
+first LiDAR plan, 12.5 of them downloads at 0.75 MB/s. Fixed on the way: the damage model's
+weights were never fetched (it would only run online), and the data download could leave a
+half-finished folder that looked complete.
+
+## Stage 15: the benchmark shows what a real capture gets (commits `80bce56`-`b8a95ff`)
+
+**Video, upright.** The benchmark fed the video tier the scan's raw `rgb.mp4`, which Stray
+stores sideways with no rotation flag; no Camera-app clip looks like that. It now gets the
+same video with the flag an upright iPhone clip carries (`scripts/make_iphone_clip.py`,
+5 bytes changed, frames untouched), and a calibration file next to a rotated clip turns
+with the frames. Rooms found 1 -> 2 of 7, footprint vs the LiDAR reference -91 % -> -70 %.
+The video interval scale refitted on 32 walls in 2 rooms: 8.29 -> 2.58, held out 0.91.
+
+**Colour frames match their poses.** The LiDAR loader jumped to colour frames by frame
+number; on a variable-frame-rate rgb.mp4 OpenCV seeks by time and landed 4-80 frames late
+(up to 1.8 s). Damage detection saw a different view than its pose. It now decodes forward.
+Scan A's one false positive (a 0.017 m² "stain" on a ceiling) is gone with it.
+
+**Reproducible photo set.** `make_photo_set.py` rebuilds the benchmark's 28 photos byte for
+byte from a committed recipe (it had drifted to 6 of 7 rooms as the layout changed).
+
+**Smaller download.** transformers fetched a second, unused 605 MB copy of the CLIP weights;
+weights are now 0.77 GB (were 1.38 GB), identical results.
+
+**Final benchmark** (`bench/reports/benchmark.md`): room overlap 0 everywhere; calibration
+gate passes for video (0.94) and photo (0.95); every accuracy gate for video and photo and
+the LiDAR repeatability gate still fail.
 
 ## Documentation added
 

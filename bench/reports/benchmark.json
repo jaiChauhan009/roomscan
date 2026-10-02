@@ -1,45 +1,45 @@
 {
-  "tag": "(a88f7ef outputs re-scored for calibration)",
+  "tag": "(commit b8a95ff)",
   "timing": {
     "apt_lidar_a": {
-      "wall_s": 0.0,
+      "wall_s": 212.2,
       "stages": {
-        "load": 0.23,
-        "drift": 18.58,
-        "fuse": 0.32,
-        "layout": 5.82,
-        "openings": 57.66,
-        "damage": 83.04,
-        "export": 0.07
+        "load": 0.24,
+        "drift": 18.9,
+        "fuse": 0.33,
+        "layout": 6.0,
+        "openings": 60.88,
+        "damage": 124.27,
+        "export": 0.09
       },
       "rooms": 9,
       "footprint_m2": 49.2465,
       "overlap_m2": 0.0
     },
     "apt_lidar_b": {
-      "wall_s": 0.0,
+      "wall_s": 123.2,
       "stages": {
-        "load": 0.13,
-        "drift": 6.26,
-        "fuse": 0.15,
-        "layout": 4.07,
-        "openings": 25.56,
-        "damage": 67.66,
-        "export": 0.05
+        "load": 0.18,
+        "drift": 6.01,
+        "fuse": 0.16,
+        "layout": 4.12,
+        "openings": 25.03,
+        "damage": 87.25,
+        "export": 0.06
       },
       "rooms": 7,
       "footprint_m2": 44.1069,
       "overlap_m2": 0.0
     },
     "room_lidar": {
-      "wall_s": 0.0,
+      "wall_s": 39.2,
       "stages": {
-        "load": 0.04,
-        "drift": 1.87,
+        "load": 0.12,
+        "drift": 1.65,
         "fuse": 0.05,
-        "layout": 0.74,
-        "openings": 4.33,
-        "damage": 26.23,
+        "layout": 0.73,
+        "openings": 4.16,
+        "damage": 32.33,
         "export": 0.0
       },
       "rooms": 2,
@@ -47,28 +47,28 @@
       "overlap_m2": 0.0
     },
     "apt_video_b": {
-      "wall_s": 0.0,
+      "wall_s": 119.5,
       "stages": {
-        "load": 92.81,
-        "drift": 0.36,
-        "fuse": 0.05,
-        "layout": 0.53,
-        "openings": 0.45,
-        "damage": 1.65,
-        "export": 0.0
+        "load": 105.47,
+        "drift": 0.88,
+        "fuse": 0.1,
+        "layout": 1.12,
+        "openings": 1.96,
+        "damage": 9.68,
+        "export": 0.02
       },
-      "rooms": 1,
-      "footprint_m2": 3.8264,
-      "overlap_m2": 0
+      "rooms": 2,
+      "footprint_m2": 13.2332,
+      "overlap_m2": 0.0
     },
     "apt_photo_a": {
-      "wall_s": 0.0,
+      "wall_s": 174.4,
       "stages": {
-        "load+depth": 1.31,
-        "room_fit": 1.68,
-        "stitch": 121.4,
-        "openings": 8.6,
-        "damage": 31.54
+        "load+depth": 1.27,
+        "room_fit": 1.64,
+        "stitch": 128.33,
+        "openings": 8.51,
+        "damage": 34.0
       },
       "rooms": 7,
       "footprint_m2": 116.7447,
@@ -77,188 +77,185 @@
   },
   "evaluations": {
     "apt_video_b": {
-      "capture": "rgb",
+      "capture": "rgb_upright",
       "tier": "video",
       "gt_source": "lidar_reference",
       "room_mapping": {
-        "room_1": "room_1",
+        "room_1": "room_2",
+        "room_6": "room_1",
         "room_2": null,
         "room_3": null,
         "room_4": null,
         "room_5": null,
-        "room_6": null,
         "room_7": null
       },
       "walls": [
         {
           "room": "room_1",
-          "pred_id": "room_1_w5",
+          "pred_id": "room_2_w7",
           "gt": 3.62,
-          "pred": 1.6005,
-          "err": -2.0195,
-          "rel": -0.5579,
+          "pred": 1.3098,
+          "err": -2.3102,
+          "rel": -0.6382,
           "ok": false,
           "in_ci": false
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w25",
+          "pred_id": "room_2_w19",
           "gt": 1.78,
-          "pred": 1.3881,
-          "err": -0.3919,
-          "rel": -0.2202,
+          "pred": 1.0008,
+          "err": -0.7792,
+          "rel": -0.4378,
           "ok": false,
           "in_ci": false
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w16",
+          "pred_id": "room_2_w10",
           "gt": 1.501,
-          "pred": 1.2758,
-          "err": -0.2252,
-          "rel": -0.15,
+          "pred": 0.8836,
+          "err": -0.6174,
+          "rel": -0.4113,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w7",
+          "pred_id": "room_2_w6",
           "gt": 1.22,
-          "pred": 1.1574,
-          "err": -0.0626,
-          "rel": -0.0513,
+          "pred": 0.7211,
+          "err": -0.4989,
+          "rel": -0.4089,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w3",
+          "pred_id": "room_2_w13",
           "gt": 1.14,
-          "pred": 1.089,
-          "err": -0.051,
-          "rel": -0.0447,
+          "pred": 0.6873,
+          "err": -0.4527,
+          "rel": -0.3971,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w23",
+          "pred_id": "room_2_w18",
           "gt": 0.901,
-          "pred": 1.005,
-          "err": 0.104,
-          "rel": 0.1154,
+          "pred": 0.644,
+          "err": -0.257,
+          "rel": -0.2852,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w27",
+          "pred_id": "room_2_w11",
           "gt": 0.88,
-          "pred": 0.9409,
-          "err": 0.0609,
-          "rel": 0.0692,
+          "pred": 0.5295,
+          "err": -0.3505,
+          "rel": -0.3983,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w28",
+          "pred_id": "room_2_w17",
           "gt": 0.781,
-          "pred": 0.913,
-          "err": 0.132,
-          "rel": 0.169,
+          "pred": 0.52,
+          "err": -0.261,
+          "rel": -0.3342,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w11",
+          "pred_id": "room_2_w2",
           "gt": 0.494,
-          "pred": 0.8089,
-          "err": 0.3149,
-          "rel": 0.6374,
-          "ok": false,
-          "in_ci": false
+          "pred": 0.4919,
+          "err": -0.0021,
+          "rel": -0.0043,
+          "ok": true,
+          "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w13",
+          "pred_id": "room_2_w8",
           "gt": 0.487,
-          "pred": 0.8062,
-          "err": 0.3192,
-          "rel": 0.6554,
-          "ok": false,
-          "in_ci": false
+          "pred": 0.4804,
+          "err": -0.0066,
+          "rel": -0.0136,
+          "ok": true,
+          "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w8",
+          "pred_id": "room_2_w22",
           "gt": 0.456,
-          "pred": 0.68,
-          "err": 0.224,
-          "rel": 0.4912,
+          "pred": 0.44,
+          "err": -0.016,
+          "rel": -0.0351,
           "ok": false,
           "in_ci": true
         },
         {
           "room": "room_1",
-          "pred_id": "room_1_w29",
+          "pred_id": "room_2_w4",
           "gt": 0.42,
-          "pred": 0.5099,
-          "err": 0.0899,
-          "rel": 0.214,
-          "ok": false,
-          "in_ci": true
-        },
-        {
-          "room": "room_1",
-          "pred_id": "room_1_w22",
-          "gt": 0.316,
-          "pred": 0.4617,
-          "err": 0.1457,
-          "rel": 0.4611,
-          "ok": false,
-          "in_ci": true
-        },
-        {
-          "room": "room_1",
-          "pred_id": "room_1_w26",
-          "gt": 0.313,
-          "pred": 0.46,
-          "err": 0.147,
-          "rel": 0.4696,
-          "ok": false,
-          "in_ci": true
-        },
-        {
-          "room": "room_1",
-          "pred_id": "room_1_w17",
-          "gt": 0.301,
-          "pred": 0.4472,
-          "err": 0.1462,
-          "rel": 0.4857,
-          "ok": false,
-          "in_ci": true
-        },
-        {
-          "room": "room_1",
-          "pred_id": "room_1_w24",
-          "gt": 0.286,
-          "pred": 0.4005,
-          "err": 0.1145,
-          "rel": 0.4003,
-          "ok": false,
-          "in_ci": true
-        },
-        {
-          "room": "room_1",
-          "pred_id": "room_1_w20",
-          "gt": 0.267,
           "pred": 0.4,
-          "err": 0.133,
-          "rel": 0.4981,
+          "err": -0.02,
+          "rel": -0.0476,
           "ok": false,
           "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_2_w5",
+          "gt": 0.316,
+          "pred": 0.3162,
+          "err": 0.0002,
+          "rel": 0.0006,
+          "ok": true,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_2_w20",
+          "gt": 0.313,
+          "pred": 0.3,
+          "err": -0.013,
+          "rel": -0.0415,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_2_w14",
+          "gt": 0.301,
+          "pred": 0.2807,
+          "err": -0.0203,
+          "rel": -0.0674,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_2_w21",
+          "gt": 0.286,
+          "pred": 0.2608,
+          "err": -0.0252,
+          "rel": -0.0881,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "gt": 0.267,
+          "pred": null,
+          "err": null,
+          "ok": false
         },
         {
           "room": "room_2",
@@ -479,115 +476,163 @@
         },
         {
           "room": "room_6",
-          "gt": 0.644,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.669,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.449,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
+          "pred_id": "room_1_w32",
           "gt": 2.773,
-          "pred": null,
-          "err": null,
-          "ok": false
+          "pred": 2.9411,
+          "err": 0.1681,
+          "rel": 0.0606,
+          "ok": false,
+          "in_ci": true
         },
         {
           "room": "room_6",
-          "gt": 1.411,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.253,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.336,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 1.146,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.254,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.588,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 1.972,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.298,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.4,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 0.35,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
-          "gt": 1.061,
-          "pred": null,
-          "err": null,
-          "ok": false
-        },
-        {
-          "room": "room_6",
+          "pred_id": "room_1_w28",
           "gt": 2.457,
-          "pred": null,
-          "err": null,
-          "ok": false
+          "pred": 2.0635,
+          "err": -0.3935,
+          "rel": -0.1602,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w37",
+          "gt": 1.972,
+          "pred": 1.5085,
+          "err": -0.4635,
+          "rel": -0.235,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w10",
+          "gt": 1.411,
+          "pred": 1.4251,
+          "err": 0.0141,
+          "rel": 0.01,
+          "ok": true,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w25",
+          "gt": 1.146,
+          "pred": 1.1883,
+          "err": 0.0423,
+          "rel": 0.0369,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w33",
+          "gt": 1.061,
+          "pred": 1.1834,
+          "err": 0.1224,
+          "rel": 0.1154,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w11",
+          "gt": 0.669,
+          "pred": 1.1788,
+          "err": 0.5098,
+          "rel": 0.762,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w2",
+          "gt": 0.644,
+          "pred": 0.9652,
+          "err": 0.3212,
+          "rel": 0.4988,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w12",
+          "gt": 0.588,
+          "pred": 0.8809,
+          "err": 0.2929,
+          "rel": 0.4981,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w23",
+          "gt": 0.449,
+          "pred": 0.828,
+          "err": 0.379,
+          "rel": 0.8441,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w14",
+          "gt": 0.4,
+          "pred": 0.7003,
+          "err": 0.3003,
+          "rel": 0.7508,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w42",
+          "gt": 0.35,
+          "pred": 0.7,
+          "err": 0.35,
+          "rel": 1.0,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w36",
+          "gt": 0.336,
+          "pred": 0.6325,
+          "err": 0.2965,
+          "rel": 0.8824,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w41",
+          "gt": 0.298,
+          "pred": 0.6013,
+          "err": 0.3033,
+          "rel": 1.0178,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w34",
+          "gt": 0.254,
+          "pred": 0.6003,
+          "err": 0.3463,
+          "rel": 1.3634,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "room_1_w35",
+          "gt": 0.253,
+          "pred": 0.5803,
+          "err": 0.3273,
+          "rel": 1.2937,
+          "ok": false,
+          "in_ci": true
         },
         {
           "room": "room_7",
@@ -652,28 +697,14 @@
           "room": "room_1",
           "type": "window",
           "gt": null,
-          "pred": 0.805,
+          "pred": 0.53,
           "status": "phantom"
         },
         {
           "room": "room_1",
           "type": "window",
           "gt": null,
-          "pred": 0.8621,
-          "status": "phantom"
-        },
-        {
-          "room": "room_1",
-          "type": "window",
-          "gt": null,
-          "pred": 0.44,
-          "status": "phantom"
-        },
-        {
-          "room": "room_1",
-          "type": "window",
-          "gt": null,
-          "pred": 0.52,
+          "pred": 1.0033,
           "status": "phantom"
         },
         {
@@ -731,15 +762,29 @@
           "gt": 1.982,
           "pred": null,
           "status": "missed"
+        },
+        {
+          "room": "room_6",
+          "type": "window",
+          "gt": null,
+          "pred": 0.8873,
+          "status": "phantom"
+        },
+        {
+          "room": "room_6",
+          "type": "window",
+          "gt": null,
+          "pred": 0.8331,
+          "status": "phantom"
         }
       ],
       "gates": {
         "wall_length": {
           "n": 71,
-          "pass_fraction": 0.0,
-          "median_abs_err_m": 0.1457,
-          "median_rel_err": 0.4003,
-          "max_abs_err_m": 2.0195,
+          "pass_fraction": 0.056,
+          "median_abs_err_m": 0.2984,
+          "median_rel_err": 0.3657,
+          "max_abs_err_m": 2.3102,
           "gate": {
             "rel": 0.03
           },
@@ -755,14 +800,14 @@
           "pass": false
         },
         "calibration": {
-          "n": 17,
-          "coverage_of_90pct_intervals": 0.765,
-          "pass": false
+          "n": 32,
+          "coverage_of_90pct_intervals": 0.938,
+          "pass": true
         },
         "footprint": {
           "gt_m2": 44.1069,
-          "pred_m2": 3.8264,
-          "rel_err": -0.9132,
+          "pred_m2": 13.2332,
+          "rel_err": -0.7,
           "in_ci": false,
           "pass": false
         },
@@ -796,8 +841,8 @@
         },
         "rooms_found": {
           "gt": 7,
-          "pred": 1,
-          "matched": 1,
+          "pred": 2,
+          "matched": 2,
           "pass": false
         }
       },
@@ -805,145 +850,273 @@
         {
           "kind": "area",
           "room": "room_1",
-          "pred": 3.8264,
-          "sigma": 0.92547,
+          "pred": 4.2312,
+          "sigma": 1.46497,
           "truth": 4.8632,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.6005,
-          "sigma": 0.14807,
+          "pred": 1.3098,
+          "sigma": 0.37862,
           "truth": 3.62,
           "in_ci": false
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.3881,
-          "sigma": 0.14721,
+          "pred": 1.0008,
+          "sigma": 0.37611,
           "truth": 1.78,
           "in_ci": false
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.2758,
-          "sigma": 0.1468,
+          "pred": 0.8836,
+          "sigma": 0.37533,
           "truth": 1.501,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.1574,
-          "sigma": 0.14641,
+          "pred": 0.7211,
+          "sigma": 0.3744,
           "truth": 1.22,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.089,
-          "sigma": 0.1462,
+          "pred": 0.6873,
+          "sigma": 0.37423,
           "truth": 1.14,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 1.005,
-          "sigma": 0.14596,
+          "pred": 0.644,
+          "sigma": 0.37403,
           "truth": 0.901,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.9409,
-          "sigma": 0.14579,
+          "pred": 0.5295,
+          "sigma": 0.37355,
           "truth": 0.88,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.913,
-          "sigma": 0.14572,
+          "pred": 0.52,
+          "sigma": 0.37352,
           "truth": 0.781,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.8089,
-          "sigma": 0.14547,
+          "pred": 0.4919,
+          "sigma": 0.37341,
           "truth": 0.494,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.8062,
-          "sigma": 0.14546,
+          "pred": 0.4804,
+          "sigma": 0.37337,
           "truth": 0.487,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.68,
-          "sigma": 0.14521,
+          "pred": 0.44,
+          "sigma": 0.37324,
           "truth": 0.456,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.5099,
-          "sigma": 0.14493,
+          "pred": 0.4,
+          "sigma": 0.37312,
           "truth": 0.42,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.4617,
-          "sigma": 0.14486,
+          "pred": 0.3162,
+          "sigma": 0.37291,
           "truth": 0.316,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.46,
-          "sigma": 0.14486,
+          "pred": 0.3,
+          "sigma": 0.37287,
           "truth": 0.313,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.4472,
-          "sigma": 0.14484,
+          "pred": 0.2807,
+          "sigma": 0.37283,
           "truth": 0.301,
           "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
-          "pred": 0.4005,
-          "sigma": 0.14479,
+          "pred": 0.2608,
+          "sigma": 0.37279,
           "truth": 0.286,
           "in_ci": true
         },
         {
+          "kind": "area",
+          "room": "room_6",
+          "pred": 9.002,
+          "sigma": 3.52321,
+          "truth": 6.7802,
+          "in_ci": true
+        },
+        {
           "kind": "wall_length",
-          "room": "room_1",
-          "pred": 0.4,
-          "sigma": 0.14479,
-          "truth": 0.267,
+          "room": "room_6",
+          "pred": 2.9411,
+          "sigma": 0.40221,
+          "truth": 2.773,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 2.0635,
+          "sigma": 0.38744,
+          "truth": 2.457,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.5085,
+          "sigma": 0.38058,
+          "truth": 1.972,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.4251,
+          "sigma": 0.37972,
+          "truth": 1.411,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.1883,
+          "sigma": 0.37755,
+          "truth": 1.146,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.1834,
+          "sigma": 0.37751,
+          "truth": 1.061,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 1.1788,
+          "sigma": 0.37747,
+          "truth": 0.669,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.9652,
+          "sigma": 0.37586,
+          "truth": 0.644,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.8809,
+          "sigma": 0.37531,
+          "truth": 0.588,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.828,
+          "sigma": 0.37499,
+          "truth": 0.449,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.7003,
+          "sigma": 0.3743,
+          "truth": 0.4,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.7,
+          "sigma": 0.3743,
+          "truth": 0.35,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.6325,
+          "sigma": 0.37398,
+          "truth": 0.336,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.6013,
+          "sigma": 0.37384,
+          "truth": 0.298,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.6003,
+          "sigma": 0.37384,
+          "truth": 0.254,
+          "in_ci": true
+        },
+        {
+          "kind": "wall_length",
+          "room": "room_6",
+          "pred": 0.5803,
+          "sigma": 0.37375,
+          "truth": 0.253,
           "in_ci": true
         }
       ]
@@ -972,7 +1145,7 @@
           "err": 1.9153,
           "rel": 0.619,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_1",
@@ -982,7 +1155,7 @@
           "err": 1.9943,
           "rel": 0.6615,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_1",
@@ -992,7 +1165,7 @@
           "err": 1.9186,
           "rel": 0.9555,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_1",
@@ -1002,7 +1175,7 @@
           "err": 2.1756,
           "rel": 1.2425,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_1",
@@ -1026,7 +1199,7 @@
           "err": 2.6841,
           "rel": 0.9505,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_2",
@@ -1036,7 +1209,7 @@
           "err": 2.7001,
           "rel": 0.9616,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_2",
@@ -1046,7 +1219,7 @@
           "err": 1.7088,
           "rel": 0.6257,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_2",
@@ -1056,7 +1229,7 @@
           "err": 2.2088,
           "rel": 0.99,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_2",
@@ -1087,7 +1260,7 @@
           "err": 2.7769,
           "rel": 0.9696,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_3",
@@ -1107,7 +1280,7 @@
           "err": 1.0945,
           "rel": 1.1089,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_3",
@@ -1117,7 +1290,7 @@
           "err": 1.3885,
           "rel": 2.0036,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_3",
@@ -1442,7 +1615,7 @@
           "err": 1.3086,
           "rel": 0.852,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_6",
@@ -1452,7 +1625,7 @@
           "err": 1.7456,
           "rel": 1.5884,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_6",
@@ -1489,7 +1662,7 @@
           "err": 1.3654,
           "rel": 0.7829,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_7",
@@ -1499,7 +1672,7 @@
           "err": 1.6164,
           "rel": 1.0827,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_7",
@@ -1564,7 +1737,7 @@
           "err": 6.0056,
           "rel": 4.0144,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_8",
@@ -1574,7 +1747,7 @@
           "err": 3.363,
           "rel": 3.333,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_8",
@@ -1584,7 +1757,7 @@
           "err": 6.0056,
           "rel": 4.0144,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_8",
@@ -1594,7 +1767,7 @@
           "err": 3.363,
           "rel": 3.333,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_9",
@@ -1604,7 +1777,7 @@
           "err": 2.6948,
           "rel": 1.0884,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_9",
@@ -1624,7 +1797,7 @@
           "err": 2.2452,
           "rel": 1.7735,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_9",
@@ -1634,7 +1807,7 @@
           "err": 2.3872,
           "rel": 2.1238,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_9",
@@ -1666,7 +1839,7 @@
           "pred": 2.4035,
           "err": -0.6707,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_3",
@@ -1674,7 +1847,7 @@
           "pred": 2.4416,
           "err": -0.6379,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_4",
@@ -1696,7 +1869,7 @@
           "pred": 2.0351,
           "err": -0.4282,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_7",
@@ -1720,7 +1893,7 @@
           "pred": 1.9411,
           "err": -0.4053,
           "ok": false,
-          "in_ci": false
+          "in_ci": true
         }
       ],
       "openings": [
@@ -1931,7 +2104,7 @@
           "pred": 0.6,
           "err": -0.268,
           "status": "off",
-          "in_ci": false
+          "in_ci": true
         },
         {
           "room": "room_8",
@@ -2017,8 +2190,8 @@
         },
         "calibration": {
           "n": 40,
-          "coverage_of_90pct_intervals": 0.275,
-          "pass": false
+          "coverage_of_90pct_intervals": 0.95,
+          "pass": true
         },
         "footprint": {
           "gt_m2": 49.2465,
@@ -2096,47 +2269,47 @@
           "kind": "area",
           "room": "room_1",
           "pred": 19.6693,
-          "sigma": 3.49358,
+          "sigma": 15.78751,
           "truth": 9.3556,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
           "pred": 5.0093,
-          "sigma": 0.25555,
+          "sigma": 1.69044,
           "truth": 3.094,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
           "pred": 5.0093,
-          "sigma": 0.25555,
+          "sigma": 1.69044,
           "truth": 3.015,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
           "pred": 3.9266,
-          "sigma": 0.99489,
+          "sigma": 6.58118,
           "truth": 2.008,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_1",
           "pred": 3.9266,
-          "sigma": 0.99489,
+          "sigma": 6.58118,
           "truth": 1.751,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "ceiling_height",
           "room": "room_1",
           "pred": 2.8522,
-          "sigma": 0.25068,
+          "sigma": 1.65823,
           "truth": 3.0636,
           "in_ci": true
         },
@@ -2144,71 +2317,71 @@
           "kind": "area",
           "room": "room_2",
           "pred": 24.4547,
-          "sigma": 6.09512,
+          "sigma": 27.54385,
           "truth": 9.7906,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_2",
           "pred": 5.5081,
-          "sigma": 1.02503,
+          "sigma": 6.78058,
           "truth": 2.824,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_2",
           "pred": 5.5081,
-          "sigma": 1.02503,
+          "sigma": 6.78058,
           "truth": 2.808,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_2",
           "pred": 4.4398,
-          "sigma": 0.96542,
+          "sigma": 6.38624,
           "truth": 2.731,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_2",
           "pred": 4.4398,
-          "sigma": 0.96542,
+          "sigma": 6.38624,
           "truth": 2.231,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "ceiling_height",
           "room": "room_2",
           "pred": 2.4035,
-          "sigma": 0.13018,
+          "sigma": 0.86113,
           "truth": 3.0742,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "area",
           "room": "room_3",
           "pred": 11.7417,
-          "sigma": 1.53414,
+          "sigma": 6.93278,
           "truth": 3.8485,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_3",
           "pred": 5.6409,
-          "sigma": 0.28657,
+          "sigma": 1.89564,
           "truth": 2.864,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_3",
           "pred": 5.6409,
-          "sigma": 0.28657,
+          "sigma": 1.89564,
           "truth": 1.851,
           "in_ci": false
         },
@@ -2216,55 +2389,55 @@
           "kind": "wall_length",
           "room": "room_3",
           "pred": 2.0815,
-          "sigma": 0.48329,
+          "sigma": 3.19698,
           "truth": 0.987,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_3",
           "pred": 2.0815,
-          "sigma": 0.48329,
+          "sigma": 3.19698,
           "truth": 0.693,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "ceiling_height",
           "room": "room_3",
           "pred": 2.4416,
-          "sigma": 0.13194,
+          "sigma": 0.8728,
           "truth": 3.0795,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "area",
           "room": "room_6",
           "pred": 4.3811,
-          "sigma": 1.13199,
+          "sigma": 5.11545,
           "truth": 1.5351,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_6",
           "pred": 2.8446,
-          "sigma": 0.33581,
+          "sigma": 2.22136,
           "truth": 1.536,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_6",
           "pred": 2.8446,
-          "sigma": 0.33581,
+          "sigma": 2.22136,
           "truth": 1.099,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_6",
           "pred": 1.5401,
-          "sigma": 0.60701,
+          "sigma": 4.0154,
           "truth": 1.001,
           "in_ci": true
         },
@@ -2272,7 +2445,7 @@
           "kind": "wall_length",
           "room": "room_6",
           "pred": 1.5401,
-          "sigma": 0.60701,
+          "sigma": 4.0154,
           "truth": 0.954,
           "in_ci": true
         },
@@ -2280,15 +2453,15 @@
           "kind": "ceiling_height",
           "room": "room_6",
           "pred": 2.0351,
-          "sigma": 0.11342,
+          "sigma": 0.75029,
           "truth": 2.4633,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "opening_width",
           "room": "room_6",
           "pred": 0.8,
-          "sigma": 0.23543,
+          "sigma": 1.55739,
           "truth": 0.674,
           "in_ci": true
         },
@@ -2296,31 +2469,31 @@
           "kind": "area",
           "room": "room_7",
           "pred": 5.5456,
-          "sigma": 1.38058,
+          "sigma": 6.23882,
           "truth": 3.2168,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_7",
           "pred": 3.1094,
-          "sigma": 0.16353,
+          "sigma": 1.08178,
           "truth": 1.744,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_7",
           "pred": 3.1094,
-          "sigma": 0.16353,
+          "sigma": 1.08178,
           "truth": 1.493,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_7",
           "pred": 1.7835,
-          "sigma": 0.99136,
+          "sigma": 6.55784,
           "truth": 1.291,
           "in_ci": true
         },
@@ -2328,7 +2501,7 @@
           "kind": "wall_length",
           "room": "room_7",
           "pred": 1.7835,
-          "sigma": 0.99136,
+          "sigma": 6.55784,
           "truth": 0.693,
           "in_ci": true
         },
@@ -2336,7 +2509,7 @@
           "kind": "ceiling_height",
           "room": "room_7",
           "pred": 2.5588,
-          "sigma": 0.13738,
+          "sigma": 0.90875,
           "truth": 2.375,
           "in_ci": true
         },
@@ -2344,47 +2517,47 @@
           "kind": "area",
           "room": "room_8",
           "pred": 32.797,
-          "sigma": 4.20919,
+          "sigma": 19.02132,
           "truth": 1.5093,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_8",
           "pred": 7.5016,
-          "sigma": 0.55195,
+          "sigma": 3.65115,
           "truth": 1.496,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_8",
           "pred": 4.372,
-          "sigma": 0.52012,
+          "sigma": 3.4406,
           "truth": 1.009,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_8",
           "pred": 7.5016,
-          "sigma": 0.55195,
+          "sigma": 3.65115,
           "truth": 1.496,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_8",
           "pred": 4.372,
-          "sigma": 0.52012,
+          "sigma": 3.4406,
           "truth": 1.009,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "ceiling_height",
           "room": "room_8",
           "pred": 2.2539,
-          "sigma": 0.1233,
+          "sigma": 0.81563,
           "truth": 2.4497,
           "in_ci": true
         },
@@ -2392,7 +2565,7 @@
           "kind": "opening_width",
           "room": "room_8",
           "pred": 0.8,
-          "sigma": 0.23543,
+          "sigma": 1.55739,
           "truth": 0.67,
           "in_ci": true
         },
@@ -2400,15 +2573,15 @@
           "kind": "opening_width",
           "room": "room_8",
           "pred": 0.6,
-          "sigma": 0.06809,
+          "sigma": 0.4504,
           "truth": 0.868,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "opening_width",
           "room": "room_8",
           "pred": 0.8,
-          "sigma": 0.23543,
+          "sigma": 1.55739,
           "truth": 1.016,
           "in_ci": true
         },
@@ -2416,7 +2589,7 @@
           "kind": "opening_width",
           "room": "room_8",
           "pred": 0.8,
-          "sigma": 0.23543,
+          "sigma": 1.55739,
           "truth": 0.851,
           "in_ci": true
         },
@@ -2424,23 +2597,23 @@
           "kind": "area",
           "room": "room_9",
           "pred": 18.1553,
-          "sigma": 2.02744,
+          "sigma": 9.162,
           "truth": 5.4405,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_9",
           "pred": 5.1708,
-          "sigma": 0.26346,
+          "sigma": 1.74282,
           "truth": 2.476,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_9",
           "pred": 5.1708,
-          "sigma": 0.26346,
+          "sigma": 1.74282,
           "truth": 2.287,
           "in_ci": false
         },
@@ -2448,25 +2621,25 @@
           "kind": "wall_length",
           "room": "room_9",
           "pred": 3.5112,
-          "sigma": 0.41632,
+          "sigma": 2.75398,
           "truth": 1.266,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "wall_length",
           "room": "room_9",
           "pred": 3.5112,
-          "sigma": 0.41632,
+          "sigma": 2.75398,
           "truth": 1.124,
-          "in_ci": false
+          "in_ci": true
         },
         {
           "kind": "ceiling_height",
           "room": "room_9",
           "pred": 1.9411,
-          "sigma": 0.1092,
+          "sigma": 0.72236,
           "truth": 2.3464,
-          "in_ci": false
+          "in_ci": true
         }
       ]
     }
@@ -2542,27 +2715,32 @@
       "wall_length": {
         "inflate": 2.0,
         "abs": 0.008,
-        "rel": 0.002
+        "rel": 0.002,
+        "scale": 2.611
       },
       "ceiling_height": {
         "inflate": 2.0,
         "abs": 0.006,
-        "rel": 0.001
+        "rel": 0.001,
+        "scale": 2.611
       },
       "opening_width": {
         "inflate": 1.5,
         "abs": 0.01,
-        "rel": 0.0
+        "rel": 0.0,
+        "scale": 2.611
       },
       "opening_height": {
         "inflate": 1.5,
         "abs": 0.03,
-        "rel": 0.0
+        "rel": 0.0,
+        "scale": 2.611
       },
       "area": {
         "inflate": 2.0,
         "abs": 0.05,
-        "rel": 0.004
+        "rel": 0.004,
+        "scale": 2.611
       },
       "damage": {
         "inflate": 1.0,
@@ -2574,27 +2752,32 @@
       "wall_length": {
         "inflate": 2.0,
         "abs": 0.03,
-        "rel": 0.02
+        "rel": 0.02,
+        "scale": 2.577
       },
       "ceiling_height": {
         "inflate": 2.0,
         "abs": 0.03,
-        "rel": 0.02
+        "rel": 0.02,
+        "scale": 2.577
       },
       "opening_width": {
         "inflate": 1.5,
         "abs": 0.03,
-        "rel": 0.03
+        "rel": 0.03,
+        "scale": 2.577
       },
       "opening_height": {
         "inflate": 1.5,
         "abs": 0.05,
-        "rel": 0.03
+        "rel": 0.03,
+        "scale": 2.577
       },
       "area": {
         "inflate": 2.0,
         "abs": 0.15,
-        "rel": 0.04
+        "rel": 0.04,
+        "scale": 2.577
       },
       "damage": {
         "inflate": 1.0,
@@ -2606,27 +2789,32 @@
       "wall_length": {
         "inflate": 2.0,
         "abs": 0.05,
-        "rel": 0.05
+        "rel": 0.05,
+        "scale": 6.615
       },
       "ceiling_height": {
         "inflate": 2.0,
         "abs": 0.05,
-        "rel": 0.05
+        "rel": 0.05,
+        "scale": 6.615
       },
       "opening_width": {
         "inflate": 1.5,
         "abs": 0.05,
-        "rel": 0.06
+        "rel": 0.06,
+        "scale": 6.615
       },
       "opening_height": {
         "inflate": 1.5,
         "abs": 0.08,
-        "rel": 0.06
+        "rel": 0.06,
+        "scale": 6.615
       },
       "area": {
         "inflate": 2.0,
         "abs": 0.3,
-        "rel": 0.1
+        "rel": 0.1,
+        "scale": 4.519
       },
       "damage": {
         "inflate": 1.0,

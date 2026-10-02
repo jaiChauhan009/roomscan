@@ -60,10 +60,9 @@ uv run python -m pytest -q
 uv run python scripts/walkin.py ..\data\single_room     # about 1-2 min; must end with the room table
 ```
 
-The walk-in run must print `models: all in the local cache; running offline`. If it says
-the damage model (`openai/clip-vit-base-patch32`) is not cached, run any capture once
-with network: `fetch_weights.py` downloads only `*.safetensors` and this model has only
-`pytorch_model.bin`. Keep 20 GB free on the laptop.
+The walk-in run must print `models: all in the local cache; running offline`. If it does
+not, run `uv run python scripts/fetch_weights.py` once with network (it fetches all three
+models, CLIP included, and checks that they load offline). Keep 20 GB free on the laptop.
 
 **5. The staged damage** (two classes, both removable; the tea must dry):
 - **Water stain** (`water_stain`): brew strong black tea (3 bags in a mug, cooled). On A3

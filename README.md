@@ -119,22 +119,26 @@ uv run python scripts/walkin.py <capture or drive root>   # live test: cold run,
 ```
 
 `<capture>` is the Stray Scanner folder, the video file, or the folder of room folders. The
-output folder is named after it, so a video `rgb.mp4` writes `runs/rgb.mp4/`.
+output folder is named after it, so a video `rgb_upright.mp4` writes `runs/rgb_upright.mp4/`.
 
 To try it on the sample captures (no iPhone needed):
 
 ```bash
 uv run python scripts/fetch_data.py       # the three sample scans into ../data (0.87 GB, 3 min here)
 uv run roomscan run ../data/single_room                                  # LiDAR
-uv run roomscan run ../data/single_scan_floor_only/1a8384c3f6/rgb.mp4    # video: the scan's own RGB video
+uv run python scripts/make_iphone_clip.py ../data/single_scan_floor_only/1a8384c3f6 ../data/video_floor_only
+uv run roomscan run ../data/video_floor_only/rgb_upright.mp4             # video: the scan's video as an upright iPhone clip
 uv run python scripts/make_photo_set.py ../data/single_scan_with_ceiling ../data/photos_with_ceiling
 uv run roomscan run ../data/photos_with_ceiling                          # photo
 ```
 
-The sample flat has no photo capture: `make_photo_set.py` cuts stills from the scan's video
-the way the photo protocol prescribes (6 min here; at this commit it builds 6 of the 7 rooms,
-see the known gap below). The photo run warns "Corrupt EXIF data" on these stills; that is
-harmless, the focal length is still read.
+The sample flat has no photo or video capture of its own. `make_photo_set.py` rebuilds the
+benchmark's 7-room, 28-photo set from the scan's video, byte for byte, from the recipe in
+`bench/photo_set_recipe.yaml` (about 30 s; `--check <set>` verifies a set, `--select` cuts a
+new one). `make_iphone_clip.py` gives the scan's video the rotation flag an upright iPhone
+recording carries (Stray stores the frames sideways without one; nothing is re-encoded).
+The photo run warns "Corrupt EXIF data" on these stills; that is harmless, the focal length
+is still read.
 
 Output folder:
 
@@ -158,19 +162,18 @@ uv run python bench/head_to_head.py <ground_truth.yaml> <result.json> <app.yaml>
 `roomscan run`, scores it against `bench/ground_truth/<capture>.yaml` (gates in
 `bench/gates.yaml`), then runs the repeatability pairs and the drift ablation: five captures,
 one of them the video (about 8 minutes on its own the first time), plus two ablation runs.
-It builds the photo set with `scripts/make_photo_set.py` when `../data/photos_with_ceiling`
-is missing, reads the data from `ROOMSCAN_DATA` instead of `../data` when that variable is
+It builds the photo set and the upright clip (the manifest's `prepare:` steps) when they are
+missing, reads the data from `ROOMSCAN_DATA` instead of `../data` when that variable is
 set, and overwrites `bench/reports/` (pass `--out <folder>` to keep the committed report).
 Intermediate results (fused clouds, depth maps) are cached in `.cache/` and replay
 deterministically; `--no-cache` forces the live path.
 
 Checked on the clean copy: `fetch_data.py` gives the same files and sizes as the brief's
 scans, and `bench/run_all.py --only room_lidar` reproduces the committed `room_lidar` row
-(2 rooms, 10.6381 m2); the full benchmark was not rerun there. Known gap: at this commit
-`make_photo_set.py` builds 6 rooms and 25 photos (it skips room_5: no look-back frame), while
-the photo rows of `bench/reports/benchmark.md` came from an earlier 7-room, 28-photo set.
-On the rebuilt set the photo tier gives 6 rooms and 99.5 m2 (90 % CI 85.9-113.2) instead of
-7 rooms and 116.7 m2, so those rows will not match until the set or the report is regenerated.
+(2 rooms, 10.6381 m2); the full benchmark was not rerun there. The photo set rebuilt from the
+recipe is byte-identical to the one behind the report, and the photo tier on it reproduces
+the committed row (7 rooms, 116.7447 m2). After new ground truth, refit the intervals with
+`bench/run_all.py --eval-only` then `bench/calibrate.py --write` (`bench/reports/calibration.md`).
 
 To add your own capture with ground truth: copy `bench/ground_truth/TEMPLATE.yaml`, fill in
 the laser measurements, add one line to `bench/manifest.yaml`.

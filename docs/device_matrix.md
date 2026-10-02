@@ -26,10 +26,10 @@ Times on the development laptop (CPU only), from `fixloop/round2/after/benchmark
 
 | Capture | Tier | Time |
 |---|---|---|
-| whole flat, 215 s scan, 9 rooms | LiDAR | 226 s (damage ~100 s) |
-| whole flat, 115 s floor-only scan, 7 rooms | LiDAR | 131 s |
+| whole flat, 215 s scan, 9 rooms | LiDAR | 212 s (damage ~125 s) |
+| whole flat, 115 s floor-only scan, 7 rooms | LiDAR | 123 s |
 | single room, 37 s scan | LiDAR | 41 s |
-| whole flat, 115 s clip | video | ~8 min first run, ~115 s with cached depth |
+| whole flat, 115 s clip | video | ~12 min first run, ~2 min with cached depth |
 | 7 rooms, 28 photos | photo | ~3 min |
 
 ## Accuracy each tier delivers
@@ -37,12 +37,12 @@ Times on the development laptop (CPU only), from `fixloop/round2/after/benchmark
 | | LiDAR | video | photo |
 |---|---|---|---|
 | Wall length, synthetic room (exact truth) | < 1 mm | not tested | ±4 cm on a noisy synthetic box |
-| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 40 % | vs LiDAR reference: median error 109 % |
+| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 37 % | vs LiDAR reference: median error 109 % |
 | Ceiling height | synthetic < 5 mm; real: no ground truth | not recovered on sample | vs LiDAR reference: up to 0.67 m off |
-| Footprint, real capture | two scans of one flat: −10.4 % | −91 % vs reference | +137 % vs reference |
+| Footprint, real capture | two scans of one flat: −10.4 % | −70 % vs reference (2 of 7 rooms found) | +137 % vs reference |
 | Repeatability, two scans of one flat | point clouds agree to 7 mm median; rooms 9 vs 7, none paired (`fixloop/round2/`) | not measured | not measured |
-| Interval coverage (should be ~90 %), held-out rooms | 95 % by two-scan agreement (precision only) | not measurable (one room) | 90 % vs reference |
-| 90 % interval on a 3 m wall | ±6 cm | ±0.93 m | ±1.72 m |
+| Interval coverage (should be ~90 %), held-out rooms | 95 % by two-scan agreement (precision only) | 91 % vs reference | 90 % vs reference |
+| 90 % interval on a 3 m wall | ±6 cm | ±0.29 m | ±1.72 m |
 | Brief's gate | 2 cm openings, 1.5 cm ceiling, 1 cm repeat | ±3 % walls | ±8 % walls, stitched footprint |
 | Honest status | geometry is precise; segmentation not yet repeatable | far from gate | far from gate |
 
