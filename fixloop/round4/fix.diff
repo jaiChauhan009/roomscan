@@ -1,0 +1,121 @@
+diff --git a/src/roomscan/geometry/layout.py b/src/roomscan/geometry/layout.py
+index 42f1991..d41e0c6 100644
+--- a/src/roomscan/geometry/layout.py
++++ b/src/roomscan/geometry/layout.py
+@@ -20,7 +20,7 @@ import numpy as np
+ from scipy import ndimage as ndi
+ from shapely.geometry import Point, Polygon
+ 
+-from roomscan.geometry.planes import (UP_T, WALL_T, Level, ceiling_level, floor_level,
++from roomscan.geometry.planes import (UP_T, WALL_T, Level, area_level, ceiling_level, floor_level,
+                                       manhattan_yaw, wall_top_level)
+ from roomscan.geometry.pointcloud import Cloud
+ 
+@@ -791,11 +791,15 @@ def _per_room_levels(rooms: list[Room], cloud: Cloud, ab: np.ndarray, frame: Pla
+         inner = ndi.binary_erosion(room.mask, np.ones((7, 7)))  # stay 6 cm off the walls
+         inside = np.zeros(len(ab), bool)
+         inside[ok] = inner[row[ok], col[ok]]
++        up = inside & (cloud.normals[:, 1] > UP_T)
++        down = inside & (cloud.normals[:, 1] < -UP_T)
+         f = floor_level(cloud, inside)
+         if f is not None and abs(f.value - floor.value) < 0.25:
+-            room.floor = f
++            # the peak is the most-looked-at patch; every 25 cm patch of the floor counts once
++            room.floor = area_level(cloud.points[up, 1], ab[up], f)
+         c = ceiling_level(cloud, room.floor.value, inside)
+         if c is not None:
++            c = area_level(cloud.points[down, 1], ab[down], c)
+             room.ceiling, room.ceiling_source = c, "ceiling_plane"
+         else:
+             near = np.zeros(len(ab), bool)
+diff --git a/src/roomscan/geometry/planes.py b/src/roomscan/geometry/planes.py
+index fcc0015..51d3d10 100644
+--- a/src/roomscan/geometry/planes.py
++++ b/src/roomscan/geometry/planes.py
+@@ -97,6 +97,34 @@ def ceiling_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None,
+     return _mode_refine(y, w)
+ 
+ 
++def area_level(y: np.ndarray, xz: np.ndarray, peak: Level, cell: float = 0.25, window: float = 0.06,
++               min_pts: int = 20, min_cells: int = 8) -> Level:
++    """Refine a floor or ceiling peak so that every patch of the surface counts once.
++
++    The peak of a histogram weights each patch by how long the camera dwelt on it, and a fused
++    LiDAR floor or ceiling is a few cm thick and uneven, so the peak lands on the most-looked-at
++    patch. Here: points within `window` of the peak, the median height in each `cell` x `cell`
++    patch (with >= min_pts points), then the median over patches. A step or a low table top
++    further than `window` from the peak is not part of the surface. Fewer than min_cells patches:
++    the peak is kept.
++    """
++    sel = np.abs(y - peak.value) < window
++    if sel.sum() < min_pts * min_cells:
++        return peak
++    g = np.floor(xz[sel] / cell).astype(np.int64)
++    _, inv, cnt = np.unique(g, axis=0, return_inverse=True, return_counts=True)
++    inv = inv.ravel()
++    ys = y[sel]
++    order = np.argsort(inv, kind="stable")
++    starts = np.r_[0, np.cumsum(cnt)[:-1]]
++    meds = np.array([np.median(ys[order[s:s + n]]) for s, n in zip(starts, cnt) if n >= min_pts])
++    if len(meds) < min_cells:
++        return peak
++    med = float(np.median(meds))
++    mad = float(np.median(np.abs(meds - med))) * 1.4826
++    return Level(med, max(mad / np.sqrt(len(meds)), 1e-4), int(sel.sum()))
++
++
+ def wall_top_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None) -> Level | None:
+     """Fallback ceiling estimate when the ceiling was not scanned: top of wall evidence."""
+     m = np.abs(cloud.normals[:, 1]) < WALL_T
+diff --git a/tests/test_geometry.py b/tests/test_geometry.py
+index aac2a92..82d70cc 100644
+--- a/tests/test_geometry.py
++++ b/tests/test_geometry.py
+@@ -168,3 +168,47 @@ def test_whole_capture_ceiling_is_the_highest_one_not_the_most_scanned():
+     layout = extract_layout(c)
+     heights = sorted(round(r.height, 2) for r in layout.rooms)
+     assert heights == pytest.approx([2.4, 3.0], abs=0.01)
++
++
++def _dwelt_ceiling_room(lift=0.02, dwell=5, split_x=1.6):
++    """box_room whose ceiling over x > split_x (60 % of it) sits `lift` higher, while the
++    camera dwelt on the rest: its points are repeated `dwell` times (fused LiDAR weights a
++    surface by observation count)."""
++    c = box_room(height=2.7, floor_y=-1.4)
++    P, N = c.points.copy(), c.normals
++    ceil = N[:, 1] < -0.85
++    P[ceil & (P[:, 0] > split_x), 1] += lift
++    rep = ceil & (P[:, 0] <= split_x)
++    rng = np.random.default_rng(3)
++    extra = np.repeat(P[rep], dwell - 1, axis=0)
++    extra[:, 1] += rng.normal(0, 0.003, len(extra))
++    P2 = np.concatenate([P, extra]).astype(np.float32)
++    N2 = np.concatenate([N, np.repeat(N[rep], dwell - 1, axis=0)]).astype(np.float32)
++    return Cloud(P2, N2, np.ones(len(P2), np.float32))
++
++
++def test_area_level_counts_each_patch_once_not_each_look():
++    from roomscan.geometry.planes import area_level
++
++    c = _dwelt_ceiling_room()
++    m = c.normals[:, 1] < -0.85
++    y, xz = c.points[m, 1], c.points[m][:, [0, 2]]
++    peak = ceiling_level(c, -1.4)
++    assert abs(peak.value - 1.30) < 0.003          # the histogram peak: the most-looked-at patch
++    lv = area_level(y, xz, peak)
++    assert abs(lv.value - 1.32) < 0.003            # the median patch: 60 % of the ceiling
++    # points further than the window from the peak are not part of the surface
++    assert abs(area_level(y, xz, peak, window=0.01).value - 1.30) < 0.003
++    # too few patches: the peak is kept
++    small = xz[:, 0] < 0.3
++    assert area_level(y[small], xz[small], peak, min_cells=50) is peak
++
++
++def test_room_height_is_area_weighted():
++    lay = extract_layout(_dwelt_ceiling_room())
++    room = max(lay.rooms, key=lambda r: r.mask.sum())
++    assert abs(room.height - 2.72) < 0.005
++    # an even ceiling is unchanged
++    lay = extract_layout(box_room(height=2.7, floor_y=-1.4))
++    room = max(lay.rooms, key=lambda r: r.mask.sum())
++    assert abs(room.height - 2.70) < 0.004

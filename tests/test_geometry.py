@@ -168,3 +168,47 @@ def test_whole_capture_ceiling_is_the_highest_one_not_the_most_scanned():
     layout = extract_layout(c)
     heights = sorted(round(r.height, 2) for r in layout.rooms)
     assert heights == pytest.approx([2.4, 3.0], abs=0.01)
+
+
+def _dwelt_ceiling_room(lift=0.02, dwell=5, split_x=1.6):
+    """box_room whose ceiling over x > split_x (60 % of it) sits `lift` higher, while the
+    camera dwelt on the rest: its points are repeated `dwell` times (fused LiDAR weights a
+    surface by observation count)."""
+    c = box_room(height=2.7, floor_y=-1.4)
+    P, N = c.points.copy(), c.normals
+    ceil = N[:, 1] < -0.85
+    P[ceil & (P[:, 0] > split_x), 1] += lift
+    rep = ceil & (P[:, 0] <= split_x)
+    rng = np.random.default_rng(3)
+    extra = np.repeat(P[rep], dwell - 1, axis=0)
+    extra[:, 1] += rng.normal(0, 0.003, len(extra))
+    P2 = np.concatenate([P, extra]).astype(np.float32)
+    N2 = np.concatenate([N, np.repeat(N[rep], dwell - 1, axis=0)]).astype(np.float32)
+    return Cloud(P2, N2, np.ones(len(P2), np.float32))
+
+
+def test_area_level_counts_each_patch_once_not_each_look():
+    from roomscan.geometry.planes import area_level
+
+    c = _dwelt_ceiling_room()
+    m = c.normals[:, 1] < -0.85
+    y, xz = c.points[m, 1], c.points[m][:, [0, 2]]
+    peak = ceiling_level(c, -1.4)
+    assert abs(peak.value - 1.30) < 0.003          # the histogram peak: the most-looked-at patch
+    lv = area_level(y, xz, peak)
+    assert abs(lv.value - 1.32) < 0.003            # the median patch: 60 % of the ceiling
+    # points further than the window from the peak are not part of the surface
+    assert abs(area_level(y, xz, peak, window=0.01).value - 1.30) < 0.003
+    # too few patches: the peak is kept
+    small = xz[:, 0] < 0.3
+    assert area_level(y[small], xz[small], peak, min_cells=50) is peak
+
+
+def test_room_height_is_area_weighted():
+    lay = extract_layout(_dwelt_ceiling_room())
+    room = max(lay.rooms, key=lambda r: r.mask.sum())
+    assert abs(room.height - 2.72) < 0.005
+    # an even ceiling is unchanged
+    lay = extract_layout(box_room(height=2.7, floor_y=-1.4))
+    room = max(lay.rooms, key=lambda r: r.mask.sum())
+    assert abs(room.height - 2.70) < 0.004
