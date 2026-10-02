@@ -420,7 +420,7 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
     lab = cv2.cvtColor(cv2.GaussianBlur(small, (0, 0), 2), cv2.COLOR_RGB2LAB).astype(np.float32)
     z_img = cv2.resize(d, (W, H), interpolation=cv2.INTER_LINEAR)
     obs = []
-    bg = None
+    bg = gray = None
     for sid in sorted(set(surf)):
         on = idx_img == sid
         for c in set(cl for cl, p, sf in zip(cls, prob, surf) if sf == sid and p >= threshold):
@@ -455,6 +455,10 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
                         if mass.max() > 0:
                             keep[int(mass.argmax())] = True
                 mask = keep[cc].astype(np.uint8)
+            if c == "crack" and mask.any():
+                if gray is None:
+                    gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
+                mask = _crack_outline(mask, gray, on, z_img, frame.K_rgb[0, 0] * s)
             found = _components(mask, z_img, frame, s, table[sid], sidx, c, best_p, coarse=False)
             if not found:
                 # colour gave nothing usable (patterned background, low contrast): localise
@@ -463,6 +467,64 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
                                     table[sid], sidx, c, best_p, coarse=True)
             obs += found
     return obs
+
+
+def crack_lines(gray: np.ndarray, on: np.ndarray) -> np.ndarray:
+    """Thin dark lines on a surface (bool): a multi-scale valley filter (Sato, dark ridges,
+    sigma 1-2 px at the working resolution) on the luminance, kept where it stands out
+    against the surface's own texture: above CRACK_SNR x the surface's mean response around
+    it (61 px window) and CRACK_MIN_DARK grey levels below both sides (black top-hat). Pixels
+    within 15 px of near-white (a lamp, a reflection) are left out: the dark rim of a glow
+    reads as a valley. `on`: the surface pixels."""
+    from skimage.filters import sato
+
+    ys, xs = np.nonzero(on)
+    if len(ys) < 400:
+        return np.zeros(on.shape, bool)
+    y0, y1, x0, x1 = max(ys.min() - 8, 0), ys.max() + 9, max(xs.min() - 8, 0), xs.max() + 9
+    sub8, m = np.ascontiguousarray(gray[y0:y1, x0:x1]), on[y0:y1, x0:x1]
+    r = sato(sub8.astype(np.float32), sigmas=(1.0, 1.5, 2.0), black_ridges=True, mode="reflect").astype(np.float32)
+    mf = m.astype(np.float32)
+    den = cv2.boxFilter(mf, -1, (61, 61), normalize=False) + 1e-3
+    local = cv2.boxFilter(r * mf, -1, (61, 61), normalize=False) / den
+    # darker than both sides: the black top-hat fills only valleys narrower than 9 px, not
+    # the dark side of an edge or the inside of a dark patch
+    valley = cv2.morphologyEx(sub8, cv2.MORPH_BLACKHAT,
+                              cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))).astype(np.float32)
+    bright = cv2.dilate((sub8 >= 245).astype(np.uint8), np.ones((31, 31), np.uint8)).astype(bool)
+    out = np.zeros(on.shape, bool)
+    out[y0:y1, x0:x1] = (m & ~bright & (r > CRACK_SNR * np.maximum(local, CRACK_MIN_RESP))
+                         & (valley > CRACK_MIN_DARK))
+    return out
+
+
+CRACK_SNR = 4.0  # valley response / the surface's mean response around it
+CRACK_MIN_RESP = 0.5  # floor of that mean response (grey levels): a flat wall has ~0
+CRACK_MIN_DARK = 8.0  # grey levels below both sides of the line
+CRACK_NEAR = 0.02  # m: a crack's outline is the colour outline within this of a thin dark line
+
+
+def _crack_outline(mask: np.ndarray, gray: np.ndarray, on: np.ndarray, z_img: np.ndarray, fx: float) -> np.ndarray:
+    """A crack's colour outline cut down to the thin dark lines in it (crack_lines, within
+    CRACK_NEAR of their skeleton). The colour outline of a positive tile also takes in
+    whatever else departs from the wall colour there (a shadow, a fixture at the line's
+    end) and made a 0.58 m painted crack 0.93 m wide; the line is the crack. When no
+    line is found in the outline, it is returned as it is."""
+    from skimage.morphology import skeletonize
+
+    near = cv2.dilate(mask, np.ones((15, 15), np.uint8)).astype(bool)
+    lines = crack_lines(gray, on & near)
+    if lines.sum() < 15:
+        return mask
+    sk = skeletonize(cv2.morphologyEx(lines.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)) > 0)
+    z = z_img[mask > 0]
+    z = z[z > 0.2]
+    if not len(z):
+        return mask
+    r = max(1, int(round(CRACK_NEAR * fx / float(np.median(z)))))
+    band = cv2.dilate(sk.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))
+    out = (mask & band).astype(np.uint8)
+    return out if out.sum() >= 20 else mask
 
 
 def _outline(lab: np.ndarray, region: np.ndarray, bg: np.ndarray) -> np.ndarray:
