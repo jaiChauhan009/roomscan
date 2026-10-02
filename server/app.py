@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 
 from server.capture import VIDEO_EXT, cache_key, content_key, has_input, plan_runs, verify_project
 from server.jobs import OUTPUT_FILES, Worker, comparison, new_job, public_job
-from server.store import CAPTURE_ID, Store, engine_version, new_id, safe_relpath
+from server.store import CAPTURE_KINDS, Store, capture_id, engine_version, new_id, safe_relpath
 
 
 class Sizes(BaseModel):
@@ -35,14 +35,13 @@ class Sizes(BaseModel):
 
 class SpaceIn(BaseModel):
     """A room: name, optional sizes, optional photos. Video and LiDAR are whole-home captures
-    (PUT /api/projects/{pid}/capture), not rooms."""
+    (PUT /api/projects/{pid}/captures/{kind}), not rooms."""
     name: str = Field(min_length=1, max_length=120)
     kind: str = "photos"
     sizes: Sizes = Sizes()
 
 
-class CaptureIn(BaseModel):
-    kind: Literal["video", "lidar"]
+CaptureKind = Literal["video", "lidar"]
 
 
 class SpacePatch(BaseModel):
@@ -117,14 +116,17 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
         return {"kind": c["kind"], "files": c["files"]} if c else None
 
     def public_project(p: dict) -> dict:
+        caps = p.get("captures") or {}
         return {"project_id": p["project_id"], "spaces": [public_space(s) for s in p["spaces"]],
-                "capture": public_capture(p.get("capture")), "last_job_id": p.get("last_job_id")}
+                "captures": {k: public_capture(caps.get(k)) for k in CAPTURE_KINDS},
+                "last_job_id": p.get("last_job_id")}
 
-    def capture_or_404(p: dict) -> dict:
-        if not p.get("capture"):
-            raise HTTPException(404, "the project has no whole-home capture (PUT .../capture with "
-                                     "{\"kind\": \"video\"} or {\"kind\": \"lidar\"} first)")
-        return p["capture"]
+    def capture_or_404(p: dict, kind: str) -> dict:
+        c = (p.get("captures") or {}).get(kind)
+        if not c:
+            raise HTTPException(404, f"the project has no whole-home {kind} capture "
+                                     f"(PUT /api/projects/{{pid}}/captures/{kind} first)")
+        return c
 
     def is_main_file(kind: str, name: str) -> bool:
         """The one file a whole-home capture holds: the clip, or the zipped LiDAR export."""
@@ -137,9 +139,9 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
         other = next((f for f in c["files"] if f["sha256"] != sha and is_main_file(c["kind"], f["name"])), None)
         if other:
             what = "video" if c["kind"] == "video" else "LiDAR scan (.zip)"
-            raise HTTPException(409, f"the whole-home capture already has a {what}: {other['name']}. It takes "
-                                     f"exactly one: delete that file first (DELETE .../capture/files/"
-                                     f"{other['sha256']}) to replace it")
+            raise HTTPException(409, f"the whole-home {c['kind']} capture already has a {what}: {other['name']}. "
+                                     f"It takes exactly one: delete that file first (DELETE .../captures/"
+                                     f"{c['kind']}/files/{other['sha256']}) to replace it")
 
     def receive(pid: str, sid: str, file: UploadFile, sha256: str, name: str | None, holder, check=None) -> dict:
         """Store an upload by content hash (idempotent); `holder(p)` is the space or capture dict
@@ -210,7 +212,7 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     def add_space(pid: str, body: SpaceIn):
         if body.kind != "photos":
             raise HTTPException(422, f"a space is a room (kind \"photos\"); {body.kind} is a whole-home capture: "
-                                     f"PUT /api/projects/{{pid}}/capture with {{\"kind\": \"{body.kind}\"}}"
+                                     f"PUT /api/projects/{{pid}}/captures/{body.kind}"
                                      if body.kind in ("video", "lidar") else
                                      f"kind must be \"photos\" (got {body.kind!r})")
         with store().lock:
@@ -279,54 +281,55 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
         space_or_404(project_or_404(pid), sid)
         return receive(pid, sid, file, sha256, name, lambda p: space_or_404(p, sid))
 
-    # ---------------------------------------------------------------- whole-home capture
-    @app.put("/api/projects/{pid}/capture")
-    def put_capture(pid: str, body: CaptureIn):
-        """Create the whole-home capture, or change its kind (which drops its files)."""
+    # ---------------------------------------------------------------- whole-home captures
+    @app.put("/api/projects/{pid}/captures/{kind}")
+    def put_capture(pid: str, kind: CaptureKind, body: dict | None = None):
+        """Create the whole-home video or LiDAR capture if absent (idempotent); a project may have both."""
         with store().lock:
             p = project_or_404(pid)
-            c = p.get("capture")
-            if c and c["kind"] == body.kind:
-                return public_capture(c)
-            p["capture"] = {"kind": body.kind, "files": []}
-            store().save_project(p)
-            store().delete_space_files(pid, CAPTURE_ID)
-        return public_capture(p["capture"])
+            caps = p.setdefault("captures", {})
+            if not caps.get(kind):
+                caps[kind] = {"kind": kind, "files": []}
+                store().save_project(p)
+                store().delete_space_files(pid, capture_id(kind))
+        return public_capture(caps[kind])
 
-    @app.get("/api/projects/{pid}/capture")
-    def get_capture(pid: str):
-        return public_capture(capture_or_404(project_or_404(pid)))
+    @app.get("/api/projects/{pid}/captures/{kind}")
+    def get_capture(pid: str, kind: CaptureKind):
+        return public_capture(capture_or_404(project_or_404(pid), kind))
 
-    @app.delete("/api/projects/{pid}/capture")
-    def delete_capture(pid: str):
+    @app.delete("/api/projects/{pid}/captures/{kind}")
+    def delete_capture(pid: str, kind: CaptureKind):
         with store().lock:
             p = project_or_404(pid)
-            capture_or_404(p)
-            p["capture"] = None
+            capture_or_404(p, kind)
+            p["captures"][kind] = None
             store().save_project(p)
-            store().delete_space_files(pid, CAPTURE_ID)
+            store().delete_space_files(pid, capture_id(kind))
         return {"ok": True}
 
-    @app.get("/api/projects/{pid}/capture/files")
-    def list_capture_files(pid: str):
-        return {"files": capture_or_404(project_or_404(pid))["files"]}
+    @app.get("/api/projects/{pid}/captures/{kind}/files")
+    def list_capture_files(pid: str, kind: CaptureKind):
+        return {"files": capture_or_404(project_or_404(pid), kind)["files"]}
 
-    @app.put("/api/projects/{pid}/capture/files")
-    def upload_capture(pid: str, file: UploadFile = File(...), sha256: str = Form(...), name: str = Form(None)):
-        capture_or_404(project_or_404(pid))
-        return receive(pid, CAPTURE_ID, file, sha256, name, capture_or_404, second_file_error)
+    @app.put("/api/projects/{pid}/captures/{kind}/files")
+    def upload_capture(pid: str, kind: CaptureKind, file: UploadFile = File(...), sha256: str = Form(...),
+                       name: str = Form(None)):
+        capture_or_404(project_or_404(pid), kind)
+        return receive(pid, capture_id(kind), file, sha256, name, lambda p: capture_or_404(p, kind),
+                       second_file_error)
 
-    @app.delete("/api/projects/{pid}/capture/files/{sha}")
-    def delete_capture_file(pid: str, sha: str):
+    @app.delete("/api/projects/{pid}/captures/{kind}/files/{sha}")
+    def delete_capture_file(pid: str, kind: CaptureKind, sha: str):
         sha = sha.lower()
         with store().lock:
             p = project_or_404(pid)
-            c = capture_or_404(p)
+            c = capture_or_404(p, kind)
             if not any(f["sha256"] == sha for f in c["files"]):
-                raise HTTPException(404, f"file {sha} not in the whole-home capture")
+                raise HTTPException(404, f"file {sha} not in the whole-home {kind} capture")
             c["files"] = [f for f in c["files"] if f["sha256"] != sha]
             store().save_project(p)
-            store().file_path(pid, CAPTURE_ID, sha).unlink(missing_ok=True)
+            store().file_path(pid, capture_id(kind), sha).unlink(missing_ok=True)
         return {"ok": True}
 
     # ---------------------------------------------------------------- verify / run

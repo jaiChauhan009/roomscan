@@ -54,7 +54,7 @@ def new_job(p: dict, runs: list[dict], damage: bool, force: bool, key: str, engi
     return {"job_id": new_id(), "project_id": p["project_id"], "created": time.time(), "started": None,
             "finished": None, "status": "queued", "stage": None, "stages": stages, "error": None,
             "outputs": {}, "damage": bool(damage), "force": bool(force), "cache_key": key, "engine": engine,
-            "spaces": p["spaces"], "capture": p.get("capture"),
+            "spaces": p["spaces"], "captures": p.get("captures"),
             "runs": [{"tier": r["tier"], "title": r["title"], "label": r["label"], "space_ids": r["space_ids"],
                       "whole_home": bool(r.get("whole_home")),
                       "folders": r["folders"], "status": "pending", "error": None, "outputs": {},
@@ -184,7 +184,7 @@ class Worker:
             # ---- verify (on the capture as the engine will see it)
             t = time.time()
             self._stage(j, "verify", "running")
-            p = {"project_id": j["project_id"], "spaces": j["spaces"], "capture": j.get("capture")}
+            p = {"project_id": j["project_id"], "spaces": j["spaces"], "captures": j.get("captures") or {}}
             runs = materialise(st, p, work)
             try:
                 proj = st.project(j["project_id"])
@@ -204,7 +204,7 @@ class Worker:
                 return
             self._stage(j, "verify", "done", time.time() - t, note + (" (forced)" if n_bad else ""))
 
-            # ---- the photo walk, then the whole-home capture
+            # ---- the photo walk, then each whole-home capture
             params = inspect.signature(pl.run).parameters
             live = "on_stage" in params  # the engine reports its own stages
             try:

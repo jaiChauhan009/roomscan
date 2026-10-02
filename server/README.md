@@ -1,8 +1,8 @@
 # roomscan server
 
 A web API around the engine: a client creates a project, adds its rooms (name, optional
-sizes, optional photos) and at most one whole-home capture (one video clip or one LiDAR scan
-of every room), uploads the files, verifies the capture, runs it and downloads the plans. JSON throughout, all under `/api`; errors are `{"detail": "..."}`. Interactive docs at
+sizes, optional photos) and up to two whole-home captures (one video clip and/or one LiDAR
+scan of every room), uploads the files, verifies the capture, runs it and downloads the plans. JSON throughout, all under `/api`; errors are `{"detail": "..."}`. Interactive docs at
 `/docs` once it runs.
 
 ## Run locally
@@ -24,47 +24,48 @@ and can be run again.
 |---|---|---|
 | GET | `/api/health` | `{"ok": true, "version"}` (version = engine version + source hash) |
 | POST | `/api/projects` | `{"project_id"}` |
-| GET | `/api/projects/{pid}` | `{"project_id", "spaces": [...], "capture": {"kind","files"} \| null, "last_job_id"}` |
+| GET | `/api/projects/{pid}` | `{"project_id", "spaces": [...], "captures": {"video": {"kind","files"} \| null, "lidar": {"kind","files"} \| null}, "last_job_id"}` |
 | PUT | `/api/projects/{pid}/order` | `{"space_ids": [...]}` (every room once): walk order; returns the project |
-| POST | `/api/projects/{pid}/spaces` | a room: `{"name", "kind": "photos" (default), "sizes": {"length","width","height"}}` (metres or null) -> space; `video` / `lidar` are refused (422): they are the whole-home capture |
+| POST | `/api/projects/{pid}/spaces` | a room: `{"name", "kind": "photos" (default), "sizes": {"length","width","height"}}` (metres or null) -> space; `video` / `lidar` are refused (422): they are whole-home captures |
 | PATCH | `/api/projects/{pid}/spaces/{sid}` | `{"name"?, "sizes"?}`; a size given as null is cleared |
 | DELETE | `/api/projects/{pid}/spaces/{sid}` | |
 | GET | `/api/projects/{pid}/spaces/{sid}/files` | `{"files": [{"name","sha256","size"}]}` (resume: skip hashes listed) |
 | PUT | `/api/projects/{pid}/spaces/{sid}/files` | multipart `file`, `sha256` (hex, of the bytes), `name` -> file record; idempotent by hash; hash checked (400 on mismatch); 413 above the size limit |
 | DELETE | `/api/projects/{pid}/spaces/{sid}/files/{sha256}` | |
-| PUT | `/api/projects/{pid}/capture` | `{"kind": "video"/"lidar"}`: creates the whole-home capture; the same kind again keeps it, another kind replaces it (its files are dropped) |
-| GET | `/api/projects/{pid}/capture` | `{"kind", "files"}`; 404 when there is none |
-| DELETE | `/api/projects/{pid}/capture` | removes it and its files |
-| GET | `/api/projects/{pid}/capture/files` | `{"files": [...]}` |
-| PUT | `/api/projects/{pid}/capture/files` | multipart as for a room; same hash rules; **409** when it already holds a video (video capture) or a `.zip` (LiDAR capture): it takes exactly one, delete the old one first |
-| DELETE | `/api/projects/{pid}/capture/files/{sha256}` | |
-| POST | `/api/projects/{pid}/verify` | capture check: `{"ok", "spaces": [{"space_id","name","status","findings"}], "capture": {"name": "whole home: video"/"whole home: LiDAR", "kind", "status", "findings", "advice"} \| null, "project_findings"}`, levels ok / warn / retake |
-| POST | `/api/projects/{pid}/run` | `{"damage": true, "force": false}` -> `{"job_id", "cached"}`; 409 when there is nothing to compute (no room with photos and no whole-home capture), or the last verify (of the same files) asked for a retake, unless `force` |
+| PUT | `/api/projects/{pid}/captures/{kind}` | `kind` = `video` or `lidar`, body optional (`{}`): creates that whole-home capture if absent (again: kept as is) -> `{"kind", "files": [...]}`; a project may have both |
+| GET | `/api/projects/{pid}/captures/{kind}` | `{"kind", "files"}`; 404 when there is none |
+| DELETE | `/api/projects/{pid}/captures/{kind}` | removes it and its files (the other kind is untouched) |
+| GET | `/api/projects/{pid}/captures/{kind}/files` | `{"files": [...]}` |
+| PUT | `/api/projects/{pid}/captures/{kind}/files` | multipart as for a room; same hash rules; **409** naming the existing file when the video capture already holds a video, or the LiDAR capture a `.zip`: each takes exactly one, delete the old one first |
+| DELETE | `/api/projects/{pid}/captures/{kind}/files/{sha256}` | |
+| POST | `/api/projects/{pid}/verify` | capture check: `{"ok", "spaces": [{"space_id","name","status","findings"}], "captures": [{"kind", "name": "whole home: video"/"whole home: LiDAR", "status", "findings", "advice"}, ...] (one per present capture, video first; `[]` without), "project_findings"}`, levels ok / warn / retake |
+| POST | `/api/projects/{pid}/run` | `{"damage": true, "force": false}` -> `{"job_id", "cached"}`; 409 when there is nothing to compute (no room with photos and no whole-home capture with a file), or the last verify (of the same files) asked for a retake, unless `force` |
 | GET | `/api/jobs/{jid}` | status, live stages, error, outputs (URLs, of the first run), runs (each: tier, title, label, prefix, status, error, outputs) |
-| GET | `/api/jobs/{jid}/files/{name}` | `result.json`, `result.xlsx`, `plan.png`, `plan.svg`, `stages.json`; with two runs prefixed by the run label: `photos/result.json`, `whole_home/result.json` |
+| GET | `/api/jobs/{jid}/files/{name}` | `result.json`, `result.xlsx`, `plan.png`, `plan.svg`, `stages.json`; with more than one run prefixed by the run label: `photos/result.json`, `whole_home_video/result.json`, `whole_home_lidar/result.json` |
 | GET | `/api/jobs/{jid}/comparison` | given sizes vs computed, per room and run: `{"rows": [{"space","space_id","tier","run","room_id","quantity","given","computed","ci90","diff","diff_pct"}]}` |
 
-How a project becomes engine runs (at most two):
+How a project becomes engine runs (at most three, in this order):
 
 * **Rooms (photos)**: the rooms that have photos, together one walk: a folder per room,
   `NN_<name>` in walk order, plus `measurements.yaml` with their sizes by folder name (the
   engine uses them for scale). A room without photos is allowed when there is a whole-home
   capture: it is then a size reference only.
-* **Whole home (video)** / **Whole home (LiDAR)**: the one clip, or the one Stray Scanner
+* **Whole home (video)** and **Whole home (LiDAR)**, one run each when present (files under
+  `files/_capture_video/` and `files/_capture_lidar/`): the one clip, or the one Stray Scanner
   export (a `.zip`, or its files uploaded with relative names such as `depth/000001.png`).
   Every room's sizes go to the engine as an unnamed list,
   `measurements={"rooms": [{length,width,height}, ...]}`: its rooms are `room_1..`, matched on
   aspect and size; video is rescaled by them, LiDAR is never rescaled (only compared), and a
   height alone is compared, not used for scale.
 
-Stage names carry the run: `Rooms (photos): load+depth`, `Whole home (video): fuse`.
+Stage names carry the run: `Rooms (photos): load+depth`, `Whole home (video): fuse`, `Whole home (LiDAR): ...`.
 
-A run with the same files, names, sizes, damage flag and engine version as a finished job
+A run with the same files (rooms and both captures), names, sizes, damage flag and engine version as a finished job
 returns that job at once (`"cached": true`). Finished jobs are kept for
 `ROOMSCAN_RESULT_TTL_DAYS` and deleted at the next start after that.
 
 The comparison has rows for every run that produced rooms: a photo room against the room
-fitted from its folder; for the whole-home run each room with a length or width against the
+fitted from its folder; for each whole-home run (video, LiDAR: rows of their own tier) each room with a length or width against the
 engine room it matches (`roomscan.known_sizes.assign`: aspect ratio, then size rank), a room
 with only a height against the largest room left, a room without sizes against none. Length / width are the longer / shorter side of the room's bounding box in its
 plan frame (interval from the longest wall along that side), height is the ceiling height.
