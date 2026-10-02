@@ -82,7 +82,7 @@ roomscan/
 │   │   └── pipeline.py           regions -> flags -> scope
 │   ├── uncertainty/
 │   │   ├── intervals.py          turns a value + raw sigma into a 90 % interval
-│   │   └── calibration.yaml      per-tier uncertainty terms
+│   │   └── calibration.yaml      per-tier terms: priors + a fitted scale
 │   └── export/
 │       ├── build.py              assembles result.json
 │       └── render.py             draws plan.png / plan.svg
@@ -92,11 +92,16 @@ roomscan/
 │   ├── evaluate.py               one result vs ground truth, every gate
 │   ├── repeatability.py          two results of the same space
 │   ├── make_reference.py         LiDAR output as a labelled stand-in for ground truth
-│   ├── run_all.py                regenerates every number
+│   ├── run_all.py                regenerates every number (--eval-only re-scores outputs)
+│   ├── calibrate.py              fits the interval scale per tier, held-out check
+│   ├── head_to_head.py           our LiDAR result vs a consumer app (brief Part 3)
+│   ├── photo_set_recipe.yaml     pins the benchmark photo set to exact frames
+│   ├── app_exports/TEMPLATE.yaml the app's dimensions, as read from its plan
 │   └── ground_truth/TEMPLATE.yaml  how to record laser measurements
 ├── fixloop/                      worst gate, root cause, before / after runs
 ├── tests/                        synthetic rooms with exactly known dimensions
-├── scripts/                      fetch_weights, fetch_data, make_photo_set, dev tools
+├── scripts/                      walkin (live test), fetch_weights, fetch_data,
+│                                 make_photo_set, make_iphone_clip, dev tools
 └── docs/                         capture protocol, this file, worklog
 ```
 
@@ -109,8 +114,9 @@ Stray Scanner writes `rgb.mp4`, `depth/NNNNNN.png` (256×192, millimetres),
 frame, plus intrinsics) and `imu.csv`.
 
 The loader reads `odometry.csv` and builds one `Frame` per used frame (every 5th by
-default). Depth and colour are loaded lazily. Colour frames are cached as JPEG bytes so a
-frame is not decoded twice.
+default). Depth and colour are loaded lazily. Colour frames are decoded forward to the
+exact frame (seeking by frame number is wrong on Stray's variable-frame-rate video) and
+cached as JPEG bytes. A zipped export, a parent folder and non-ASCII paths are accepted.
 
 One fact that had to be measured: the poses map **OpenCV** camera axes (x right, y down,
 z forward) into the ARKit world. With ARKit camera axes the cloud is smeared; with OpenCV
@@ -131,6 +137,9 @@ A video has no depth and no camera positions, so both are estimated.
    a measured bias (the model reads about 14 % long on the sample scans).
 7. **Gravity**: the direction along which the camera height stays constant and a large
    plane (the floor) lies below. Works for a phone held upright or sideways.
+8. **Rotation**: an iPhone clip filmed upright is stored landscape with a rotation flag;
+   the flag is applied (OpenCV does not by default) and a calibration file is turned with
+   the frames.
 
 ### 4.3 Photos (`frontends/photos.py`)
 
@@ -178,13 +187,17 @@ depth edges are dropped. Points are merged into 2 cm voxels; near observations w
 2. **Ceiling**: for the whole capture, the highest plane with real support; per room, the
    best-supported plane inside that room.
 3. **Wall direction**: the dominant direction of wall normals, modulo 90°.
-4. **Raster**: a top-down grid of 2 cm cells. For each cell, how much of the height range
-   0.3-1.9 m carries wall points. A cell covered over most of that range is wall; a cell
-   with wall only above 2.15 m is a door lintel; furniture is neither.
-5. **Rooms**: regions sealed by walls and lintels. Regions joined through a narrow neck
-   are split unless the opening is as wide as the room and the ceilings match.
+4. **Raster**: a top-down grid of 2 cm cells. For each cell, how much of the height band
+   the capture actually observed on walls (from 0.3 m up to at most 1.9 m) carries wall
+   points. A cell covered over half that band (at least 0.5 m) is wall; a cell with wall
+   only above 2.15 m is a door lintel; furniture is neither.
+5. **Rooms**: regions sealed by walls and lintels, after closing wall gaps under 50 cm. A
+   region that is not sealed keeps the cells with a (gap-closed) wall in all four
+   directions. Regions joined through a narrow neck are split unless the opening is as
+   wide as the room and the ceilings match.
 6. **Polygon**: each room outline is simplified to axis-aligned segments, and each
-   segment is snapped onto the real wall plane using the 3D points.
+   segment is snapped onto the real wall plane using the 3D points, searching up to 0.9 m
+   outward (the room's floor stops at furniture) but never into another room.
 
 On a synthetic 4.0 × 3.0 × 2.7 m room this recovers every wall to under 1 mm.
 
@@ -224,13 +237,14 @@ with no wall evidence falls back to the observed floor extent and gets a wide si
 
 Every measurement goes through `measure(value, raw_sigma, tier, kind)`:
 
-    sigma = sqrt((inflate × raw_sigma)² + abs² + (rel × value)²)
+    sigma = scale × sqrt((inflate × raw_sigma)² + abs² + (rel × value)²)
 
 `raw_sigma` comes from the geometry (plane-fit standard error). `abs`, `rel` and `inflate`
-are per tier and per kind of measurement, in `calibration.yaml`. They are currently priors;
-they are meant to be refitted on a benchmark with real ground truth so that 90 % intervals
-contain the truth about 90 % of the time. A value that was not observed (a ceiling that
-was never scanned) is reported as `null` with a lower bound, not guessed.
+are per-tier priors in `calibration.yaml`; a per-tier `scale` multiplies the result and is
+fitted by `bench/calibrate.py` (split conformal on the benchmark, checked on held-out
+rooms) so that 90 % intervals contain the truth about 90 % of the time. LiDAR is fitted on
+two scans of the same flat until laser truth exists. A value that was not observed (a
+ceiling that was never scanned) is reported as `null` with a lower bound, not guessed.
 
 ## 8. Output (`schema.py`, `export/`)
 
@@ -248,17 +262,21 @@ length ± interval, each room's area and height, damage markers.
   ceiling heights, openings (a missed and a phantom opening both count as misses),
   interval coverage, footprint, adjacency and room overlaps.
 - `repeatability.py` compares two captures of the same space wall by wall.
-- `run_all.py` runs every capture in `manifest.yaml` and writes `benchmark.md`.
+- `run_all.py` runs every capture in `manifest.yaml` and writes `benchmark.md`, with a
+  room-overlap column for every capture; `calibrate.py` refits the intervals from it.
+- `head_to_head.py` builds the table against a consumer app; `scripts/walkin.py` runs a
+  capture cold and prints a per-room table to check against a laser.
 - Where no tape or laser truth exists, video and photo tiers are scored against the
   LiDAR-tier output of the same capture, and the report labels that as a reference,
   not ground truth.
 
 ## 10. Caching and timing
 
-Fused clouds and depth maps are cached in `.cache/`, keyed by input path, size and
-settings. A cached run replays deterministically; `--no-cache` forces the live path.
-Typical times on a laptop CPU (no GPU): LiDAR whole flat 70-170 s, of which damage is
-about half; video 115 s clip about 8 minutes cold; photo set of 7 rooms about 3 minutes.
+Fused clouds and depth maps are cached in `.cache/`, keyed by input, settings and (for
+clouds) the poses actually fused. A cached run replays deterministically; `--no-cache`
+forces the live path. Typical times on a laptop CPU (no GPU): LiDAR whole flat about
+3.5 min, of which damage is more than half; single room under a minute; video 115 s clip
+about 12 minutes cold, 2 minutes with cached depth; photo set of 7 rooms about 3 minutes.
 
 ## 11. Models used
 
