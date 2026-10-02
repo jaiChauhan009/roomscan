@@ -1,0 +1,306 @@
+"""FastAPI app: `uvicorn server.app:app`. All routes under /api; see server/README.md.
+
+Environment:
+    DATA_DIR                  projects, uploads, jobs (default ./server_data)
+    ROOMSCAN_CORS             allowed origins, comma separated (default *)
+    ROOMSCAN_MAX_FILE_MB      per-file upload limit (default 2048)
+    ROOMSCAN_RESULT_TTL_DAYS  finished jobs older than this are deleted at startup (default 7)
+"""
+from __future__ import annotations
+
+import hashlib
+import os
+import shutil
+import tempfile
+import time
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Literal
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+
+from server.capture import cache_key, content_key, plan_runs, verify_project
+from server.jobs import OUTPUT_FILES, Worker, comparison, new_job, public_job
+from server.store import Store, engine_version, new_id, safe_relpath
+
+
+class Sizes(BaseModel):
+    length: float | None = Field(default=None, gt=0, lt=1000)
+    width: float | None = Field(default=None, gt=0, lt=1000)
+    height: float | None = Field(default=None, gt=0, lt=100)
+
+
+class SpaceIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    kind: Literal["photos", "video", "lidar"]
+    sizes: Sizes = Sizes()
+
+
+class SpacePatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    sizes: Sizes | None = None
+
+
+class OrderIn(BaseModel):
+    space_ids: list[str]
+
+
+class RunIn(BaseModel):
+    damage: bool = True
+    force: bool = False
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except ValueError:
+        return default
+
+
+def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) -> FastAPI:
+    """`engine_cache`: keep the engine's .cache under DATA_DIR/engine_cache while running."""
+    state: dict = {}
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        root = Path(data_dir or os.environ.get("DATA_DIR", "server_data")).resolve()
+        store = Store(root)
+        store.cleanup(_env_float("ROOMSCAN_RESULT_TTL_DAYS", 7))
+        worker = Worker(store, root / "engine_cache" if engine_cache else None)
+        worker.start()
+        state.update(store=store, worker=worker, engine=engine_version())
+        try:
+            yield
+        finally:
+            worker.stop()
+
+    app = FastAPI(title="roomscan", version=_version(), lifespan=lifespan)
+    origins = [o.strip() for o in os.environ.get("ROOMSCAN_CORS", "*").split(",") if o.strip()] or ["*"]
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"],
+                       allow_credentials=origins != ["*"])
+
+    def store() -> Store:
+        return state["store"]
+
+    def project_or_404(pid: str) -> dict:
+        try:
+            return store().project(pid)
+        except KeyError:
+            raise HTTPException(404, f"project {pid} not found")
+
+    def space_or_404(p: dict, sid: str) -> dict:
+        try:
+            return store().space(p, sid)
+        except KeyError:
+            raise HTTPException(404, f"space {sid} not found")
+
+    def job_or_404(jid: str) -> dict:
+        try:
+            return store().job(jid)
+        except KeyError:
+            raise HTTPException(404, f"job {jid} not found (finished jobs are kept "
+                                     f"{_env_float('ROOMSCAN_RESULT_TTL_DAYS', 7):g} days)")
+
+    def public_space(s: dict) -> dict:
+        return {k: s[k] for k in ("space_id", "name", "kind", "sizes", "files")}
+
+    def public_project(p: dict) -> dict:
+        return {"project_id": p["project_id"], "spaces": [public_space(s) for s in p["spaces"]],
+                "last_job_id": p.get("last_job_id")}
+
+    # ---------------------------------------------------------------- health
+    @app.get("/api/health")
+    def health():
+        return {"ok": True, "version": state.get("engine") or _version()}
+
+    # ---------------------------------------------------------------- projects / spaces
+    @app.post("/api/projects")
+    def create_project():
+        return {"project_id": store().create_project()["project_id"]}
+
+    @app.get("/api/projects/{pid}")
+    def get_project(pid: str):
+        return public_project(project_or_404(pid))
+
+    @app.post("/api/projects/{pid}/spaces")
+    def add_space(pid: str, body: SpaceIn):
+        with store().lock:
+            p = project_or_404(pid)
+            s = {"space_id": new_id(), "name": body.name.strip(), "kind": body.kind,
+                 "sizes": body.sizes.model_dump(), "files": []}
+            p["spaces"].append(s)
+            store().save_project(p)
+        return public_space(s)
+
+    @app.put("/api/projects/{pid}/order")
+    def set_order(pid: str, body: OrderIn):
+        """Walk order of the spaces (photo folders are numbered in it)."""
+        with store().lock:
+            p = project_or_404(pid)
+            by_id = {s["space_id"]: s for s in p["spaces"]}
+            if len(body.space_ids) != len(by_id) or set(body.space_ids) != set(by_id):
+                raise HTTPException(422, "space_ids must list every space of the project exactly once "
+                                         f"(has: {', '.join(by_id)})")
+            p["spaces"] = [by_id[sid] for sid in body.space_ids]
+            store().save_project(p)
+        return public_project(p)
+
+    @app.patch("/api/projects/{pid}/spaces/{sid}")
+    def patch_space(pid: str, sid: str, body: SpacePatch):
+        with store().lock:
+            p = project_or_404(pid)
+            s = space_or_404(p, sid)
+            if body.name is not None:
+                s["name"] = body.name.strip()
+            if body.sizes is not None:
+                s["sizes"] = {**s["sizes"], **body.sizes.model_dump(exclude_unset=True)}
+            store().save_project(p)
+        return public_space(s)
+
+    @app.delete("/api/projects/{pid}/spaces/{sid}")
+    def delete_space(pid: str, sid: str):
+        with store().lock:
+            p = project_or_404(pid)
+            space_or_404(p, sid)
+            p["spaces"] = [s for s in p["spaces"] if s["space_id"] != sid]
+            store().save_project(p)
+            store().delete_space_files(pid, sid)
+        return {"ok": True}
+
+    @app.get("/api/projects/{pid}/spaces/{sid}/files")
+    def list_files(pid: str, sid: str):
+        return {"files": space_or_404(project_or_404(pid), sid)["files"]}
+
+    @app.delete("/api/projects/{pid}/spaces/{sid}/files/{sha}")
+    def delete_file(pid: str, sid: str, sha: str):
+        sha = sha.lower()
+        with store().lock:
+            p = project_or_404(pid)
+            s = space_or_404(p, sid)
+            if not any(f["sha256"] == sha for f in s["files"]):
+                raise HTTPException(404, f"file {sha} not in space {sid}")
+            s["files"] = [f for f in s["files"] if f["sha256"] != sha]
+            store().save_project(p)
+            store().file_path(pid, sid, sha).unlink(missing_ok=True)
+        return {"ok": True}
+
+    @app.put("/api/projects/{pid}/spaces/{sid}/files")
+    def upload(pid: str, sid: str, file: UploadFile = File(...), sha256: str = Form(...),
+               name: str = Form(None)):
+        sha = sha256.strip().lower()
+        if len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
+            raise HTTPException(422, "sha256 must be 64 hex characters")
+        p = project_or_404(pid)
+        space_or_404(p, sid)
+        limit = int(_env_float("ROOMSCAN_MAX_FILE_MB", 2048) * 1024 * 1024)
+        fname = safe_relpath(name or file.filename or "file")
+        dest = store().file_path(pid, sid, sha)
+        existing = next((f for f in space_or_404(p, sid)["files"] if f["sha256"] == sha), None)
+        if existing and dest.is_file():
+            return existing
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        h, size = hashlib.sha256(), 0
+        fd, tmp = tempfile.mkstemp(dir=dest.parent, suffix=".part")
+        try:
+            with os.fdopen(fd, "wb") as out:
+                while chunk := file.file.read(1 << 20):
+                    size += len(chunk)
+                    if size > limit:
+                        raise HTTPException(413, f"{fname} is larger than the {limit // 2**20} MB limit")
+                    h.update(chunk)
+                    out.write(chunk)
+            if h.hexdigest() != sha:
+                raise HTTPException(400, f"{fname}: sha256 mismatch (received {h.hexdigest()}): the upload "
+                                         f"was damaged or the hash is wrong; upload it again")
+            os.replace(tmp, dest)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        rec = {"name": fname, "sha256": sha, "size": size}
+        with store().lock:
+            p = project_or_404(pid)
+            s = space_or_404(p, sid)
+            existing = next((f for f in s["files"] if f["sha256"] == sha), None)
+            if existing:
+                return existing
+            s["files"].append(rec)
+            store().save_project(p)
+        return rec
+
+    # ---------------------------------------------------------------- verify / run
+    @app.post("/api/projects/{pid}/verify")
+    def verify(pid: str):
+        p = project_or_404(pid)
+        work = Path(tempfile.mkdtemp(prefix="verify_", dir=store().root))
+        try:
+            res = verify_project(store(), p, work)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+        with store().lock:
+            q = project_or_404(pid)
+            q["last_verify"] = {"content_key": content_key(p), "at": time.time(), "result": res}
+            store().save_project(q)
+        return res
+
+    @app.post("/api/projects/{pid}/run")
+    def run(pid: str, body: RunIn | None = None):
+        body = body or RunIn()
+        with store().lock:
+            p = project_or_404(pid)
+            if not p["spaces"]:
+                raise HTTPException(409, "the project has no spaces")
+            last = p.get("last_verify")
+            fresh = last and last.get("content_key") == content_key(p)
+            if fresh and not body.force and not last["result"]["ok"]:
+                raise HTTPException(409, "the last verify asked for a retake: fix the capture and verify again, "
+                                         "or run with {\"force\": true}")
+            key = cache_key(p, body.damage, state["engine"])
+            hit = store().find_cached(key)
+            if hit:
+                p["last_job_id"] = hit["job_id"]
+                store().save_project(p)
+                return {"job_id": hit["job_id"], "cached": hit["status"] == "done"}
+            job = new_job(p, plan_runs(p), body.damage, body.force, key, state["engine"])
+            p["last_job_id"] = job["job_id"]
+            store().save_project(p)
+            state["worker"].submit(job)
+        return {"job_id": job["job_id"], "cached": False}
+
+    # ---------------------------------------------------------------- jobs
+    @app.get("/api/jobs/{jid}")
+    def get_job(jid: str):
+        return public_job(job_or_404(jid))
+
+    @app.get("/api/jobs/{jid}/files/{name:path}")
+    def job_file(jid: str, name: str):
+        j = job_or_404(jid)
+        allowed = {f"{r['prefix']}{fn}" for r in j["runs"] for fn in (*OUTPUT_FILES.values(), "stages.json")}
+        if name not in allowed:
+            raise HTTPException(404, f"{name}: not an output of this job (one of: {', '.join(sorted(allowed))})")
+        f = store().jdir(jid) / "out" / name
+        if not f.is_file():
+            raise HTTPException(404, f"{name} not available (job {j['status']})")
+        return FileResponse(f, filename=f.name)
+
+    @app.get("/api/jobs/{jid}/comparison")
+    def get_comparison(jid: str):
+        j = job_or_404(jid)
+        if j["status"] != "done":
+            raise HTTPException(409, f"job is {j['status']}")
+        return comparison(store(), j)
+
+    return app
+
+
+def _version() -> str:
+    try:
+        import roomscan
+        return roomscan.__version__
+    except Exception:
+        return "unknown"
+
+
+app = create_app()
