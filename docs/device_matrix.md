@@ -37,9 +37,9 @@ Times on the development laptop (CPU only), from `fixloop/round2/after/benchmark
 | | LiDAR | video | photo |
 |---|---|---|---|
 | Wall length, synthetic room (exact truth) | < 1 mm | not tested | ±4 cm on a noisy synthetic box |
-| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 40 % | vs LiDAR reference: median error 103 % |
-| Ceiling height | synthetic < 5 mm; real: no ground truth | not recovered on sample | vs LiDAR reference: up to 0.83 m off |
-| Footprint, real capture | two scans of one flat: −0.9 % (sum of rooms), −6.3 % (union) | −92 % vs reference | +136 % vs reference |
+| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 40 % | vs LiDAR reference: median error 109 % |
+| Ceiling height | synthetic < 5 mm; real: no ground truth | not recovered on sample | vs LiDAR reference: up to 0.67 m off |
+| Footprint, real capture | two scans of one flat: −10.4 % | −91 % vs reference | +137 % vs reference |
 | Repeatability, two scans of one flat | point clouds agree to 7 mm median; rooms 9 vs 7, none paired (`fixloop/round2/`) | not measured | not measured |
 | Interval coverage (should be ~90 %) | not measured (no truth) | 77 % vs reference | 28 % vs reference |
 | Brief's gate | 2 cm openings, 1.5 cm ceiling, 1 cm repeat | ±3 % walls | ±8 % walls, stitched footprint |

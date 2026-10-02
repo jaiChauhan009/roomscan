@@ -88,6 +88,7 @@ declared metric met its prediction; the better metric would have missed it by 0.
 ## Next
 
 1. Room polygons must not overlap: limit wall snapping to the room's own side of its
-   neighbours, and report the footprint as the union of rooms.
+   neighbours, and report the footprint as the union of rooms. **Done after this round**
+   (commit `a88f7ef`, numbers in `bench/reports/benchmark.md`); not part of this bundle.
 2. A repeat capture of one room that follows the protocol (upward sweep included). Only that
    tests the gate as the brief defines it.

@@ -20,7 +20,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
 | Per-room plan: walls, ceiling height, floor area, openings | `geometry/layout.py`, `geometry/openings.py` | `result.json` → `rooms[]` | done |
-| Stitched multi-room plan with adjacency | `layout.py`, `export/build.py` (`_adjacency`) | `property.adjacency`, `plan.png` | done for LiDAR; partial for photo / video |
+| Stitched multi-room plan with adjacency | `layout.py`, `export/build.py` (`_adjacency`) | `property.adjacency`, `plan.png`; room overlap column in the benchmark | done for LiDAR (no room overlaps); partial for photo / video |
 | Damage regions per surface, class, metric extent | `damage/detect.py` | `damage[]` | partial: synthetic stain found, area under-measured; no real staged damage yet |
 | Concealed-damage flags with the rule that fired | `damage/rules.yaml`, `damage/pipeline.py` | `concealed_damage_flags[].rule_id/rule` | done (tested in `tests/test_contract.py`) |
 | Scope line items keyed to surfaces | `damage/scope.yaml`, `damage/pipeline.py` | `scope[]` | done (tested) |
@@ -69,7 +69,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | 2. Capture route + device matrix | `docs/capture_protocol.md`, `docs/device_matrix.md` | done |
 | 3. Repo, README to running in < 15 min, one command per capture | `README.md` | partial: not yet timed on a clean machine |
 | 4. Reproduction bundle | `scripts/fetch_data.py`, `scripts/fetch_weights.py`, `bench/run_all.py` | done |
-| 5. Benchmark report: gates at three tiers, repeatability, head-to-head, timing | `fixloop/round2/after/benchmark.md` | partial: no head-to-head, no real ground truth |
+| 5. Benchmark report: gates at three tiers, repeatability, head-to-head, timing | `bench/reports/benchmark.md` (fix-loop runs in `fixloop/`) | partial: no head-to-head, no real ground truth |
 | 6. Fix loop bundle | `fixloop/` | done |
 | 7. Technical report, max 6 pages | `docs/tech_report.md` | done |
 | 8. Raw benchmark data | `scripts/fetch_data.py` (sample scans) | partial: no own captures, no app exports |

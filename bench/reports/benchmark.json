@@ -1,0 +1,2016 @@
+{
+  "tag": "(commit a88f7ef)",
+  "timing": {
+    "apt_lidar_a": {
+      "wall_s": 167.3,
+      "stages": {
+        "load": 0.23,
+        "drift": 18.58,
+        "fuse": 0.32,
+        "layout": 5.82,
+        "openings": 57.66,
+        "damage": 83.04,
+        "export": 0.07
+      },
+      "rooms": 9,
+      "footprint_m2": 49.2465,
+      "overlap_m2": 0.0
+    },
+    "apt_lidar_b": {
+      "wall_s": 104.3,
+      "stages": {
+        "load": 0.13,
+        "drift": 6.26,
+        "fuse": 0.15,
+        "layout": 4.07,
+        "openings": 25.56,
+        "damage": 67.66,
+        "export": 0.05
+      },
+      "rooms": 7,
+      "footprint_m2": 44.1069,
+      "overlap_m2": 0.0
+    },
+    "room_lidar": {
+      "wall_s": 33.5,
+      "stages": {
+        "load": 0.04,
+        "drift": 1.87,
+        "fuse": 0.05,
+        "layout": 0.74,
+        "openings": 4.33,
+        "damage": 26.23,
+        "export": 0.0
+      },
+      "rooms": 2,
+      "footprint_m2": 10.6381,
+      "overlap_m2": 0.0
+    },
+    "apt_video_b": {
+      "wall_s": 96.1,
+      "stages": {
+        "load": 92.81,
+        "drift": 0.36,
+        "fuse": 0.05,
+        "layout": 0.53,
+        "openings": 0.45,
+        "damage": 1.65,
+        "export": 0.0
+      },
+      "rooms": 1,
+      "footprint_m2": 3.8264,
+      "overlap_m2": 0
+    },
+    "apt_photo_a": {
+      "wall_s": 164.8,
+      "stages": {
+        "load+depth": 1.31,
+        "room_fit": 1.68,
+        "stitch": 121.4,
+        "openings": 8.6,
+        "damage": 31.54
+      },
+      "rooms": 7,
+      "footprint_m2": 116.7447,
+      "overlap_m2": 0.0
+    }
+  },
+  "evaluations": {
+    "apt_video_b": {
+      "capture": "rgb",
+      "tier": "video",
+      "gt_source": "lidar_reference",
+      "room_mapping": {
+        "room_1": "room_1",
+        "room_2": null,
+        "room_3": null,
+        "room_4": null,
+        "room_5": null,
+        "room_6": null,
+        "room_7": null
+      },
+      "walls": [
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w5",
+          "gt": 3.62,
+          "pred": 1.6005,
+          "err": -2.0195,
+          "rel": -0.5579,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w25",
+          "gt": 1.78,
+          "pred": 1.3881,
+          "err": -0.3919,
+          "rel": -0.2202,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w16",
+          "gt": 1.501,
+          "pred": 1.2758,
+          "err": -0.2252,
+          "rel": -0.15,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w7",
+          "gt": 1.22,
+          "pred": 1.1574,
+          "err": -0.0626,
+          "rel": -0.0513,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w3",
+          "gt": 1.14,
+          "pred": 1.089,
+          "err": -0.051,
+          "rel": -0.0447,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w23",
+          "gt": 0.901,
+          "pred": 1.005,
+          "err": 0.104,
+          "rel": 0.1154,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w27",
+          "gt": 0.88,
+          "pred": 0.9409,
+          "err": 0.0609,
+          "rel": 0.0692,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w28",
+          "gt": 0.781,
+          "pred": 0.913,
+          "err": 0.132,
+          "rel": 0.169,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w11",
+          "gt": 0.494,
+          "pred": 0.8089,
+          "err": 0.3149,
+          "rel": 0.6374,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w13",
+          "gt": 0.487,
+          "pred": 0.8062,
+          "err": 0.3192,
+          "rel": 0.6554,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w8",
+          "gt": 0.456,
+          "pred": 0.68,
+          "err": 0.224,
+          "rel": 0.4912,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w29",
+          "gt": 0.42,
+          "pred": 0.5099,
+          "err": 0.0899,
+          "rel": 0.214,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w22",
+          "gt": 0.316,
+          "pred": 0.4617,
+          "err": 0.1457,
+          "rel": 0.4611,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w26",
+          "gt": 0.313,
+          "pred": 0.46,
+          "err": 0.147,
+          "rel": 0.4696,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w17",
+          "gt": 0.301,
+          "pred": 0.4472,
+          "err": 0.1462,
+          "rel": 0.4857,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w24",
+          "gt": 0.286,
+          "pred": 0.4005,
+          "err": 0.1145,
+          "rel": 0.4003,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_1",
+          "pred_id": "room_1_w20",
+          "gt": 0.267,
+          "pred": 0.4,
+          "err": 0.133,
+          "rel": 0.4981,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_2",
+          "gt": 2.197,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 1.084,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 1.167,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 1.124,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 0.267,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 2.682,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 0.397,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 2.561,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 3.012,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 1.28,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 3.34,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 2.94,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 3.28,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 1.288,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 4.518,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.524,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.367,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.313,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.83,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.635,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.116,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.937,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.108,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.904,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.264,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.381,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.092,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.304,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.924,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.528,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 3.308,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.644,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.669,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.449,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 2.773,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 1.411,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.253,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.336,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 1.146,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.254,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.588,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 1.972,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.298,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.4,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 0.35,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 1.061,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 2.457,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.426,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.844,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 2.158,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 1.281,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.691,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 1.452,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.45,
+          "pred": null,
+          "err": null,
+          "ok": false
+        }
+      ],
+      "ceilings": [],
+      "openings": [
+        {
+          "room": "room_1",
+          "type": "door",
+          "gt": 0.489,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": null,
+          "pred": 0.805,
+          "status": "phantom"
+        },
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": null,
+          "pred": 0.8621,
+          "status": "phantom"
+        },
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": null,
+          "pred": 0.44,
+          "status": "phantom"
+        },
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": null,
+          "pred": 0.52,
+          "status": "phantom"
+        },
+        {
+          "room": "room_2",
+          "type": "opening",
+          "gt": 1.18,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "window",
+          "gt": 1.222,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "opening",
+          "gt": 0.96,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "door",
+          "gt": 0.64,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "opening",
+          "gt": 1.065,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "door",
+          "gt": 1.3,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 2.324,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_6",
+          "type": "window",
+          "gt": 1.982,
+          "pred": null,
+          "status": "missed"
+        }
+      ],
+      "gates": {
+        "wall_length": {
+          "n": 71,
+          "pass_fraction": 0.0,
+          "median_abs_err_m": 0.1457,
+          "median_rel_err": 0.4003,
+          "max_abs_err_m": 2.0195,
+          "gate": {
+            "rel": 0.03
+          },
+          "pass": false
+        },
+        "opening_width": {
+          "n_scored": 13,
+          "ok": 0,
+          "off": 0,
+          "missed": 9,
+          "phantom": 4,
+          "pass_fraction": 0.0,
+          "pass": false
+        },
+        "calibration": {
+          "n": 17,
+          "coverage_of_90pct_intervals": 0.765,
+          "pass": false
+        },
+        "footprint": {
+          "gt_m2": 44.1069,
+          "pred_m2": 3.8264,
+          "rel_err": -0.9132,
+          "in_ci": false,
+          "pass": false
+        },
+        "adjacency": {
+          "gt": 4,
+          "found": 0,
+          "missing": [
+            [
+              "room_1",
+              "room_3"
+            ],
+            [
+              "room_1",
+              "room_7"
+            ],
+            [
+              "room_2",
+              "room_5"
+            ],
+            [
+              "room_3",
+              "room_4"
+            ]
+          ],
+          "extra": [],
+          "pass": false
+        },
+        "no_room_overlap": {
+          "overlaps": [],
+          "pass": true
+        },
+        "rooms_found": {
+          "gt": 7,
+          "pred": 1,
+          "matched": 1,
+          "pass": false
+        }
+      }
+    },
+    "apt_photo_a": {
+      "capture": "photos_with_ceiling",
+      "tier": "photo",
+      "gt_source": "lidar_reference",
+      "room_mapping": {
+        "room_1": "07_room_9",
+        "room_2": "02_room_8",
+        "room_3": "04_room_7",
+        "room_6": "09_room_4",
+        "room_7": "05_room_6",
+        "room_8": "01_room_2",
+        "room_9": "08_room_5",
+        "room_4": null,
+        "room_5": null
+      },
+      "walls": [
+        {
+          "room": "room_1",
+          "pred_id": "07_room_9_w3",
+          "gt": 3.094,
+          "pred": 5.0093,
+          "err": 1.9153,
+          "rel": 0.619,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "07_room_9_w1",
+          "gt": 3.015,
+          "pred": 5.0093,
+          "err": 1.9943,
+          "rel": 0.6615,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "07_room_9_w4",
+          "gt": 2.008,
+          "pred": 3.9266,
+          "err": 1.9186,
+          "rel": 0.9555,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "pred_id": "07_room_9_w2",
+          "gt": 1.751,
+          "pred": 3.9266,
+          "err": 2.1756,
+          "rel": 1.2425,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_1",
+          "gt": 1.196,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_1",
+          "gt": 1.099,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "pred_id": "02_room_8_w3",
+          "gt": 2.824,
+          "pred": 5.5081,
+          "err": 2.6841,
+          "rel": 0.9505,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_2",
+          "pred_id": "02_room_8_w1",
+          "gt": 2.808,
+          "pred": 5.5081,
+          "err": 2.7001,
+          "rel": 0.9616,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_2",
+          "pred_id": "02_room_8_w4",
+          "gt": 2.731,
+          "pred": 4.4398,
+          "err": 1.7088,
+          "rel": 0.6257,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_2",
+          "pred_id": "02_room_8_w2",
+          "gt": 2.231,
+          "pred": 4.4398,
+          "err": 2.2088,
+          "rel": 0.99,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_2",
+          "gt": 0.617,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 0.629,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_2",
+          "gt": 0.869,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "pred_id": "04_room_7_w3",
+          "gt": 2.864,
+          "pred": 5.6409,
+          "err": 2.7769,
+          "rel": 0.9696,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_3",
+          "pred_id": "04_room_7_w1",
+          "gt": 1.851,
+          "pred": 5.6409,
+          "err": 3.7899,
+          "rel": 2.0475,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_3",
+          "pred_id": "04_room_7_w4",
+          "gt": 0.987,
+          "pred": 2.0815,
+          "err": 1.0945,
+          "rel": 1.1089,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_3",
+          "pred_id": "04_room_7_w2",
+          "gt": 0.693,
+          "pred": 2.0815,
+          "err": 1.3885,
+          "rel": 2.0036,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.351,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.58,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.25,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.281,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.543,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.34,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_3",
+          "gt": 0.591,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.06,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.08,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.72,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 2.102,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.264,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.802,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.82,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.88,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.061,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.34,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.56,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.288,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.701,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 1.1,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.368,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.464,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.412,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.882,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.369,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_4",
+          "gt": 0.36,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.78,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.381,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.433,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.561,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.94,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.56,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 2.84,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.422,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 2.06,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 1.243,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.801,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.418,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.281,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.38,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.46,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.901,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 0.802,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 3.041,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "pred_id": "09_room_4_w4",
+          "gt": 1.536,
+          "pred": 2.8446,
+          "err": 1.3086,
+          "rel": 0.852,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_6",
+          "pred_id": "09_room_4_w2",
+          "gt": 1.099,
+          "pred": 2.8446,
+          "err": 1.7456,
+          "rel": 1.5884,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_6",
+          "pred_id": "09_room_4_w3",
+          "gt": 1.001,
+          "pred": 1.5401,
+          "err": 0.5391,
+          "rel": 0.5386,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "pred_id": "09_room_4_w1",
+          "gt": 0.954,
+          "pred": 1.5401,
+          "err": 0.5861,
+          "rel": 0.6144,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "gt": 0.412,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "pred_id": "05_room_6_w4",
+          "gt": 1.744,
+          "pred": 3.1094,
+          "err": 1.3654,
+          "rel": 0.7829,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_7",
+          "pred_id": "05_room_6_w2",
+          "gt": 1.493,
+          "pred": 3.1094,
+          "err": 1.6164,
+          "rel": 1.0827,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_7",
+          "pred_id": "05_room_6_w3",
+          "gt": 1.291,
+          "pred": 1.7835,
+          "err": 0.4925,
+          "rel": 0.3815,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_7",
+          "pred_id": "05_room_6_w1",
+          "gt": 0.693,
+          "pred": 1.7835,
+          "err": 1.0905,
+          "rel": 1.5736,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_7",
+          "gt": 0.36,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.456,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.482,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.41,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_7",
+          "gt": 0.531,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_8",
+          "pred_id": "01_room_2_w1",
+          "gt": 1.496,
+          "pred": 7.5016,
+          "err": 6.0056,
+          "rel": 4.0144,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_8",
+          "pred_id": "01_room_2_w2",
+          "gt": 1.009,
+          "pred": 4.372,
+          "err": 3.363,
+          "rel": 3.333,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_8",
+          "pred_id": "01_room_2_w3",
+          "gt": 1.496,
+          "pred": 7.5016,
+          "err": 6.0056,
+          "rel": 4.0144,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_8",
+          "pred_id": "01_room_2_w4",
+          "gt": 1.009,
+          "pred": 4.372,
+          "err": 3.363,
+          "rel": 3.333,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_9",
+          "pred_id": "08_room_5_w3",
+          "gt": 2.476,
+          "pred": 5.1708,
+          "err": 2.6948,
+          "rel": 1.0884,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_9",
+          "pred_id": "08_room_5_w1",
+          "gt": 2.287,
+          "pred": 5.1708,
+          "err": 2.8838,
+          "rel": 1.261,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_9",
+          "pred_id": "08_room_5_w4",
+          "gt": 1.266,
+          "pred": 3.5112,
+          "err": 2.2452,
+          "rel": 1.7735,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_9",
+          "pred_id": "08_room_5_w2",
+          "gt": 1.124,
+          "pred": 3.5112,
+          "err": 2.3872,
+          "rel": 2.1238,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_9",
+          "gt": 1.031,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_9",
+          "gt": 1.095,
+          "pred": null,
+          "err": null,
+          "ok": false
+        }
+      ],
+      "ceilings": [
+        {
+          "room": "room_1",
+          "gt": 3.0636,
+          "pred": 2.8522,
+          "err": -0.2114,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_2",
+          "gt": 3.0742,
+          "pred": 2.4035,
+          "err": -0.6707,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_3",
+          "gt": 3.0795,
+          "pred": 2.4416,
+          "err": -0.6379,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_4",
+          "gt": 2.4433,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_5",
+          "gt": 2.4629,
+          "pred": null,
+          "err": null,
+          "ok": false
+        },
+        {
+          "room": "room_6",
+          "gt": 2.4633,
+          "pred": 2.0351,
+          "err": -0.4282,
+          "ok": false,
+          "in_ci": false
+        },
+        {
+          "room": "room_7",
+          "gt": 2.375,
+          "pred": 2.5588,
+          "err": 0.1838,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_8",
+          "gt": 2.4497,
+          "pred": 2.2539,
+          "err": -0.1958,
+          "ok": false,
+          "in_ci": true
+        },
+        {
+          "room": "room_9",
+          "gt": 2.3464,
+          "pred": 1.9411,
+          "err": -0.4053,
+          "ok": false,
+          "in_ci": false
+        }
+      ],
+      "openings": [
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": 0.6,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_1",
+          "type": "window",
+          "gt": null,
+          "pred": 2.5755,
+          "status": "phantom"
+        },
+        {
+          "room": "room_1",
+          "type": "door",
+          "gt": null,
+          "pred": 0.8,
+          "status": "phantom"
+        },
+        {
+          "room": "room_2",
+          "type": "window",
+          "gt": 0.837,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_2",
+          "type": "door",
+          "gt": null,
+          "pred": 0.8,
+          "status": "phantom"
+        },
+        {
+          "room": "room_3",
+          "type": "window",
+          "gt": 0.702,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "window",
+          "gt": 0.36,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_3",
+          "type": "window",
+          "gt": null,
+          "pred": 1.905,
+          "status": "phantom"
+        },
+        {
+          "room": "room_3",
+          "type": "door",
+          "gt": null,
+          "pred": 0.8,
+          "status": "phantom"
+        },
+        {
+          "room": "room_4",
+          "type": "window",
+          "gt": 1.073,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 0.731,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 2.12,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 0.472,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 0.83,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 1.074,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 0.569,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_4",
+          "type": "door",
+          "gt": 1.108,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_5",
+          "type": "window",
+          "gt": 0.79,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_5",
+          "type": "door",
+          "gt": 0.568,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_5",
+          "type": "window",
+          "gt": 1.164,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_5",
+          "type": "window",
+          "gt": 0.82,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_5",
+          "type": "door",
+          "gt": 0.914,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_6",
+          "type": "door",
+          "gt": 0.674,
+          "pred": 0.8,
+          "err": 0.126,
+          "status": "off",
+          "in_ci": true
+        },
+        {
+          "room": "room_6",
+          "type": "door",
+          "gt": null,
+          "pred": 2.08,
+          "status": "phantom"
+        },
+        {
+          "room": "room_7",
+          "type": "window",
+          "gt": 1.174,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_7",
+          "type": "door",
+          "gt": null,
+          "pred": 2.6267,
+          "status": "phantom"
+        },
+        {
+          "room": "room_7",
+          "type": "door",
+          "gt": null,
+          "pred": 0.8,
+          "status": "phantom"
+        },
+        {
+          "room": "room_8",
+          "type": "door",
+          "gt": 0.67,
+          "pred": 0.8,
+          "err": 0.13,
+          "status": "off",
+          "in_ci": true
+        },
+        {
+          "room": "room_8",
+          "type": "window",
+          "gt": 0.868,
+          "pred": 0.6,
+          "err": -0.268,
+          "status": "off",
+          "in_ci": false
+        },
+        {
+          "room": "room_8",
+          "type": "door",
+          "gt": 1.016,
+          "pred": 0.8,
+          "err": -0.216,
+          "status": "off",
+          "in_ci": true
+        },
+        {
+          "room": "room_8",
+          "type": "door",
+          "gt": 0.851,
+          "pred": 0.8,
+          "err": -0.051,
+          "status": "off",
+          "in_ci": true
+        },
+        {
+          "room": "room_8",
+          "type": "door",
+          "gt": null,
+          "pred": 2.185,
+          "status": "phantom"
+        },
+        {
+          "room": "room_8",
+          "type": "door",
+          "gt": null,
+          "pred": 3.5767,
+          "status": "phantom"
+        },
+        {
+          "room": "room_9",
+          "type": "window",
+          "gt": 0.438,
+          "pred": null,
+          "status": "missed"
+        },
+        {
+          "room": "room_9",
+          "type": "opening",
+          "gt": null,
+          "pred": 1.98,
+          "status": "phantom"
+        },
+        {
+          "room": "room_9",
+          "type": "door",
+          "gt": null,
+          "pred": 0.8,
+          "status": "phantom"
+        }
+      ],
+      "gates": {
+        "wall_length": {
+          "n": 86,
+          "pass_fraction": 0.0,
+          "median_abs_err_m": 2.085,
+          "median_rel_err": 1.0856,
+          "max_abs_err_m": 6.0056,
+          "gate": {
+            "rel": 0.08
+          },
+          "pass": false
+        },
+        "ceiling_height": {
+          "n": 9,
+          "n_ok": 0,
+          "max_abs_err_m": 0.6707,
+          "gate_m": 0.015,
+          "pass": false
+        },
+        "opening_width": {
+          "n_scored": 36,
+          "ok": 0,
+          "off": 5,
+          "missed": 19,
+          "phantom": 12,
+          "pass_fraction": 0.0,
+          "pass": false
+        },
+        "calibration": {
+          "n": 40,
+          "coverage_of_90pct_intervals": 0.275,
+          "pass": false
+        },
+        "footprint": {
+          "gt_m2": 49.2465,
+          "pred_m2": 116.7447,
+          "rel_err": 1.3706,
+          "in_ci": false,
+          "pass": false
+        },
+        "adjacency": {
+          "gt": 7,
+          "found": 1,
+          "missing": [
+            [
+              "room_3",
+              "room_4"
+            ],
+            [
+              "room_4",
+              "room_6"
+            ],
+            [
+              "room_4",
+              "room_7"
+            ],
+            [
+              "room_4",
+              "room_8"
+            ],
+            [
+              "room_6",
+              "room_7"
+            ],
+            [
+              "room_8",
+              "room_9"
+            ]
+          ],
+          "extra": [
+            [
+              "room_1",
+              "room_7"
+            ],
+            [
+              "room_1",
+              "room_9"
+            ],
+            [
+              "room_3",
+              "room_8"
+            ],
+            [
+              "room_6",
+              "room_9"
+            ],
+            [
+              "room_7",
+              "room_8"
+            ]
+          ],
+          "pass": false
+        },
+        "no_room_overlap": {
+          "overlaps": [],
+          "pass": true
+        },
+        "rooms_found": {
+          "gt": 9,
+          "pred": 7,
+          "matched": 7,
+          "pass": false
+        }
+      }
+    }
+  },
+  "repeatability": [
+    {
+      "a": "c7d28f72c6",
+      "b": "1a8384c3f6",
+      "tier": "lidar",
+      "rooms_a": 9,
+      "rooms_b": 7,
+      "rooms_paired": 0,
+      "pairs": [],
+      "walls": [],
+      "ceilings": [],
+      "summary": {
+        "walls_compared": 0,
+        "walls_within_gate": 0,
+        "median_abs_diff_m": null,
+        "p90_abs_diff_m": null,
+        "max_abs_diff_m": null,
+        "ceiling_max_spread_m": null,
+        "footprint_a_m2": 49.2465,
+        "footprint_b_m2": 44.1069
+      },
+      "pass": false
+    }
+  ],
+  "drift_ablation": {
+    "apt_lidar_a": {
+      "off": {
+        "footprint_m2": 46.9492,
+        "rooms": 9,
+        "bbox_diag_m": 13.9273,
+        "wall_crispness": 8.429,
+        "loop_edges": null,
+        "loop_residual_before_m": null,
+        "loop_residual_after_m": null
+      },
+      "loop": {
+        "footprint_m2": 49.2465,
+        "rooms": 9,
+        "bbox_diag_m": 14.2437,
+        "wall_crispness": 8.836,
+        "loop_edges": 30,
+        "loop_residual_before_m": 0.0825,
+        "loop_residual_after_m": 0.0242
+      }
+    },
+    "apt_lidar_b": {
+      "off": {
+        "footprint_m2": 42.0751,
+        "rooms": 7,
+        "bbox_diag_m": 13.8715,
+        "wall_crispness": 10.019,
+        "loop_edges": null,
+        "loop_residual_before_m": null,
+        "loop_residual_after_m": null
+      },
+      "loop": {
+        "footprint_m2": 44.1069,
+        "rooms": 7,
+        "bbox_diag_m": 14.0886,
+        "wall_crispness": 12.261,
+        "loop_edges": 7,
+        "loop_residual_before_m": 0.1691,
+        "loop_residual_after_m": 0.0258
+      }
+    }
+  }
+}

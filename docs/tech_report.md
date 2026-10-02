@@ -2,7 +2,7 @@
 
 roomscan: phone capture → measured, stitched floor plan with damage assessment.
 Six pages maximum. Structure in [architecture.md](architecture.md), history in
-[worklog.md](worklog.md), numbers in `fixloop/round2/after/benchmark.md`.
+[worklog.md](worklog.md), current numbers in `bench/reports/benchmark.md`, fix-loop runs in `fixloop/`.
 
 ## 1. Summary
 
@@ -10,7 +10,7 @@ One command turns a LiDAR scan, a video or per-room photo folders into a JSON pl
 rendered plan, with a 90 % interval on every number. All three tiers run end to end on a
 CPU-only laptop. The LiDAR geometry is precise (synthetic rooms recovered to under 1 mm).
 Two scans of the same flat now agree as point clouds to a median 7 mm, but they still
-divide the flat into different rooms, so the repeatability gate fails. The video and photo
+divide the flat into different rooms (footprint 10 % apart), so the repeatability gate fails. The video and photo
 tiers are far from their gates on the only data available, which is derived from a LiDAR
 scan rather than captured per protocol.
 
@@ -93,10 +93,10 @@ consecutive submaps (p90 3.0-3.7 cm, rms 0.37-0.47° per step, by ICP).
 
 | Capture | Drift | Footprint m² | Wall crispness | Largest submap move |
 |---|---|---|---|---|
-| A | off | 47.2 | 8.43 | n/a |
-| A | on | 49.5 | 8.84 | 0.13 m |
-| B | off | 42.2 | 10.02 | n/a |
-| B | on | 49.0 | 12.26 | 0.52 m |
+| A | off | 46.9 | 8.43 | n/a |
+| A | on | 49.2 | 8.84 | 0.13 m |
+| B | off | 42.1 | 10.02 | n/a |
+| B | on | 44.1 | 12.26 | 0.52 m |
 
 **Until fix-loop round 2 this correction did almost nothing.** Odometry was weighted at 1 cm
 and 0.29° per step, so the pose graph could not bend far enough for a large loop closure
@@ -117,7 +117,7 @@ A heading snap to wall directions was tried and left off: it blurred walls (cris
 | Depth noise on a wall plane | ~1 cm per point, < 2 mm on a fitted plane of 1,000+ points | plane spread in `result.json` |
 | Plane fitting on synthetic rooms | < 1 mm | `tests/test_geometry.py` |
 | Drift left after correction | 7 mm median between two scans; up to 7 cm on a wall seen only in a scan's first seconds | `fixloop/round2/walls_after.txt` |
-| Wall snapping into the next room | up to 0.8 m on one edge; 1.2-3.8 m² double-counted in a flat's footprint | `fixloop/round2/README.md` |
+| Wall snapping into the next room | fixed in `a88f7ef`; before, up to 0.8 m and 1.2-3.8 m² double-counted per flat | `bench/reports/benchmark.md` (room overlap column) |
 | Segmentation differences between captures | whole rooms | repeatability before / after |
 
 The budget is dominated by segmentation, not by sensor noise or drift.
@@ -152,14 +152,17 @@ fallback reading gap-closed walls. Every declared number came true: B moves 0.52
 bedroom walls within +2 / −7 / −1 cm of A's, footprint gap −18 % → −0.9 %. The gate still
 fails as predicted: B saw no door heads or ceilings, so it divides the flat differently and
 no room pairs. The post-mortem also reports what the footprint number hides: room
-polygons overlap, and by the union of rooms the gap is −6.3 %.
+polygons overlapped, and by the union of rooms the gap was −6.3 %. The overlap was fixed
+after the round (`a88f7ef`): wall snapping stops at the next room and the footprint is a
+union. With rooms that no longer overlap the gap is −10.4 %.
 
 ## 9. Known failure modes
 
 - **Scans without an upward sweep:** no door heads and no ceilings, so rooms merge that a
   full scan keeps apart (fix-loop round 2).
-- **Overlapping room polygons:** wall snapping can move an edge up to 0.8 m into the next
-  room; the footprint then double-counts the overlap. Not fixed yet.
+- **Rooms with no wall between them** (open plan, wide openings): the boundary is where
+  the watershed split put it, and wall snapping cannot move it (it stops at the next
+  room), so that boundary is only as good as the split.
 - **Drift at the very start of a scan:** a submap moves as one piece, so tracking that is
   still settling inside one 3 s submap leaves up to 7 cm.
 - **Open-plan areas and corridors:** room boundaries differ between captures; rooms split

@@ -8,12 +8,12 @@ For the structure of the finished system see [architecture.md](architecture.md).
 
 | Area | State |
 |---|---|
-| LiDAR tier | Works end to end. Accurate on synthetic rooms (under 1 mm). Two real scans of the sample flat now agree as point clouds (7 mm median) but are divided into different rooms (9 vs 7, none paired), so they are **not repeatable** by the gate. Footprint −0.9 % (sum of rooms) / −6.3 % (union); it was −45 % before round 1. |
+| LiDAR tier | Works end to end. Accurate on synthetic rooms (under 1 mm). Two real scans of the sample flat now agree as point clouds (7 mm median) but are divided into different rooms (9 vs 7, none paired), so they are **not repeatable** by the gate. Footprint B vs A −10.4 % (it was −45 % before round 1). Room outlines no longer overlap. |
 | Video tier | Runs end to end. Weak: 1 of 6 rooms recovered on the sample flat. |
 | Photo tier | Runs end to end and stitches rooms without overlaps. Sizes far off on the proxy photo set (footprint +133 %). |
 | Damage, rules, scope | Working. 0-2 small false positives on the undamaged flat; a painted test stain is found in 3 of 5 frames, area underestimated. |
 | Benchmark harness | Working. All numbers regenerate with `python bench/run_all.py`. |
-| Tests | 19 tests on synthetic rooms and a synthetic drifting loop pass. |
+| Tests | 21 tests on synthetic rooms and a synthetic drifting loop pass. |
 | Not done yet | Head-to-head against a consumer app, real captures with laser ground truth, interval calibration on real truth, clean-machine install timing. All need an iPhone or a second machine. |
 
 Two limits apply to every number below:
@@ -269,6 +269,24 @@ different rooms and none pair.
 double-counts: by union the gap is −6.3 %, not −0.9 %. `room_lidar` changed by 4 m² from
 the layout part, with no ground truth to say whether for better.
 
+## Stage 12: room outlines no longer overlap (commit `a88f7ef`)
+
+**Problem.** Found while checking round 2: room outlines overlapped in every LiDAR plan
+(scan A 1.2 m², scan B 3.75 m², single room 0.58 m²). The raster outlines never overlap;
+all of it came from wall snapping, which moves an edge up to 0.9 m outward to the
+best-covered wall plane and could land on a surface inside the next room. The footprint
+summed rooms, so the overlap was counted twice.
+
+**Fix.** An edge's outward search stops at the first cell of another room; the footprint
+is the union of rooms; the benchmark reports room overlap for every capture. A test
+rebuilds the failure: room a's barely scanned wall lost to a dresser 0.7 m inside room b
+(2.04 m² overlap), and now does not.
+
+**Result** (`bench/reports/benchmark.md`). Overlap 0 on all captures. Footprint A 49.2 m²,
+B 44.1 m²: B vs A −10.4 %. The round-2 headline of −0.9 % was mostly double counting.
+Scan A gained about 1 m²: the snapper scores only the 6 heaviest candidate planes, and
+with the far ones excluded a nearer, denser wall now makes the cut.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,
@@ -276,12 +294,10 @@ the layout part, with no ground truth to say whether for better.
 
 ## Still to do
 
-1. Room polygons must not overlap: wall snapping must stay on the room's own side of its
-   neighbours, and the footprint should be the union of rooms.
-2. Real captures with laser ground truth, in all three tiers, including a room captured
+1. Real captures with laser ground truth, in all three tiers, including a room captured
    twice per protocol (upward sweep included) and a furnished room with staged damage in
    two classes. Needs an iPhone.
-3. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
-4. Refit `calibration.yaml` on real ground truth so intervals are calibrated.
-5. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the
+2. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
+3. Refit `calibration.yaml` on real ground truth so intervals are calibrated.
+4. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the
    values that are assumed in its absence.
