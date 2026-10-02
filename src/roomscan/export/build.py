@@ -154,7 +154,9 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
     else:
         diag = 0.0
     prop = S.Property(
-        footprint_area=S.Measurement(value=round(fp, 4), ci90=(round(fp - 1.6449 * fp_sigma, 4), round(fp + 1.6449 * fp_sigma, 4)),
+        # an area is never negative: the lower end stops at 0 (a wide photo-tier interval went below it)
+        footprint_area=S.Measurement(value=round(fp, 4), ci90=(round(max(fp - 1.6449 * fp_sigma, 0.0), 4),
+                                                               round(fp + 1.6449 * fp_sigma, 4)),
                                      sigma=round(fp_sigma, 5), unit="m2"),
         bbox=measure(diag, 0.02, tier, "wall_length"),
         room_ids=[r.id for r in rooms_out], adjacency=adjacency,

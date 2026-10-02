@@ -166,7 +166,7 @@ function renderResultJson(res) {
 
   const dmg = res.damage || [];
   const flags = res.concealed_damage_flags || [];
-  $("#damage").replaceChildren(
+  $("#damage").replaceChildren(...[
     dmg.length ? h("ul", { class: "damage-list" }, dmg.map((d) => {
       const [a] = m(d.area, 2, " m²");
       return h("li", {}, h("strong", {}, prettyStage(d.damage_class)), ` in ${label[d.room_id] || d.room_id}`,
@@ -174,7 +174,8 @@ function renderResultJson(res) {
     })) : h("p", { class: "muted" }, "No visible damage detected."),
     flags.length ? h("div", {}, h("h4", {}, "Possible hidden damage"), h("ul", { class: "damage-list" }, flags.map((f) =>
       h("li", {}, h("span", { class: "badge " + (f.risk === "high" ? "retake" : f.risk === "medium" ? "warn" : "") }, f.risk), " ",
-        `${label[f.room_id] || f.room_id}: ${f.rule}`, h("div", { class: "small muted" }, f.recommendation))))) : null);
+        `${label[f.room_id] || f.room_id}: ${f.rule}`, h("div", { class: "small muted" }, f.recommendation))))) : null,
+  ].filter(Boolean));  // replaceChildren would print a null as the text "null"
 
   const w = res.warnings || [];
   $("#warnings-card").hidden = !w.length;
