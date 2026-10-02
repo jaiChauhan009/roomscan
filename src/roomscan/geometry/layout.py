@@ -315,16 +315,21 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
         hs = np.convolve(hist, [0.25, 0.5, 0.25], mode="same")
         best, best_score, best_cov, best_full = None, 0.0, 0.0, False
         tall, tall_score, tall_cov = None, 0.0, 0.0  # the best plane that reaches the ceiling
-        for pk in np.argsort(hs)[::-1][:6]:
-            if hs[pk] <= 0:
-                break
+        top = [k for k in np.argsort(hs)[::-1][:6] if hs[k] > 0]
+        # The six highest bins are often all one dense peak (a furniture front). A wall seen
+        # only above the furniture has far fewer points, so where the ceiling is known every
+        # other distinct peak (highest bin within 3 cm) is a candidate too, for the
+        # reaches-the-ceiling rule only.
+        extra = [] if ceiling_h is None else [
+            k for k in np.flatnonzero(hs > 0) if k not in top and hs[k] == hs[max(0, k - 3):k + 4].max()]
+        for pk in top + extra:
             c0 = e[pk] + 0.005
             sel = np.abs(o - c0) < 0.03
             ub = np.unique(np.floor(u[sel] / 0.05))
             cov = len(ub) * 0.05 / max(hi - lo - 2 * shrink, 0.05)
             score = cov - 0.05 * max(c0, 0)  # prefer nearer planes at equal coverage
             full = ceiling_h is not None and float(np.percentile(hc[sel], 95)) >= ceiling_h - FULL_HEIGHT_GAP
-            if score > best_score:
+            if score > best_score and pk in top:
                 best, best_score, best_cov, best_full = c0, score, cov, full
             if full and score > tall_score:
                 tall, tall_score, tall_cov = c0, score, cov
