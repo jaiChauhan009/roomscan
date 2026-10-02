@@ -42,6 +42,27 @@ def box_room(width=4.0, depth=3.0, height=2.7, origin=(0.0, 0.0), step=0.02, noi
     return Cloud(P.astype(np.float32), N.astype(np.float32), np.ones(len(P), np.float32))
 
 
+def furnished_room(boxes, width=4.0, depth=3.0, height=2.7, floor_y=-1.4, seed=0) -> Cloud:
+    """box_room with furniture against its walls: boxes = (x0, x1, z0, z1, height), each
+    touching the z = 0 or the z = depth wall. The wall and floor a piece hides are removed;
+    its front, sides and top are added."""
+    room = box_room(width, depth, height, floor_y=floor_y, seed=seed)
+    p = room.points
+    keep = np.ones(len(p), bool)
+    parts = []
+    for x0, x1, z0, z1, h in boxes:
+        inside = (p[:, 0] > x0 - 0.01) & (p[:, 0] < x1 + 0.01) & (p[:, 2] > z0 - 0.01) & (p[:, 2] < z1 + 0.01)
+        keep &= ~(inside & (p[:, 1] < floor_y + h))
+        front = (_plane((x0, floor_y, z1), (1, 0, 0), (0, 1, 0), (0, 0, 1), x1 - x0, h, 0.02) if z0 < 0.05 else
+                 _plane((x0, floor_y, z0), (1, 0, 0), (0, 1, 0), (0, 0, -1), x1 - x0, h, 0.02))
+        parts += [front, _plane((x0, floor_y, z0), (0, 0, 1), (0, 1, 0), (-1, 0, 0), z1 - z0, h, 0.02),
+                  _plane((x1, floor_y, z0), (0, 0, 1), (0, 1, 0), (1, 0, 0), z1 - z0, h, 0.02),
+                  _plane((x0, floor_y + h, z0), (1, 0, 0), (0, 0, 1), (0, 1, 0), x1 - x0, z1 - z0, 0.02)]
+    P = np.concatenate([p[keep]] + [q for q, _ in parts])
+    N = np.concatenate([room.normals[keep]] + [n for _, n in parts])
+    return Cloud(P.astype(np.float32), N.astype(np.float32), np.ones(len(P), np.float32))
+
+
 def merge(*clouds: Cloud) -> Cloud:
     return Cloud(np.concatenate([c.points for c in clouds]), np.concatenate([c.normals for c in clouds]),
                  np.concatenate([c.weight for c in clouds]))

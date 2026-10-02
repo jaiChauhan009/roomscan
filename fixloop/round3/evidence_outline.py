@@ -56,6 +56,8 @@ class Spy:
 
     def __enter__(self):
         def ref(segs, verts, *a, **k):
+            if k.get("search_out") == 0.03:  # after the fix: re-measuring the settled walls, not snapping
+                return self._ref(segs, verts, *a, **k)
             before = [s["coord"] for s in segs]
             self.calls.append((segs, verts, a, k))
             planes = [candidates(s, verts[i], verts[(i + 1) % len(verts)], *a, **k)
@@ -92,9 +94,11 @@ class Spy:
         L._refine_walls, L._fallback_segments = self._ref, self._fb
 
 
-def candidates(s, p, q, cloud_ab, cloud, floor_y, poly, search_in=0.15, search_out=0.9, others=None, frame=None):
+def candidates(s, p, q, cloud_ab, cloud, floor_y, poly, search_in=0.15, search_out=0.9, others=None, frame=None,
+               ceiling_h=None):
     """The planes _refine_walls scores for one segment (same selection and score), with the
-    height range each plane's points span."""
+    height range each plane's points span. (ceiling_h: accepted so this also runs on the fixed
+    code; the scores shown are the unfixed ones.)"""
     axis = 1 if s["orient"] == "H" else 0
     along = 1 - axis
     inward = np.zeros(2)
