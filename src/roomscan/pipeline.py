@@ -227,15 +227,37 @@ DRIFT_MODES = {"off": None, "loop": dict(loop_closure=True, heading=False),
                "loop+heading": dict(loop_closure=True, heading=True)}
 
 
+def load_known_sizes(measurements, *capture_paths: Path):
+    """Known sizes for a capture: `measurements` (a measurements.yaml path, a parsed dict, or
+    KnownSizes) or else the measurements.yaml found next to the capture. None when there is none."""
+    from roomscan import known_sizes as KS
+
+    try:
+        if isinstance(measurements, KS.KnownSizes):
+            return measurements
+        if isinstance(measurements, dict):
+            return KS.parse(measurements, source="measurements")
+        f = Path(measurements) if measurements is not None else KS.find_file(*capture_paths)
+        if f is None:
+            return None
+        if not f.is_file():
+            raise InputError(f"measurements file {f} does not exist")
+        return KS.load(f)
+    except KS.MeasurementsError as e:
+        raise InputError(f"measurements.yaml: {e}") from e
+
+
 def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: str = "loop",
-        damage: bool = True, use_cache: bool = True, progress: bool = True) -> dict:
+        damage: bool = True, use_cache: bool = True, progress: bool = True, measurements=None) -> dict:
     if tier not in TIERS:
         raise InputError(f"unknown tier '{tier}': use one of {', '.join(TIERS)}")
     if drift not in DRIFT_MODES:
         raise InputError(f"unknown drift mode '{drift}': use one of {', '.join(DRIFT_MODES)}")
     if stride < 1:
         raise InputError(f"stride must be 1 or more (got {stride})")
-    path, out_dir = prepare_input(Path(path)), Path(out_dir)
+    given = Path(path)
+    path, out_dir = prepare_input(given), Path(out_dir)
+    known = load_known_sizes(measurements, given, path)
     tier = detect_tier(path) if tier == "auto" else tier
     out_dir.mkdir(parents=True, exist_ok=True)
     timing: dict[str, float] = {}
@@ -251,14 +273,14 @@ def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: s
         source = "video"
     else:
         from roomscan.frontends.photos import run_photo_tier
-        return run_photo_tier(path, out_dir, use_cache=use_cache, progress=progress, damage=damage)
+        return run_photo_tier(path, out_dir, use_cache=use_cache, progress=progress, damage=damage, known=known)
     timing["load"] = time.time() - t0
     return run_posed(cap, out_dir, source=source, drift=drift, damage=damage, use_cache=use_cache,
-                     progress=progress, timing=timing, key=(str(path.resolve()), tier, stride))
+                     progress=progress, timing=timing, key=(str(path.resolve()), tier, stride), known=known)
 
 
 def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage: bool,
-              use_cache: bool, progress: bool, timing: dict, key: tuple) -> dict:
+              use_cache: bool, progress: bool, timing: dict, key: tuple, known=None) -> dict:
     from roomscan.export.build import build_output
     from roomscan.export.render import render_plan
     from roomscan.geometry.drift import correct_drift
@@ -288,6 +310,14 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
         if bl is not None:
             layout = bl
             warnings.append("walls do not close into rooms: capture fitted as a single rectangular room")
+    ks_plan = None
+    if known is not None and not known.empty() and layout.rooms:
+        if cap.tier == "lidar":  # never rescaled: print the differences as a self-check
+            from roomscan.known_sizes import dims_of, lidar_check
+            warnings += lidar_check(known, [dims_of(r) for r in layout.rooms])
+        else:
+            from roomscan.frontends.video import apply_known_sizes
+            cap, cloud, layout, ks_plan = apply_known_sizes(cap, cloud, layout, known, warnings)
     if not layout.rooms:
         warnings.append("no closed room found")
 
@@ -311,6 +341,9 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
     info = {"id": cap.name, "tier": cap.tier, "source": source, "n_frames_used": len(cap.frames),
             "meta": {k: v for k, v in cap.meta.items() if isinstance(v, (str, int, float, list, tuple))}}
     out = build_output(layout, openings, cap.tier, info, drift_info, dmg, flags, scope, warnings, timing)
+    if ks_plan is not None:
+        from roomscan.known_sizes import finish
+        finish(out, ks_plan, layout.rooms, known, mode="global")
     timing["export"] = time.time() - t
     out.timing_s = {k: round(v, 2) for k, v in timing.items()}
     # UTF-8, not the Windows locale code page: names come from the user's folder and file names

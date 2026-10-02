@@ -621,3 +621,49 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
     return build_posed_capture(video.stem, "video", [imgs[i] for i in kept], [depths[i] for i in kept], K,
                                [kfs[i]["t"] for i in kept], [kfs[i]["frame"] for i in kept], poses, scales,
                                metric, meta, depth_sigma_rel=0.05)
+
+
+def scale_capture(cap: PosedCapture, s: float) -> PosedCapture:
+    """The same capture with every length multiplied by s (depth maps and camera positions)."""
+    from dataclasses import replace
+
+    frames = []
+    for f in cap.frames:
+        T = f.T_wc.copy()
+        T[:3, 3] *= s
+        frames.append(replace(f, T_wc=T, depth_fn=(lambda fn=f.depth_fn: fn() * np.float32(s))))
+    return PosedCapture(tier=cap.tier, name=cap.name, frames=frames, meta=dict(cap.meta))
+
+
+def apply_known_sizes(cap: PosedCapture, cloud, layout, known, warnings: list[str]):
+    """Rescale a video capture so its rooms agree with the user's tape numbers (one global
+    scale: the median over the measured rooms), then extract the layout again in metres.
+
+    Returns (cap, cloud, layout, plan); plan is None when nothing given could be used."""
+    from roomscan import known_sizes as KS
+    from roomscan.geometry.boxfit import box_layout
+    from roomscan.geometry.layout import extract_layout
+    from roomscan.geometry.pointcloud import Cloud
+
+    p = KS.plan(known, [KS.dims_of(r) for r in layout.rooms], "global")
+    if p is None:
+        return cap, cloud, layout, None
+    warnings += p.warnings
+    if not p.ratios:
+        return cap, cloud, layout, None
+    s = p.scale
+    if abs(s - 1.0) > 1e-3:
+        cap = scale_capture(cap, s)
+        cloud = Cloud(cloud.points * np.float32(s), cloud.normals, cloud.weight)
+        rescaled = extract_layout(cloud)
+        if not rescaled.rooms:
+            rescaled = box_layout(cloud, noise=0.08) or rescaled
+        if rescaled.rooms:
+            layout = rescaled
+        else:  # keep the rooms found before, scaled
+            warnings.append("known sizes: no room found again after rescaling; the earlier rooms are kept")
+            for r in layout.rooms:
+                KS.scale_room(r, s)
+    cap.meta["metric_scale"] = round(float(cap.meta.get("metric_scale", 1.0)) * s, 4)
+    cap.meta["metric_scale_source"] = "known sizes"
+    return cap, cloud, layout, p
