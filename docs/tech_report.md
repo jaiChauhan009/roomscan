@@ -238,9 +238,23 @@ The fix settles the outline after snapping, and a plane reaching the ceiling win
 On the laser rooms that arrived after the round, the same code brought two rooms' median
 wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
 
-**Round 4** (ceiling height, `fixloop/round4/`): in progress; summary to follow.
-<!-- placeholder for the round 4 paragraph (3-4 lines): gate, declaration, fix,
-     declared vs measured, what was not predicted -->
+**Round 4** (ceiling height, `fixloop/round4/`, declaration tagged `fixloop4-before`).
+
+The gate: ceilings within 1.5 cm on the 4 laser rooms. Before the round 1 of 4 passed, and
+all 4 read low (-5.5 to -1.0 cm).
+- **Cause:** the floor and the ceiling were the peaks of a histogram weighted by how often
+  each spot was seen, so a level landed on the patch the camera watched longest. In one
+  room, 76 % of the floor lay below the chosen floor.
+- **Fix:** each level is the median over 25 cm patches.
+- **Declared:** 2 of 4 pass, with each error predicted to ±0.3 cm.
+- **Measured:** 2 of 4 pass (-2.9, -0.8, -1.7, -0.9 cm). Every room landed within 0.22 cm
+  of its prediction.
+- **Not predicted:** one wall-top room height moved by 1.7 cm. It reports only a lower
+  bound, and no gate reads it.
+
+What remains is a uniform -1 % scale bias in the converted laser-set clouds, which the
+walls share. A later round will look at it per frame; no scale factor was fitted on the
+test set.
 
 ## 9. Known failure modes
 
