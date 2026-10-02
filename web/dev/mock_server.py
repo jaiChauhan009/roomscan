@@ -340,6 +340,7 @@ class Handler(BaseHTTPRequestHandler):
         ("GET", r"/api/projects/(?P<pid>[^/]+)", "project"),
         ("POST", r"/api/projects/(?P<pid>[^/]+)/spaces", "create_space"),
         ("PATCH", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "patch_space"),
+        ("PUT", r"/api/projects/(?P<pid>[^/]+)/order", "set_order"),
         ("DELETE", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "delete_space"),
         ("GET", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "list_files"),
         ("PUT", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "put_file"),
@@ -402,6 +403,16 @@ class Handler(BaseHTTPRequestHandler):
         if "sizes" in b:
             sp["sizes"] = clean_sizes(b["sizes"])
         self._json(200, space_out(sp))
+
+    def h_set_order(self, pid):
+        p = get_project(pid)
+        ids = self._jbody().get("space_ids") or []
+        known = {s["space_id"]: s for s in p["spaces"]}
+        if sorted(ids) != sorted(known):
+            raise ApiErr(400, "space_ids must list every space of the project once")
+        p["spaces"] = [known[i] for i in ids]
+        p["verify"] = None
+        self._json(200, {"project_id": pid, "spaces": [space_out(s) for s in p["spaces"]]})
 
     def h_delete_space(self, pid, sid):
         p = get_project(pid)

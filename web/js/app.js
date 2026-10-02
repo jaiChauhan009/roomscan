@@ -209,6 +209,9 @@ function move(space, delta) {
   const j = i + delta;
   if (j < 0 || j >= state.spaces.length) return;
   [state.spaces[i], state.spaces[j]] = [state.spaces[j], state.spaces[i]];
+  // the walk order decides the photo folders' order on the server (NN_ prefix)
+  api.setOrder(state.pid, state.spaces.map((s) => s.space_id))
+    .catch((e) => banner("Could not save the room order on the server. " + explain(e)));
   saveProjectCache();
   markVerifyDirty();
   renderSpaces();

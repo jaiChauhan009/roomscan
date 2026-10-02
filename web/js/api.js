@@ -63,6 +63,7 @@ export const api = {
   createSpace: (pid, body) => req("POST", `/api/projects/${enc(pid)}/spaces`, body),
   patchSpace: (pid, sid, body) => req("PATCH", `/api/projects/${enc(pid)}/spaces/${enc(sid)}`, body),
   deleteSpace: (pid, sid) => req("DELETE", `/api/projects/${enc(pid)}/spaces/${enc(sid)}`),
+  setOrder: (pid, spaceIds) => req("PUT", `/api/projects/${enc(pid)}/order`, { space_ids: spaceIds }),
   listFiles: (pid, sid) => req("GET", `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`),
   deleteFile: (pid, sid, sha) => req("DELETE", `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files/${enc(sha)}`),
   verify: (pid) => req("POST", `/api/projects/${enc(pid)}/verify`, {}, { timeout: 120000 }),
