@@ -41,7 +41,9 @@ def _cache_key(*parts) -> str:
 
 def cached_fuse(cap: PosedCapture, key_parts: tuple, voxel: float = 0.02, use_cache: bool = True,
                 progress: bool = True) -> Cloud:
-    key = _cache_key(*key_parts, voxel, len(cap.frames))
+    # key on the poses actually fused: a change to drift correction must not reuse an old cloud
+    poses = hashlib.sha1(np.round(np.stack([f.T_wc for f in cap.frames]), 6).tobytes()).hexdigest()[:12]
+    key = _cache_key(*key_parts, voxel, len(cap.frames), poses)
     f = CACHE_DIR / f"cloud_{key}.npz"
     if use_cache and f.exists():
         z = np.load(f)
