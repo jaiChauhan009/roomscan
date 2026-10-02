@@ -1,6 +1,7 @@
 """Accumulated-drift correction for multi-room captures.
 
-ARKit visual-inertial odometry drifts slowly (a few cm per 10 m, mostly in heading).
+ARKit visual-inertial odometry drifts: on the sample scans by 1-4 cm and 0.2-0.5 degrees
+per 3 s, which adds up to 0.3-0.5 m between the start and the end of a floor-only scan.
 Two complementary corrections, both switchable for the ablation:
 
 1. Pose-graph loop closure. The trajectory is cut into submaps (~3 s each). Consecutive
@@ -27,9 +28,17 @@ SUBMAP_S = 3.0  # seconds per submap
 LOOP_RADIUS = 2.0  # m, centroid distance for loop candidates
 MIN_GAP = 4  # submaps; skip near-consecutive pairs
 SUBMAP_VOXEL = 0.04  # m, voxel size of the submap clouds that loop closures are registered on
-ODO_SIGMA_M = 0.01  # error assumed for ARKit's relative pose per submap step: position (m)
-ODO_SIGMA_DEG = float(np.degrees(0.005))  # and rotation (deg)
-PRUNE_DIST = 0.03  # m; a loop closure still off by more than this after optimisation is pruned
+# Error of ARKit's relative pose between consecutive submaps, as measured by ICP on the
+# sample scans (fixloop/round2/evidence_drift.py odometry): p90 3.0-3.7 cm, rms
+# 0.37-0.47 deg per 3 s step. Odometry weighted tighter than this (it was 1 cm / 0.29 deg)
+# overrules every loop closure that asks for a large correction, and those get pruned.
+ODO_SIGMA_M = 0.02
+ODO_SIGMA_DEG = 0.4
+# Open3D prunes a loop closure whose information-weighted error stays above
+# PRUNE_DIST^2 x the mean information of all edges, which are mostly odometry edges.
+# 1.4 x voxel is Open3D's own choice; with the odometry weights above it keeps that
+# tolerance where 3 cm with the old weights had it (7.8 vs 9.0).
+PRUNE_DIST = 1.4 * SUBMAP_VOXEL
 
 
 def _yaw_of(R: np.ndarray) -> float:

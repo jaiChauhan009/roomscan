@@ -65,6 +65,21 @@ def test_two_rooms_joined_by_a_door_are_separated():
     assert areas == pytest.approx([9.0, 12.0], abs=0.15)
 
 
+def test_short_wall_gaps_do_not_cut_an_unsealed_room():
+    # A room joined to the rest of the flat through an open doorway (no door head seen) falls
+    # back to the four-direction enclosure test. A wall seen only above a bed head has short
+    # gaps, and those must not cut the room into strips (fix-loop round 2).
+    from roomscan.geometry.layout import _close_gaps, _enclosed
+    walls = np.zeros((160, 160), bool)
+    walls[30, 30:130] = walls[129, 30:130] = True
+    walls[30:130, 30] = walls[30:130, 129] = True
+    walls[60:66, 129] = walls[90:95, 129] = False  # 10-12 cm gaps on a 2 cm grid
+    inside = np.zeros_like(walls)
+    inside[33:127, 33:127] = True
+    assert not _enclosed(walls)[inside].all()  # raw walls: every row through a gap is cut
+    assert _enclosed(_close_gaps(walls))[inside].all()
+
+
 def test_box_fit_recovers_rectangle_from_noisy_cloud():
     c = box_room(4.0, 3.0, 2.6, noise=0.03, step=0.04)
     room = fit_box(c, 0.0, "r", noise=0.08)

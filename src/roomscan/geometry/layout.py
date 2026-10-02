@@ -361,7 +361,9 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
     lab, nlab = ndi.label(~sealed)
     border = set(np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]]).tolist())
     ceil_map = _ceiling_map(sub, ab, frame, floor.value)
-    enclosed = _enclosed(wall | lintel)
+    # gap-closed walls, as in the sealing test: a wall seen only above a bed head has short
+    # gaps, and every row through one would otherwise cut an unsealed room in two
+    enclosed = _enclosed(barrier)
     region = np.zeros(frame.shape, np.int32)
     k = 0
     for li in range(1, nlab + 1):
