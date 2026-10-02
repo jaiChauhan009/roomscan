@@ -1,0 +1,35 @@
+# Laser ground truth for ARKitScenes video 47331988: written by bench/make_laser_truth.py 47331988
+# (regenerate with that command; see its docstring for the method). Measured: floor and ceiling
+# planes, the four wall planes, at 1 m above the floor. NOT measured: openings, damage, adjacency.
+capture: arkit_47331988
+source: laser_scanner (ARKitScenes visit 470811, Faro scans 203839, 203840, 203843, 203844)
+method: >-
+  per-column surface labels of sampled Faro scan columns (no roomscan code); floor/ceiling =
+  trimmed least-squares planes on the height peaks of horizontal points; each wall = trimmed
+  least-squares plane on the innermost flat, solid vertical surface beyond the scanners that
+  reaches the ceiling; walls = [width, depth, width, depth], the mean plane-to-plane distances
+  1 m above the floor;
+  floor_area = footprint = width x depth; ceiling_height = floor to ceiling at the room's centre
+instrument: Faro laser scanner (ARKitScenes raw laser_scanner_point_clouds, registered scans)
+measured_by: bench/make_laser_truth.py (automatic plane fits)
+date: '2026-10-02'
+footprint: 11.891
+rooms:
+  - name: room
+    ceiling_height: 2.614
+    walls: [3.754, 3.167, 3.754, 3.167]
+    floor_area: 11.891
+laser:                        # detail for people; bench/evaluate.py does not read it
+  width_min_max_m: [3.753, 3.755]    # plane-to-plane width along the room
+  depth_min_max_m: [3.165, 3.170]
+  corner_to_corner_m: [3.755, 3.165, 3.753, 3.170]   # the four planes' quadrilateral, same order
+  quadrilateral_area_m2: 11.891
+  ceiling_at_corners_m: [2.625, 2.607, 2.602, 2.620]
+  floor_fit: {"rms_m": 0.0037, "tilt_deg": 0.025, "n": 112844}
+  ceiling_fit: {"rms_m": 0.0019, "tilt_deg": 0.315, "n": 605549}
+  wall_fits: {"ulo": {"rms_m": 0.0007, "n": 237086, "cells_10cm": 722, "yaw_deg": 0.052, "tilt_deg": 0.07}, "uhi": {"rms_m": 0.001, "n": 77632, "cells_10cm": 452, "yaw_deg": 0.012, "tilt_deg": -0.062}, "vlo": {"rms_m": 0.0012, "n": 239424, "cells_10cm": 720, "yaw_deg": 0.131, "tilt_deg": 0.101}, "vhi": {"rms_m": 0.0011, "n": 251577, "cells_10cm": 813, "yaw_deg": 0.053, "tilt_deg": -0.105}}
+  checks: {"parallel_deg": [0.04, 0.08], "perpendicular_deg": [0.18, 0.14, 0.06, 0.11], "ceiling_coverage": 1.0, "ceiling_cells_reached": 270, "ceiling_points_outside": 0.003, "wall_support": {"vlo": 1.0, "uhi": 1.0, "vhi": 0.912, "ulo": 1.0}, "scanners_inside": [true, true, true, true]}
+  points_used: 2112000
+  slices_per_scan: {"203839": 120, "203840": 120, "203843": 120, "203844": 120}
+  sky_direction: Up
+  license: ARKitScenes data, Apple licence (non-commercial), github.com/apple/ARKitScenes/blob/main/LICENSE

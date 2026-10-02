@@ -19,6 +19,18 @@ captures:
      prepare: "scripts/make_iphone_clip.py {data_root}/single_scan_floor_only/1a8384c3f6 {data_root}/video_floor_only"}
   - {name: apt_photo_a, path: photos_with_ceiling, tier: photo, reference: apt_lidar_a,
      prepare: "scripts/make_photo_set.py {data_root}/single_scan_with_ceiling {data_root}/photos_with_ceiling"}
+  # Unseen rooms with LASER ground truth: ARKitScenes (Apple, non-commercial licence) iPad Pro LiDAR
+  # captures, scored against bench/ground_truth/arkit_<video id>.yaml (Faro scans, by
+  # bench/make_laser_truth.py). Fetch first: python scripts/fetch_arkitscenes.py (selection rule in its
+  # docstring); `prepare` turns the raw sequence into a Stray Scanner export that roomscan reads unchanged.
+  - {name: arkit_42446532, path: arkitscenes/42446532/arkit_42446532, tier: lidar,
+     prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/42446532/raw {data_root}/arkitscenes/42446532/arkit_42446532"}
+  - {name: arkit_44358446, path: arkitscenes/44358446/arkit_44358446, tier: lidar,
+     prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/44358446/raw {data_root}/arkitscenes/44358446/arkit_44358446"}
+  - {name: arkit_47332890, path: arkitscenes/47332890/arkit_47332890, tier: lidar,
+     prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/47332890/raw {data_root}/arkitscenes/47332890/arkit_47332890"}
+  - {name: arkit_47331988, path: arkitscenes/47331988/arkit_47331988, tier: lidar,
+     prepare: "scripts/arkitscenes_to_stray.py {data_root}/arkitscenes/47331988/raw {data_root}/arkitscenes/47331988/arkit_47331988"}
 repeatability:
   - [apt_lidar_a, apt_lidar_b]
 drift_ablation: [apt_lidar_a, apt_lidar_b]
