@@ -76,11 +76,15 @@ def test_one_end_contributes_at_most_the_cap():
     assert end_sigma(none, "lidar") <= np.hypot(0.03, min(B.EVIDENCE_K["lidar"], B.EVIDENCE_CAP["lidar"])) + 1e-12
 
 
-def test_wall_lengths_stay_tight_between_fully_covered_walls(room_layout):
+def test_wall_lengths_stay_tight_between_fully_covered_walls(room_layout, monkeypatch):
     room = _room(_with_coverage(room_layout, {}))
     assert len(room.walls) == 4
-    for w in room.walls:
-        assert _half_width(w.length) < 0.08  # a few cm, as before the evidence term
+    # the evidence term adds nothing between fully covered walls (whatever the fitted scale)
+    monkeypatch.setitem(B.EVIDENCE_K, "lidar", 0.0)
+    plain = _room(_with_coverage(room_layout, {}))
+    for w, p in zip(room.walls, plain.walls):
+        assert _half_width(w.length) == pytest.approx(_half_width(p.length))
+        assert _half_width(w.length) < 0.15  # centimetres, not decimetres, at the fitted scale
 
 
 def test_only_the_walls_an_unevidenced_wall_ends_get_wide(room_layout):
