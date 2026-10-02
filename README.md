@@ -82,14 +82,17 @@ Then per capture, weights already fetched (sample captures, see below):
 
 | Capture | Tier | Run time |
 |---|---|---|
+| `single_scan_with_ceiling`: 215 s scan, 9 rooms | LiDAR | 3 min 39 s (`scripts/walkin.py`, cold, idle machine) |
+| an iPhone 16 Pro scan, 13 s, 1 room | LiDAR | 24 s |
 | `single_room`: 37 s scan, 2 rooms | LiDAR | 1 min 54 s |
 | `photos_with_ceiling`: 7 rooms, 28 photos | photo | 3 min 48 s |
 | `rgb.mp4` of `single_scan_floor_only`: 115 s clip | video | 8 min 10 s first run, 3 min 27 s again |
 
-The first video run estimates depth for each keyframe on the CPU; the depth maps are then
-cached in `.cache/`, so a second run of the same video is faster. Other jobs shared the CPU
-during several of these runs, so an idle machine is faster; `bench/reports/benchmark.md`
-lists per-stage times with warm caches.
+The flat's cold run, by stage: drift 28 s, fuse 39 s, layout 10 s, openings 6 s, damage
+131 s. The first video run estimates depth for each keyframe on the CPU; the depth maps are
+then cached in `.cache/`, so a second run of the same video is faster. Other jobs shared the
+CPU during the other runs, so an idle machine is faster; `bench/reports/benchmark.md` lists
+per-stage times with warm caches.
 
 `fetch_weights.py` took 3 min 31 s on the clean copy while it also downloaded a second copy of
 the CLIP weights (605 MB) that is never loaded; it no longer does, and its time above is that

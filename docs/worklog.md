@@ -379,8 +379,10 @@ furniture because candidates were the six highest histogram bins, all from one p
 **Walk-in speed** (Worker E, merged `9346642`): video decoded once, CLIP loaded in the
 background, cheaper wall assignment, faster openings. Damage stage on the flat 124 -> 85 s
 and openings 70 -> 5 s, each stage timed alone; outputs bit-identical. The final benchmark
-shared the machine with the iPhone session (openings 7 s, damage 133 s), so a clean
-walk-in timing is still to be taken. Dim frames are brightened before CLIP, with a
+shared the machine with the iPhone session (openings 7 s, damage 133 s). A clean cold
+walk-in on the flat afterwards took 3 min 39 s (drift 28, fuse 39, layout 10, openings 6,
+damage 131 s). In the full pipeline the damage stage is slower than Worker E's stage-alone
+85 s; not yet explained. Dim frames are brightened before CLIP, with a
 stricter threshold. A rendered mirror is rejected and a doorway kept (`tests/test_speed_lowlight.py`).
 
 **Offline models** (`819c547`, `616a211`): weights load from the local cache without asking

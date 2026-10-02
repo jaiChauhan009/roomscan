@@ -19,7 +19,7 @@ fix-loop bundles in `fixloop/` and `bench/reports/calibration.md` unless stated.
 | Video tier on the sample flat | 2 of 7 rooms, footprint −71 % vs the LiDAR reference |
 | Photo tier on the proxy set | 7 rooms, footprint +111 % vs the LiDAR reference |
 | Real iPhone 16 Pro scan (Stray Scanner) | through the whole chain to a plan in 24 s; tape truth pending |
-| Cold run times, CPU only | LiDAR flat ~3-3.5 min, one room < 1 min, laser rooms 0.6-1.5 min, video ~12 min cold (~3 min with cached depth), photos ~4 min |
+| Cold run times, CPU only | LiDAR flat 3 min 39 s (walk-in script, idle machine; damage 131 s of it), one room < 1 min, laser rooms 0.6-1.5 min, video ~12 min cold (~3 min with cached depth), photos ~4 min |
 | Clean install | 15.5 min to a first plan measured, 12.5 of it downloading at 0.75 MB/s |
 
 ## Capture
