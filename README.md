@@ -191,6 +191,8 @@ shared back end: drift correction → fused cloud → floor / ceiling / walls �
 
 Details, error budget and known failure modes: [docs/tech_report.md](docs/tech_report.md).
 Requirement-by-requirement status: [docs/compliance_matrix.md](docs/compliance_matrix.md).
+Every design decision with its reason and evidence: [docs/design_qa.md](docs/design_qa.md).
+Structure: [docs/architecture.md](docs/architecture.md); history: [docs/worklog.md](docs/worklog.md).
 
 ## Pretrained models (disclosure)
 
@@ -216,7 +218,8 @@ src/roomscan/
   uncertainty/               intervals.py, calibration.yaml
   export/                    build.py (output contract), render.py (plan)
 bench/                       gates, evaluation, repeatability, run_all, ground truth
-docs/                        capture protocol, device matrix, compliance matrix, report
+docs/                        capture protocol, device and compliance matrices, report,
+                             design Q&A, architecture, worklog, iPhone session plan
 fixloop/                     fix loop round 1 (declaration, before / after runs); round2/
 scripts/                     fetch_weights, fetch_data, make_photo_set, dev tools
 ```
