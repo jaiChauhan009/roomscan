@@ -29,10 +29,10 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | JSON to the published schema | `schema.py` | `schema/output.schema.json` | done with our own schema; Round 1 schema not available to us |
 | Rendered plan | `export/render.py` | `plan.png`, `plan.svg` | done |
 | Benchmark: multi-room capture, 3+ rooms + connector | `bench/manifest.yaml` | `apt_lidar_a`, `apt_lidar_b` | partial: sample flat, not our own capture |
-| Benchmark: furnished room with staged damage, two classes | none | none | missing: needs an iPhone and a room to stage |
+| Benchmark: furnished room with staged damage, two classes | `bench/synth_damage.py` (proxy) | `bench/reports/synth_damage.md` | partial: real staged damage needs an iPhone. Proxy: a stain and a crack of known size painted onto two walls of scan A in every frame, scored by the benchmark's own damage scoring: 0 false positives, both missed (each in view in 2-4 frames examined) |
 | Benchmark: same rooms at all three tiers, photo tier stitching | `scripts/make_photo_set.py`, manifest | `apt_video_b`, `apt_photo_a` | partial: thin tiers derived from the LiDAR scan, not captured |
 | Benchmark: one room captured twice at the same tier | manifest `repeatability` | scans A and B of one flat | done (whole flat captured twice) |
-| Laser / tape ground truth, raw data submitted | `bench/ground_truth/TEMPLATE.yaml`, `scripts/fetch_data.py` | template + raw sample data | missing: no measurements of the sample flat |
+| Laser / tape ground truth, raw data submitted | `scripts/fetch_arkitscenes.py`, `bench/make_laser_truth.py`, `bench/ground_truth/arkit_*.yaml` | laser truth for four unseen rooms (ARKitScenes, Faro scans; selection rule fixed before any run) | partial: LiDAR tier only, public rooms not ours; the sample flat and the video / photo tiers have no laser truth |
 | Gate: opening widths ≤ 2 cm on ≥ 85 %, missed and phantom count | `bench/evaluate.py` | `opening_width` rows | implemented; not scorable on LiDAR without truth |
 | Gate: ceiling ≤ 1.5 cm, repeat spread ≤ 1 cm, say biased vs unrepeatable | `evaluate.py`, `repeatability.py` | report rows | implemented; ceiling truth missing |
 | Gate: repeatability 1 cm / 0.5 % per wall | `bench/repeatability.py` | `fixloop/after`, `fixloop/round2/after` | partial: failing. Point clouds of the two scans agree to 7 mm, but the scans divide the flat into different rooms (scan B has no upward sweep); fix-loop target, two rounds |
@@ -50,10 +50,10 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Declaration: worst gate + failing number, root cause + evidence, fix + prediction | `fixloop/declaration.md`, `fixloop/round2/declaration.md` | each committed before its fix (`c9255e9`, `482b4fb`) | done |
-| Shipped fix | commits `1e8c490` (round 1), `cb55b8b` (round 2) | `fixloop/fix.diff`, `fixloop/round2/fix.diff` | done |
-| Before and after runs, regenerable | `fixloop/before/`, `fixloop/after/`, `fixloop/round2/after/`, tags `fixloop-before`, `fixloop2-before` | benchmark reports | done |
-| Readable diff | `fixloop/fix.diff`, `fixloop/round2/fix.diff` (refactor separate: `refactor.diff`) | | done |
+| Declaration: worst gate + failing number, root cause + evidence, fix + prediction | `fixloop/declaration.md`, `fixloop/round2/declaration.md`, `fixloop/round3/declaration.md` | each committed before its fix (`c9255e9`, `482b4fb`, `929a035`) | done, three rounds |
+| Shipped fix | commits `1e8c490` (round 1), `cb55b8b` (round 2), `270175e` (round 3) | `fixloop/fix.diff`, `fixloop/round2/fix.diff`, `fixloop/round3/fix.diff` | done |
+| Before and after runs, regenerable | `fixloop/before/`, `fixloop/after/`, `fixloop/round2/after/`, `fixloop/round3/after/`, tags `fixloop-before`, `fixloop2-before`, `fixloop3-before` | benchmark reports | done |
+| Readable diff | `fixloop/fix.diff`, `fixloop/round2/fix.diff` (refactor separate: `refactor.diff`), `fixloop/round3/fix.diff` | | done |
 
 ## Part 5: process
 
@@ -73,4 +73,4 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | 6. Fix loop bundle | `fixloop/` | done |
 | 7. Technical report, max 6 pages | `docs/tech_report.md` | done |
 | 8. Raw benchmark data | `scripts/fetch_data.py` (sample scans) | partial: no own captures, no app exports |
-| Mirrors, glass, wet-look surfaces, low light covered | `openings.py` (mirror test), `planes.py` (glossy floor), `damage/pipeline.py` (low-light warning), tests | partial: handled in code and tests; no real capture of each |
+| Mirrors, glass, wet-look surfaces, low light covered | `openings.py` (mirror test), `layout.py` (a mirror's gap still seals the room), `planes.py` (glossy floor), `damage/detect.py` (dim frames brightened, stricter threshold), tests | partial: handled in code and tests (rendered mirror, darkened frames); no real capture of each |

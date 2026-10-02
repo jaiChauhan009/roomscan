@@ -3572,10 +3572,10 @@
     "02_room_8 / 05_room_6: fitted rooms overlapped by 2.28 m; 02_room_8 moved, relative position unreliable"
   ],
   "timing_s": {
-    "load+depth": 1.27,
-    "room_fit": 1.64,
-    "stitch": 128.33,
-    "openings": 8.51,
-    "damage": 34.0
+    "load+depth": 2.44,
+    "room_fit": 3.4,
+    "stitch": 187.51,
+    "openings": 2.92,
+    "damage": 49.54
   }
 }

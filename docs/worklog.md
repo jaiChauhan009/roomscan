@@ -355,6 +355,41 @@ weights are now 0.77 GB (were 1.38 GB), identical results.
 gate passes for video (0.94) and photo (0.95); every accuracy gate for video and photo and
 the LiDAR repeatability gate still fail.
 
+## Stage 16: laser truth, outlines that follow walls, a faster walk-in (commits `d142887`-)
+
+**Laser ground truth for LiDAR** (`8736b4e`, merged `929f1b3`). Four unseen ARKitScenes
+rooms (Apple iPad Pro LiDAR, Faro laser scans), chosen by a rule fixed before any roomscan
+run. The truth is computed from the laser points alone (`bench/make_laser_truth.py`), and
+each sequence is converted to a Stray export `roomscan run` reads unchanged. First
+accuracy numbers for the walk-in tier: ceilings 1-2 cm low (one passes the 1.5 cm gate);
+outlines fragment on furniture, so wall gates fail. Details in the benchmark report.
+
+**Fix-loop round 3** (`fixloop/round3/`): furniture notches in room outlines. Declared
+before the fix (`929a035`). In 4 of the flat's 16 LiDAR rooms and both video rooms, wall
+snapping made the outline cross itself, and every wall of those rooms lost its evidence.
+A wardrobe front also beat the wall seen above it. Fix: settle the snapped outline (merge
+walls on one plane, undo only the conflicting snap); a plane reaching the ceiling beats a
+lower one. Furnished synthetic rooms now come out exact (4 walls, 12.00 m²).
+
+**After the round:** a wall mirror or low-sill window made a room leak round its walls
+(+27 %), now a barrier (`9b6a0ac`). The ceiling rule could not see the wall behind dense
+furniture because candidates were the six highest histogram bins, all from one peak
+(`0a57664`).
+
+**Walk-in speed** (Worker E, merged `9346642`): video decoded once, CLIP loaded in the
+background, cheaper wall assignment, faster openings. Damage stage on the flat 124 -> 85 s
+and openings 70 -> 5 s, each stage timed alone; outputs bit-identical. The final benchmark
+shared the machine with the iPhone session (openings 7 s, damage 133 s), so a clean
+walk-in timing is still to be taken. Dim frames are brightened before CLIP, with a
+stricter threshold. A rendered mirror is rejected and a doorway kept (`tests/test_speed_lowlight.py`).
+
+**Offline models** (`819c547`, `616a211`): weights load from the local cache without asking
+the hub, so the walk-in needs no internet.
+
+**Damage on synthetic staged damage** (`bench/synth_damage.py`): a stain and a crack of
+known size painted onto two walls of scan A, consistently in every frame. No false positive
+on the clean capture; both missed. Each was in view in only 2-4 of the frames examined.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,
@@ -364,8 +399,10 @@ the LiDAR repeatability gate still fail.
 
 1. Real captures with laser ground truth, in all three tiers, including a room captured
    twice per protocol (upward sweep included) and a furnished room with staged damage in
-   two classes. Needs an iPhone.
-2. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
-3. Refit `calibration.yaml` on real ground truth (`run_all.py --eval-only`, then `calibrate.py --write`).
-4. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the
+   two classes. Needs an iPhone. (LiDAR now has laser truth on four public rooms.)
+2. LiDAR outlines on furnished rooms: build them from the wall planes that reach the
+   ceiling, and stop furniture from splitting a room at a gap (ARKitScenes 42446532).
+3. Damage recall: each wall patch is seen in too few frames to confirm a stain.
+4. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
+5. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the
    values that are assumed in its absence.

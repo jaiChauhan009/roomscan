@@ -61,6 +61,10 @@ def main():
     data_root = Path(os.environ.get("ROOMSCAN_DATA", ROOT / man["data_root"]))
     runs = out / "runs"
     results, evals, timing = {}, {}, {}
+    # re-scoring keeps the wall times the runs were measured with (the stage times are in result.json)
+    prev_report = out / "benchmark.json"
+    prev_timing = json.loads(prev_report.read_text(encoding="utf-8")).get("timing", {}) \
+        if a.eval_only and prev_report.exists() else {}
     for c in man["captures"]:
         if a.only and c["name"] not in a.only:
             continue
@@ -79,7 +83,10 @@ def main():
             res = json.loads(f.read_text(encoding="utf-8"))
         else:
             res = run(src, runs / c["name"], tier=c["tier"], use_cache=not a.no_cache, progress=False)
-        timing[c["name"]] = {"wall_s": round(time.time() - t, 1), "stages": res["timing_s"],
+        wall = round(time.time() - t, 1)
+        if a.eval_only:
+            wall = prev_timing.get(c["name"], {}).get("wall_s") or round(sum(res["timing_s"].values()), 1)
+        timing[c["name"]] = {"wall_s": wall, "stages": res["timing_s"],
                              "rooms": len(res["rooms"]), "footprint_m2": res["property"]["footprint_area"]["value"],
                              "overlap_m2": room_overlap(res)}
         results[c["name"]] = res

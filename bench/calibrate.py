@@ -245,24 +245,45 @@ def main():
     ap.add_argument("--report", default=str(HERE / "reports" / "benchmark.json"))
     ap.add_argument("--out", default=str(HERE / "reports" / "calibration.md"))
     ap.add_argument("--write", action="store_true", help="write the fitted scales into calibration.yaml")
+    ap.add_argument("--lidar-from", choices=["truth", "repeatability"], default="truth",
+                    help="LiDAR samples: ground truth when there is any (default), or the repeatability pair. "
+                         "Use repeatability while the laser rooms' outlines have more walls than the truth: "
+                         "each truth wall is then paired with an outline fragment, a segmentation error the "
+                         "intervals do not model (fitting on it gave scale 99, +-2.3 m on every 3 m wall)")
+    ap.add_argument("--only", nargs="*", choices=TIERS,
+                    help="refit only these tiers; the others keep their scales (the widening check uses them)")
     a = ap.parse_args()
     report = json.loads(Path(a.report).read_text(encoding="utf-8"))
     cal = yaml.safe_load(CAL.read_text(encoding="utf-8"))
     samples = collect(report)
-    if not samples.get("lidar"):
-        # no LiDAR ground truth yet: fall back to the agreement of two captures of the same space
+    laser = len(samples.get("lidar", []))
+    if a.lidar_from == "repeatability" or not samples.get("lidar"):
+        # the agreement of two captures of the same space (precision only)
         man = yaml.safe_load((HERE / "manifest.yaml").read_text(encoding="utf-8"))
         samples["lidar"] = repeat_samples(Path(a.report).parent / "runs", man.get("repeatability", []),
                                           report.get("calibration_used"))
     fits = {tier: fit_tier(samples[tier]) for tier in TIERS if samples.get(tier)}
+    shown_fits = fits
+    if a.only:
+        fits = {t: f for t, f in fits.items() if t in a.only}
     new, notes = apply(cal, fits)
+    if a.only:
+        notes.append(f"refitted: {', '.join(a.only)}; kept: {', '.join(t for t in TIERS if t not in a.only)} "
+                     f"(their fits are shown above for information)")
+    fits = shown_fits
     sources = sorted({s["source"] for t in samples.values() for s in t})
     shown = Path(os.path.relpath(Path(a.report).resolve(), HERE.parent.resolve())).as_posix()
     tag = report.get("tag") or "untagged"
 
     md = ["# Interval calibration", "",
           f"From `{shown}`, run {tag}; truth source: "
-          f"{', '.join(sources) or 'none'}. Method in `bench/calibrate.py`.", "",
+          f"{', '.join(sources) or 'none'}. Method in `bench/calibrate.py`.", ""]
+    if a.lidar_from == "repeatability" and laser:
+        md += [f"LiDAR is fitted on the repeatability pair, not on its {laser} laser-truth samples: the laser "
+               "rooms' outlines have more walls than the truth, so each truth wall is paired with an outline "
+               "fragment, a segmentation error these intervals do not model. Their coverage is reported in "
+               "the benchmark's calibration rows.", ""]
+    md += [
           "| tier | group | samples | rooms | coverage at scale 1 | fitted scale | in-sample | leave-one-room-out |",
           "|---|---|---|---|---|---|---|---|"]
     for tier, groups in fits.items():

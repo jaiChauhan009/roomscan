@@ -8,15 +8,23 @@ Six pages maximum. Structure in [architecture.md](architecture.md), history in
 
 One command turns a LiDAR scan, a video or per-room photo folders into a JSON plan and a
 rendered plan, with a 90 % interval on every number. All three tiers run end to end on a
-CPU-only laptop. The LiDAR geometry is precise (synthetic rooms recovered to under 1 mm).
-Two scans of the same flat now agree as point clouds to a median 7 mm, but they still
-divide the flat into different rooms (footprint 10 % apart), so the repeatability gate fails. The video and photo
-tiers are far from their gates on the only data available, which is derived from a LiDAR
-scan rather than captured per protocol.
+CPU-only laptop. The LiDAR geometry is precise on synthetic rooms (under 1 mm, furnished
+ones included). On four unseen rooms with laser truth (ARKitScenes, Faro scans):
+- footprint within 8 % in all four (−7.6, −5.7, +0.2, −2.0 %);
+- ceilings within 1-5 cm, read low;
+- walls within 3-10 cm in two rooms, but in the other two furniture fragments the outline
+  or splits the room, and the wall gates fail.
 
-**The main limitation of this report: no ground truth.** No iPhone and no laser measurer
-were available. All real-capture numbers are either self-consistency (repeatability,
-drift) or comparisons against our own LiDAR output, and are labelled as such.
+Two scans of the sample flat agree as point clouds to a median 7 mm but divide the flat
+into different rooms, so the repeatability gate fails. The video and photo tiers are far
+from their gates on the only data available, which is derived from a LiDAR scan rather
+than captured per protocol.
+
+**The main limitation of this report: little ground truth.** Laser truth exists for four
+public rooms (LiDAR tier only). The sample flat has none, so its numbers are
+self-consistency (repeatability, drift) or comparisons against our own LiDAR output,
+labelled as such. A real iPhone 16 Pro scan was taken through the whole chain (Stray
+Scanner → laptop → plan in 24 s); its tape measurements are pending.
 
 ## 2. Architecture
 
@@ -80,10 +88,14 @@ Device matrix: `docs/device_matrix.md`.
   Taking the best-supported plane for the whole capture cut a 3.0 m flat at its 2.4 m
   dropped ceilings (a regression caught by the benchmark, now tested).
 - **Walls:** a 2 cm top-down grid. A cell is wall when wall points cover half of the
-  observed height band (fix-loop change). Door lintels are wall above 2.15 m with nothing
-  below.
+  observed height band (fix-loop change). Wall above 2.15 m over anything less than a full
+  wall is a lintel: a doorway, a low window or a wall mirror (before, a mirror let the room
+  leak round its walls, +27 %).
 - **Rooms:** wall-sealed regions, split at narrow necks unless open-plan with equal
-  ceilings. Outlines are made rectilinear and each edge snapped onto its 3D wall plane.
+  ceilings. Outlines are made rectilinear and each edge snapped onto its 3D wall plane, up
+  to 0.9 m outward (the raster stops at furniture). A plane that reaches the ceiling beats
+  a lower one (a wardrobe front). After snapping, walls on one plane merge and a snap that
+  makes the outline cross itself is undone alone (fix-loop round 3).
 - **Openings:** per wall, camera rays that pass through versus stop at the plane. Widths
   at 1 cm. Mirrors are rejected when the "through" points, reflected back, land on real
   surfaces of the room.
@@ -136,9 +148,23 @@ of the two scans, 58 % for LiDAR walls: confident garbage on thin input.
 
 | Tier | Truth used | Samples | Scale | Held-out coverage | 3 m wall, 90 % |
 |---|---|---|---|---|---|
-| LiDAR | same wall in both scans of the flat | 19 walls, 8 rooms | 2.61 | 0.95 | ±6 cm |
-| video | LiDAR reference | 32 walls, 2 rooms | 2.58 | 0.91 | ±0.29 m |
+| LiDAR | same wall in both scans of the flat (run `80bce56`) | 19 walls, 8 rooms | 2.61 | 0.95 | ±6 cm |
+| video | LiDAR reference, refitted after fix-loop round 3 | 28 lengths, 2 rooms | 6.42 | 0.75 | ±0.72 m |
 | photo | LiDAR reference | 40 lengths, 7 rooms | 6.62 | 0.90 | ±1.72 m |
+
+**LiDAR is the open question.** Its scale is still the two-scan fit, for three reasons:
+- Fitting on the laser rooms gives 99, ±2.3 m on every 3 m wall. Every laser room's outline
+  has more walls than the truth, so each truth wall is paired with a fragment. That is a
+  segmentation error, not measurement noise.
+- The two-scan fit after round 3 gives 17.8 (±0.41 m). Scan A now finds walls behind
+  furniture that scan B cannot see, so the scans disagree about which plane is the wall.
+- On the laser rooms the shipped LiDAR intervals hold the truth for 10 of 20 values (four
+  walls and the ceiling per room): 5 of 5 where the outline is right, 1 of 5 where it is
+  fragmented.
+
+So LiDAR intervals cover measurement noise on walls whose plane was found, not outline
+errors. The fix is a wall sigma that grows when the wall's position rests on furniture or
+on no plane at all, refitted on our own taped room.
 
 Held-out coverage is leave-one-room-out: fitted on the other rooms, scored on the room left
 out. In-sample coverage is 90 % or more by construction and is not evidence. Limits, stated
@@ -174,6 +200,23 @@ polygons overlapped, and by the union of rooms the gap was −6.3 %. The overlap
 after the round (`a88f7ef`): wall snapping stops at the next room and the footprint is a
 union. With rooms that no longer overlap the gap is −10.4 %.
 
+**Round 3** (`fixloop/round3/`): still repeatability, now 0 rooms paired. Rooms that are
+plainly the same did not pair because their wall counts differed, and the extra walls were
+furniture notches. Snapping kept the steps of a flattened notch as walls. When a snap made
+the outline cross itself, the room fell back to the raw contour with no wall evidence (4 of
+16 LiDAR rooms, both video rooms). A wardrobe front also beat the wall seen above it.
+
+The fix settles the outline after snapping, and a plane reaching the ceiling wins.
+- **Met:** raw-contour rooms gone, furnished synthetic rooms exact, 1 room paired, gate
+  still failing as declared.
+- **Missed:** A's footprint grew 12 % (declared < 6 %), and B kept 39 walls without
+  evidence (declared ≤ 35).
+- **Not predicted:** the video calibration gate failed (0.94 → 0.57), refitted after the
+  round.
+
+On the laser rooms that arrived after the round, the same code brought two rooms' median
+wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
+
 ## 9. Known failure modes
 
 - **Scans without an upward sweep:** no door heads and no ceilings, so rooms merge that a
@@ -189,13 +232,20 @@ union. With rooms that no longer overlap the gap is −10.4 %.
   only the longest survives (1 of 6 rooms on the sample clip). Scale is ±10-20 %.
 - **Photo tier:** fails when the floor is out of view (scale from an assumed phone height)
   or the look-back photo cannot be matched (position along the wall is guessed and flagged).
-- **Damage:** 3 small water-stain false positives on the undamaged flat in the latest run
-  (ceiling and floor, about 0.02 m² each, single frame each). A synthetic stain was found
-  but its area under-measured.
+- **Furnished rooms (LiDAR, laser truth):** furniture taller than about 1.1 m is a barrier
+  in the wall grid. Where no wall is seen above it, the outline keeps the notch. A gap
+  between two pieces can cut a room in two (ARKitScenes 42446532). Each laser wall is then
+  paired with a fragment, so wall gates fail while areas and ceilings are close. Next step:
+  outlines from the wall planes that reach the ceiling.
+- **Damage recall:** no false positive on the undamaged flat, but a painted 0.5 m stain
+  and a 0.7 m crack were both missed (`bench/reports/synth_damage.md`). Each wall patch is
+  examined in only one or two of the 64 frames, often at an angle.
 - **Closed doors** are measured as wall; the protocol asks for doors open.
-- **Mirrors:** rejected by a reflection test, verified only in code, not on a real mirror.
+- **Mirrors:** rejected as openings by a reflection test, and a mirror's gap in the wall no
+  longer unseals the room. Tested on rendered mirrors, not on a real one.
 - **Glass:** windows to bright outdoors return no depth and may be missed.
-- **Low light:** produces a warning only; no handling.
+- **Low light:** dim frames are brightened before damage classification, with a stricter
+  threshold. Brightening did not help video tracking (measured), so tracking is unchanged.
+  Every tier warns on a dim capture.
 - **Wet-look surfaces:** not tested.
-- **Not measured at all:** head-to-head against a consumer app, interval calibration,
-  timing of the clean-machine install.
+- **Not measured at all:** head-to-head against a consumer app (needs the iPhone).
