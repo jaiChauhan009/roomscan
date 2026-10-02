@@ -56,8 +56,9 @@ const STAGE_LABEL = {
 
 function prettyStage(n) {
   if (!n) return "";
-  // "Rooms (photos): load+depth" -> "Rooms (photos) · Reading photos & depth"
-  const i = String(n).indexOf(": ");
+  // "Rooms (photos): load+depth" -> "Rooms (photos) · Reading photos & depth"; the run title
+  // may hold ": " itself ("Whole home (video 2: b.mov): fuse"), the stage is after the last one
+  const i = String(n).lastIndexOf(": ");
   if (i > 0) return `${String(n).slice(0, i)} · ${prettyStage(String(n).slice(i + 2))}`;
   if (STAGE_LABEL[n]) return STAGE_LABEL[n];
   const s = String(n).replace(/[_-]+/g, " ");
@@ -91,7 +92,7 @@ export async function renderResults(job, jid, partial = false) {
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.label === (r && r.label))));
     renderRun(r ? r.outputs : (job.outputs || {}), jid);
   };
-  // one tab per finished run: Rooms (photos) / Whole home (video) / Whole home (LiDAR)
+  // one tab per finished run, titled by the server: Rooms (photos) / Whole home (LiDAR 1: a.zip) / ...
   tabs.replaceChildren(...runs.map((r) => h("button", { type: "button", class: "btn small", "data-label": r.label, onclick: () => show(r) }, r.title || r.label)));
   tabs.hidden = !runs.length && !(job.runs || []).some((r) => r.status === "failed");
   const failed = (job.runs || []).filter((r) => r.status === "failed");
@@ -191,7 +192,7 @@ function renderComparison(rows) {
   }
   wrap.replaceChildren(h("table", {},
     h("caption", { class: "visually-hidden" }, "Sizes you typed in against the computed sizes"),
-    h("thead", {}, h("tr", {}, ...["Room", "Tier", "Size", "Yours m", "Ours m", "Ours 90 % range", "Difference", "Inside range?"]
+    h("thead", {}, h("tr", {}, ...["Room", "Run", "Size", "Yours m", "Ours m", "Ours 90 % range", "Difference", "Inside range?"]
       .map((t, i) => h("th", { scope: "col", class: i >= 3 && i <= 6 ? "num" : null }, t)))),
     h("tbody", {}, rows.map((r) => {
       const ci = Array.isArray(r.ci90) ? r.ci90 : null;
@@ -200,7 +201,7 @@ function renderComparison(rows) {
       const pct = r.diff_pct != null ? ` (${r.diff_pct > 0 ? "+" : ""}${fmtNum(r.diff_pct, 1)} %)` : "";
       return h("tr", {},
         h("th", { scope: "row" }, r.space ?? ""),
-        h("td", {}, TIER[r.tier] || r.tier || "–"),
+        h("td", {}, r.run || TIER[r.tier] || r.tier || "–"),
         h("td", {}, QTY[r.quantity] || r.quantity || ""),
         h("td", { class: "num" }, fmtNum(r.given)),
         h("td", { class: "num" }, fmtNum(r.computed)),

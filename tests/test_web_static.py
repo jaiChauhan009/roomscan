@@ -74,7 +74,9 @@ def test_two_part_page():
     app = (WEB / "js" / "app.js").read_text(encoding="utf-8")
     api = (WEB / "js" / "api.js").read_text(encoding="utf-8")
     assert '"_capture_video"' in api and '"_capture_lidar"' in api and "/captures/" in api
-    assert "Replace video" in app and "Replace LiDAR zip" in app
+    # several videos / scans per capture, each with its own row and Remove
+    assert "Add another video" in app and "Add another scan" in app and "MAX_ITEMS" in app
+    assert "removeCaptureFile" in app
 
 
 def test_guide_is_collapsible():
@@ -264,23 +266,35 @@ def test_mock_whole_home_capture(mock_api):
         raw, ct = multipart({"sha256": hashlib.sha256(data).hexdigest(), "name": name}, name, data)
         assert call(b, "PUT", f"/api/projects/{pid}/captures/{kind}/files", raw=raw, ctype=ct)[0] == 200
         assert call(b, "GET", f"/api/projects/{pid}/captures/{kind}")[1]["files"][0]["name"] == name
-    raw, ct = multipart({"sha256": hashlib.sha256(b"clip2").hexdigest(), "name": "two.mov"}, "two.mov", b"clip2")
+    # a second video is its own item, up to 5; a 6th is refused
+    for i in range(2, 6):
+        raw, ct = multipart({"sha256": hashlib.sha256(b"clip%d" % i).hexdigest(), "name": f"v{i}.mov"}, f"v{i}.mov", b"clip%d" % i)
+        assert call(b, "PUT", f"/api/projects/{pid}/captures/video/files", raw=raw, ctype=ct)[0] == 200
+    raw, ct = multipart({"sha256": hashlib.sha256(b"clip6").hexdigest(), "name": "six.mov"}, "six.mov", b"clip6")
     st, err = call(b, "PUT", f"/api/projects/{pid}/captures/video/files", raw=raw, ctype=ct)
-    assert st == 409 and "already has a file" in err["detail"]
+    assert st == 409 and "already has 5 videos" in err["detail"]
+    for i in range(3, 6):  # back to two videos
+        sha = hashlib.sha256(b"clip%d" % i).hexdigest()
+        assert call(b, "DELETE", f"/api/projects/{pid}/captures/video/files/{sha}")[0] == 200
     caps = call(b, "GET", f"/api/projects/{pid}")[1]["captures"]
     assert caps["video"]["kind"] == "video" and caps["lidar"]["kind"] == "lidar"
     st, v = call(b, "POST", f"/api/projects/{pid}/verify", {})
     assert v["ok"] is True and v["spaces"][0]["status"] == "ok"
-    assert [(c["kind"], c["name"]) for c in v["captures"]] == [("video", "whole home: video"), ("lidar", "whole home: LiDAR")]
+    assert [(c["kind"], c["item"], c["name"]) for c in v["captures"]] == [
+        ("lidar", "scan.zip", "Whole home (LiDAR: scan.zip)"), ("video", "walk.mov", "Whole home (video 1: walk.mov)"),
+        ("video", "v2.mov", "Whole home (video 2: v2.mov)")]
     assert all({"status", "findings", "advice"} <= set(c) for c in v["captures"])
     jid = call(b, "POST", f"/api/projects/{pid}/run", {"damage": True})[1]["job_id"]
     deadline = time.time() + 10
     while (job := call(b, "GET", f"/api/jobs/{jid}")[1])["status"] != "done" and time.time() < deadline:
         time.sleep(0.05)
-    assert job["status"] == "done" and [r["title"] for r in job["runs"]] == ["Whole home (video)", "Whole home (LiDAR)"]
-    assert {s["name"].split(": ")[0] for s in job["stages"]} == {"Whole home (video)", "Whole home (LiDAR)"}
+    titles = ["Whole home (LiDAR: scan.zip)", "Whole home (video 1: walk.mov)", "Whole home (video 2: v2.mov)"]
+    assert job["status"] == "done" and [r["title"] for r in job["runs"]] == titles
+    assert [r["prefix"] for r in job["runs"]] == ["whole_home_lidar/", "whole_home_video_1/", "whole_home_video_2/"]
+    assert {s["name"].rsplit(": ", 1)[0] for s in job["stages"]} == set(titles)
     rows = call(b, "GET", f"/api/jobs/{jid}/comparison")[1]["rows"]
     assert {r["tier"] for r in rows} == {"video", "lidar"} and rows[0]["space"] == "Lounge"
+    assert {r["run"] for r in rows} == set(titles)
     sha = caps["lidar"]["files"][0]["sha256"]
     assert call(b, "DELETE", f"/api/projects/{pid}/captures/lidar/files/{sha}")[0] == 200
     assert call(b, "GET", f"/api/projects/{pid}/captures/lidar/files")[1]["files"] == []

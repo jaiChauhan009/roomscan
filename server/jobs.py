@@ -41,7 +41,8 @@ def run_stage_plan(engine_tier: str, damage: bool) -> list[str]:
 
 
 def stage_name(run: dict, stage: str) -> str:
-    """Stage names carry the run: "Rooms (photos): load+depth", "Whole home (video): fuse"."""
+    """Stage names carry the run: "Rooms (photos): load+depth", "Whole home (video 2: b.mov): fuse"
+    (the stage is after the last ": ")."""
     return f"{run['title']}: {stage}"
 
 
@@ -151,9 +152,11 @@ class Worker:
     def _stage(self, j: dict, name: str, status: str, seconds: float | None = None, note: str | None = None):
         st = next((s for s in j["stages"] if s["name"] == name), None)
         if st is None:
-            # a stage not in the plan: after the last stage of the same run (same "label: " prefix)
+            # a stage not in the plan: after the last stage of the same run (same "title: " prefix;
+            # titles may contain ": " themselves, e.g. "Whole home (video 2: b.mov)")
             st = {"name": name, "status": "pending", "seconds": None, "note": None}
-            pre = name.split(": ", 1)[0] + ": " if ": " in name else ""
+            pre = next((r["title"] + ": " for r in j.get("runs", []) if name.startswith(r["title"] + ": ")),
+                       name.rsplit(": ", 1)[0] + ": " if ": " in name else "")
             idx = max((i for i, s in enumerate(j["stages"]) if s["name"] != "verify"
                        and s["name"].startswith(pre)), default=len(j["stages"]) - 1) + 1
             j["stages"].insert(idx, st)
@@ -204,7 +207,7 @@ class Worker:
                 return
             self._stage(j, "verify", "done", time.time() - t, note + (" (forced)" if n_bad else ""))
 
-            # ---- the photo walk, then each whole-home capture
+            # ---- the photo walk, then each whole-home item (LiDAR scans, then videos)
             params = inspect.signature(pl.run).parameters
             live = "on_stage" in params  # the engine reports its own stages
             try:

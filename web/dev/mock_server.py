@@ -2,9 +2,10 @@
 
 Standard library only. In-memory state; restart = fresh. Implements the web contract:
 projects, rooms (spaces of kind "photos", photos optional), two optional whole-home captures
-(a video AND / OR a LiDAR scan: PUT/GET/DELETE /captures/{video|lidar}, /captures/{kind}/files, one
-file each), files (multipart PUT, idempotent by sha256), verify, run (one run per present input:
-rooms' photos, whole-home video, whole-home LiDAR), jobs (a fake job that walks
+(videos AND / OR LiDAR scans: PUT/GET/DELETE /captures/{video|lidar}, /captures/{kind}/files, up
+to 5 items each: a clip, a .zip, or loose LiDAR export files as one item), files (multipart PUT,
+idempotent by sha256), verify (one block per item), run (rooms' photos, then one run per LiDAR
+item, then one per video), jobs (a fake job that walks
 through its stages in real time), job files and comparison (with a tier column), health.
 
     python web/dev/mock_server.py                 # http://localhost:8000
@@ -50,6 +51,31 @@ def new_id(prefix: str) -> str:
 CAP_SID = {"video": "_capture_video", "lidar": "_capture_lidar"}
 SID_CAP = {v: k for k, v in CAP_SID.items()}
 TITLES = {"photos": "Rooms (photos)", "video": "Whole home (video)", "lidar": "Whole home (LiDAR)"}
+MAX_ITEMS = 5
+VIDEO_RE = (".mp4", ".mov", ".m4v")
+
+
+def is_main(kind: str, name: str) -> bool:
+    return name.lower().endswith(VIDEO_RE if kind == "video" else (".zip",))
+
+
+def cap_items(c: dict) -> list[dict]:
+    """Items of a whole-home capture: one per clip / .zip; loose LiDAR files together are one."""
+    items, loose = [], None
+    for f in c["files"]:
+        if is_main(c["kind"], f["name"]):
+            items.append({"name": f["name"].replace("\\", "/").split("/")[-1], "files": [f]})
+        elif c["kind"] == "lidar":
+            if loose is None:
+                parts = f["name"].replace("\\", "/").split("/")
+                loose = {"name": parts[0] if len(parts) > 1 else "loose files", "files": [], "loose": True}
+                items.append(loose)
+            loose["files"].append(f)
+    return items
+
+
+def item_title(kind: str, i: int, n: int, name: str) -> str:
+    return f"Whole home ({'video' if kind == 'video' else 'LiDAR'}{f' {i}' if n > 1 else ''}: {name})"
 
 
 def verify_space(sp: dict, has_capture: bool = False) -> dict:
@@ -304,7 +330,7 @@ def caps_out(p: dict) -> dict:
 
 
 def present_caps(p: dict) -> list[dict]:
-    return [c for c in (p["captures"].get("video"), p["captures"].get("lidar")) if c]
+    return [c for c in (p["captures"].get("lidar"), p["captures"].get("video")) if c]  # fastest first
 
 
 def has_input(p: dict) -> bool:
@@ -312,16 +338,17 @@ def has_input(p: dict) -> bool:
 
 
 def plan_runs(p: dict) -> list[dict]:
-    """[rooms with photos] + [whole-home video] + [whole-home LiDAR]; output prefixes only with two+ runs."""
+    """[rooms with photos] + [one per LiDAR item] + [one per video]; output prefixes only with two+ runs."""
     runs = []
     photos = [s["space_id"] for s in p["spaces"] if s["files"]]
     if photos:
         runs.append({"tier": "photos", "title": TITLES["photos"], "label": "photos", "space_ids": photos})
     for c in present_caps(p):
-        if not c["files"]:
-            continue
-        runs.append({"tier": c["kind"], "title": TITLES[c["kind"]], "label": f"whole_home_{c['kind']}",
-                     "space_ids": [s["space_id"] for s in p["spaces"]]})
+        items = cap_items(c)
+        for i, it in enumerate(items, 1):
+            runs.append({"tier": c["kind"], "title": item_title(c["kind"], i, len(items), it["name"]),
+                         "label": f"whole_home_{c['kind']}" + (f"_{i}" if len(items) > 1 else ""),
+                         "item": it["name"], "space_ids": [s["space_id"] for s in p["spaces"]]})
     for r in runs:
         r["prefix"] = f"{r['label']}/" if len(runs) > 1 else ""
     return runs
@@ -552,9 +579,13 @@ class Handler(BaseHTTPRequestHandler):
         for f in sp["files"]:
             if f["sha256"] == sha:
                 return self._json(200, f)
-        if sid in SID_CAP and sp["files"]:
-            raise ApiErr(409, f"the whole-home {'video' if sp['kind'] == 'video' else 'LiDAR scan (.zip)'} already has a file: "
-                              f"{sp['files'][0]['name']}. Delete it first to replace it")
+        if sid in SID_CAP:
+            items = cap_items(sp)
+            new = is_main(sp["kind"], name) or (sp["kind"] == "lidar" and not any(it.get("loose") for it in items))
+            if new and len(items) >= MAX_ITEMS:
+                what = "videos" if sp["kind"] == "video" else "LiDAR scans"
+                raise ApiErr(409, f"the whole-home {sp['kind']} capture already has {len(items)} {what} "
+                                  f"(the most it takes is {MAX_ITEMS}): remove one first to add {name}")
         rec = {"name": name, "sha256": sha, "size": len(data)}
         sp["files"].append(rec)
         p["verify"] = None
@@ -578,10 +609,16 @@ class Handler(BaseHTTPRequestHandler):
         spaces = [verify_space(s, any(c["files"] for c in caps)) for s in p["spaces"]]
         captures = []
         for cap in caps:
-            v = verify_space(cap)
-            captures.append({"kind": cap["kind"], "name": f"whole home: {'video' if cap['kind'] == 'video' else 'LiDAR'}",
-                             "status": v["status"], "findings": v["findings"],
-                             "advice": None if v["status"] == "ok" else "Capture the whole home again: walk slowly through every room, tilt up to the ceiling once per room."})
+            items = cap_items(cap) or [{"name": None, "files": cap["files"]}]
+            for i, it in enumerate(items, 1):
+                v = verify_space({**cap, "files": it["files"]})
+                if it["name"] is None:
+                    v = {"status": "retake", "findings": [{"level": "retake", "check": "files", "files": [],
+                                                           "message": f"No {cap['kind']} uploaded: add one, or remove it."}]}
+                captures.append({"kind": cap["kind"], "item": it["name"],
+                                 "name": item_title(cap["kind"], i, len(items), it["name"]) if it["name"] else TITLES[cap["kind"]],
+                                 "status": v["status"], "findings": v["findings"],
+                                 "advice": None if v["status"] == "ok" else "Capture the whole home again: walk slowly through every room, tilt up to the ceiling once per room."})
         pf = []
         if not has_input(p):
             pf.append({"level": "retake", "check": "nothing to compute", "message": "Add photos to a room, or a whole-home video / LiDAR scan.", "files": []})

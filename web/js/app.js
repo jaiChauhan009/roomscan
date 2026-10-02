@@ -1,4 +1,4 @@
-// roomscan web app: project (rooms + an optional whole-home video and / or LiDAR scan), uploads,
+// roomscan web app: project (rooms + optional whole-home videos and / or LiDAR scans), uploads,
 // verify, run, job polling, results.
 import { API_BASE, setApiBase } from "../config.js";
 import { api, ApiError, CAP_SID, CAP_KINDS, capKindOf } from "./api.js";
@@ -507,26 +507,51 @@ function updateAll() {
   });
 }
 
-// ---------- whole-home captures (a video and / or a LiDAR scan, one file each) ----------
+// ---------- whole-home captures (videos and / or LiDAR scans, up to MAX_ITEMS each) ----------
+// Each video file and each Stray Scanner .zip is an item with its own run; a LiDAR export
+// added as loose files (odometry.csv, depth/ ...) counts as one item.
+const MAX_ITEMS = 5;
 const CAP = {
   video: {
-    tip: "One clip of the whole home: Video mode at 1x, walk slowly through every room along the walls, tilt up to the ceiling once per room. ",
-    noun: "video", none: "No video yet.", add: "Add video", replace: "Replace video",
+    tip: "A clip of the whole home: Video mode at 1x, walk slowly through every room along the walls, tilt up to the ceiling once per room. Several clips (one per floor, or a re-shoot) are each computed on their own. ",
+    noun: "video", none: "No video yet.", add: "Add video", another: "Add another video", many: "videos",
     accept: "video/*",
   },
   lidar: {
-    tip: "One Stray Scanner recording of the whole home (Pro iPhone / iPad): walk slowly round every room, tilt to the ceiling once per room. Files app > Stray Scanner > press and hold the newest folder > Compress, then add the .zip. ",
-    noun: "LiDAR scan", none: "No LiDAR scan yet.", add: "Add LiDAR zip", replace: "Replace LiDAR zip",
+    tip: "A Stray Scanner recording of the whole home (Pro iPhone / iPad): walk slowly round every room, tilt to the ceiling once per room. Files app > Stray Scanner > press and hold the newest folder > Compress, then add the .zip. Several scans (one per floor) are each computed on their own. ",
+    noun: "LiDAR scan", none: "No LiDAR scan yet.", add: "Add LiDAR zip", another: "Add another scan", many: "LiDAR scans",
     accept: ".zip,application/zip,application/x-zip-compressed",
   },
 };
 const capRendered = { video: "", lidar: "" };
+const isMainFile = (kind, name) => (kind === "video" ? /\.(mp4|mov|m4v|3gp|webm|mkv)$/i : /\.zip$/i).test(name || "");
 
 function capFileCount(kind) {
   const c = state.captures[kind];
   return (c ? (c.files || []).length : 0) + (state.local.get(CAP_SID[kind]) || []).length;
 }
 function anyCapture() { return CAP_KINDS.some((k) => capFileCount(k) > 0); }
+
+// The capture's items as rows: server files then queued ones; loose LiDAR files grouped in one row.
+function capItems(kind) {
+  const cap = state.captures[kind];
+  const entries = [
+    ...(cap ? cap.files || [] : []).map((f) => ({ name: f.name, size: f.size, state: "uploaded", sha: f.sha256 })),
+    ...(state.local.get(CAP_SID[kind]) || []).map((r) => ({ name: r.name, size: r.size, state: r.state, error: r.error, id: r.id })),
+  ];
+  const rows = [];
+  let loose = null;
+  for (const e of entries) {
+    if (isMainFile(kind, e.name) || kind === "video") { rows.push({ name: baseName(e.name), entries: [e] }); continue; }
+    if (!loose) {
+      const parts = String(e.name).split(/[\\/]/);
+      loose = { name: parts.length > 1 ? parts[0] : "loose files", entries: [], loose: true };
+      rows.push(loose);
+    }
+    loose.entries.push(e);
+  }
+  return rows;
+}
 
 // verify result: "captures" list (older servers: a single "capture")
 function verifyCaps(result) {
@@ -544,6 +569,20 @@ function renderCaptures() {
   renderSpacesHints();
 }
 
+function rowState(row, p) {
+  const es = row.entries;
+  const bad = es.find((e) => e.state === "error");
+  if (bad) return { text: "not uploaded: " + (bad.error || "error"), pct: null };
+  const up = p && es.find((e) => e.state !== "uploaded" && e.name === p.name);
+  if (up) {
+    const pct = p.total ? Math.round((100 * p.loaded) / p.total) : 0;
+    return { text: `${p.phase === "hash" ? "preparing" : "uploading"} ${pct} %`, pct };
+  }
+  const waiting = es.filter((e) => e.state !== "uploaded").length;
+  if (waiting) return { text: es.length > 1 ? `${es.length - waiting} of ${es.length} files uploaded` : "waiting to upload", pct: null };
+  return { text: "uploaded", pct: null };
+}
+
 function renderCapture(kind) {
   const root = $("#cap-" + kind);
   if (!root) return;
@@ -551,59 +590,93 @@ function renderCapture(kind) {
   const sid = CAP_SID[kind];
   const cap = state.captures[kind];
   const local = state.local.get(sid) || [];
-  const srv = cap ? cap.files || [] : [];
+  const rows = capItems(kind);
   const p = uploader.progress.get(sid);
-  const v = state.verify && verifyCaps(state.verify.result).find((x) => x.kind === kind);
+  const vs = state.verify ? verifyCaps(state.verify.result).filter((x) => x.kind === kind) : [];
   const dirty = !!(state.verify && state.verify.dirty);
   const pct = p && p.total ? Math.round((100 * p.loaded) / p.total) : 0;
-  const key = JSON.stringify([!!cap, srv, local.map((r) => [r.id, r.state, r.error]), p && [p.phase, pct], v, dirty]);
+  const key = JSON.stringify([!!cap, cap && cap.files, local.map((r) => [r.id, r.state, r.error]), p && [p.name, p.phase, pct], vs, dirty]);
   if (key === capRendered[kind]) return;
   capRendered[kind] = key;
 
   const badge = root.querySelector(".cap-badge");
-  if (v) {
+  if (vs.length) {
+    const status = vs.some((v) => v.status === "retake") ? "retake" : vs.some((v) => v.status === "warn") ? "warn" : "ok";
     badge.hidden = false;
-    badge.className = "badge cap-badge " + v.status + (dirty ? " stale" : "");
-    badge.textContent = (STATUS[v.status] || v.status) + (dirty ? " (re-check)" : "");
+    badge.className = "badge cap-badge " + status + (dirty ? " stale" : "");
+    badge.textContent = (STATUS[status] || status) + (dirty ? " (re-check)" : "");
   } else badge.hidden = true;
   root.querySelector(".cap-tip").replaceChildren(cfg.tip, h("a", { href: "#guide-walk" }, "See the guide"));
 
-  const has = srv.length + local.length > 0;
-  const [btn, input] = pickerButton(has ? cfg.replace : cfg.add, { accept: cfg.accept, multiple: false, onFiles: (fl) => addCaptureFile(kind, fl), primary: !has });
-  const all = [...srv.map((f) => ({ name: f.name, size: f.size, state: "uploaded" })), ...local.map((r) => ({ name: r.name, size: r.size, state: r.state, error: r.error }))];
+  const full = rows.length >= MAX_ITEMS;
+  const [btn, input] = pickerButton(rows.length ? cfg.another : cfg.add, { accept: cfg.accept, multiple: true, onFiles: (fl) => addCaptureFile(kind, fl), primary: !rows.length });
+  btn.disabled = full;
+  if (full) btn.title = `Up to ${MAX_ITEMS} ${cfg.many}: remove one to add another`;
   const failed = local.filter((r) => r.state === "error");
+  const used = new Set();
+  const verifyBlock = (v) => h("div", { class: "cap-verify" }, h("p", { class: "small" }, h("strong", {}, v.name || `whole home: ${cfg.noun}`)), renderFindings(v.findings || [], null, v.status),
+    v.advice && v.status !== "ok" ? h("p", { class: "small" }, (v.status === "retake" ? "Retake: " : "Tip: ") + v.advice) : null);
+  const items = rows.map((row, i) => {
+    const st = rowState(row, p);
+    const size = row.entries.reduce((a, e) => a + (e.size || 0), 0);
+    const v = vs.find((x, j) => !used.has(j) && x.item === row.name && used.add(j));
+    const label = rows.length > 1 ? `${i + 1}. ${row.name}` : row.name;
+    return h("li", { class: "cap-item" },
+      h("div", { class: "cap-row" },
+        h("span", {}, `${label}${row.loose ? ` (${plural(row.entries.length, "file", "files")})` : ""} · ${fmtBytes(size)} · ${st.text}`),
+        h("button", { type: "button", class: "btn small ghost danger", "aria-label": `Remove ${row.name}`, onclick: () => removeCaptureFile(kind, row) }, "Remove")),
+      st.pct != null ? h("div", { class: "bar", role: "progressbar", "aria-label": `Upload progress, ${row.name}`, "aria-valuenow": String(st.pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${st.pct}%` })) : null,
+      v ? verifyBlock(v) : null);
+  });
+  const rest = vs.filter((x, j) => !used.has(j)); // e.g. "no video uploaded", or an older server's single block
   root.querySelector(".cap-body").replaceChildren(...[
-    all.length ? h("ul", { class: "small" }, all.map((f) => h("li", {}, `${baseName(f.name)} · ${fmtBytes(f.size || 0)} · ${f.state === "uploaded" ? "uploaded" : f.state === "error" ? "not uploaded: " + (f.error || "error") : "waiting to upload"}`))) : h("p", { class: "small muted" }, cfg.none),
-    p ? h("div", { class: "progress" }, h("span", { class: "small muted" }, `${p.phase === "hash" ? "Preparing" : "Uploading"} ${baseName(p.name)} · ${pct} %`),
-      h("div", { class: "bar", role: "progressbar", "aria-label": `Upload progress, whole-home ${cfg.noun}`, "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` }))) : null,
+    rows.length ? h("ul", { class: "small cap-items" }, items) : h("p", { class: "small muted" }, cfg.none),
     failed.length ? h("div", { class: "error-box" }, `Not uploaded: ${failed[0].error || "error"}`) : null,
     h("div", { class: "add-btns" }, btn, input,
       failed.length ? h("button", { type: "button", class: "btn small", onclick: async () => { for (const r of failed) await files.patch(r.id, { state: "pending", error: null }); await refreshLocal(); uploader.kick(); } }, "Retry") : null,
-      cap || local.length ? h("button", { type: "button", class: "btn small ghost danger", onclick: () => removeCapture(kind) }, `Remove ${cfg.noun}`) : null),
-    v ? h("div", {}, h("p", { class: "small" }, h("strong", {}, v.name || `whole home: ${cfg.noun}`)), renderFindings(v.findings || [], null, v.status),
-      v.advice && v.status !== "ok" ? h("p", { class: "small" }, (v.status === "retake" ? "Retake: " : "Tip: ") + v.advice) : null) : null].filter(Boolean));
+      rows.length > 1 || (cap && !rows.length) ? h("button", { type: "button", class: "btn small ghost danger", onclick: () => removeCapture(kind) }, `Remove all ${cfg.many}`) : null),
+    full ? h("p", { class: "small muted" }, `That is the most (${MAX_ITEMS} ${cfg.many}): remove one to add another.`) : null,
+    ...rest.map(verifyBlock)].filter(Boolean));
 }
 
 async function addCaptureFile(kind, fileList) {
-  const f = Array.from(fileList || []).filter((x) => x.size > 0)[0];
-  if (!f) return;
-  if (!ACCEPT[kind](f)) { banner(`${f.name} is not a ${kind === "video" ? "video" : "LiDAR .zip"} file.`); return; }
+  const list = Array.from(fileList || []).filter((x) => x.size > 0 && !x.name.startsWith("."));
+  const ok = list.filter(ACCEPT[kind]);
+  if (ok.length < list.length) banner(`${list.length - ok.length} file(s) skipped: not a ${kind === "video" ? "video" : "LiDAR .zip"} file.`);
+  const room = MAX_ITEMS - capItems(kind).length;
+  if (ok.length > room) banner(`Up to ${MAX_ITEMS} ${CAP[kind].many}: ${ok.length - Math.max(room, 0)} not added. Remove one to add another.`);
+  const add = ok.slice(0, Math.max(room, 0));
+  if (!add.length) return;
   const sid = CAP_SID[kind];
-  // one file per capture: replacing removes the old one (server and device) first
-  uploader.paused.add(sid);
   try {
-    await files.delSpace(sid);
     if (!state.captures[kind]) state.captures[kind] = await api.setCapture(state.pid, kind);
-    const cap = state.captures[kind];
-    cap.files = cap.files || [];
-    for (const old of [...cap.files]) {
-      await api.deleteFile(state.pid, sid, old.sha256).catch((e) => { if (e.status !== 404) throw e; });
-      cap.files = cap.files.filter((x) => x.sha256 !== old.sha256);
-    }
-    uploader.setServerFiles(sid, cap.files);
-    await files.add(state.pid, sid, f);
+    uploader.setServerFiles(sid, state.captures[kind].files || []);
+    for (const f of add) await files.add(state.pid, sid, f);
   } catch (e) {
     banner(`Could not add the whole-home ${CAP[kind].noun}. ` + explain(e));
+  }
+  saveProjectCache();
+  markVerifyDirty();
+  await refreshLocal();
+  uploader.kick();
+}
+
+// one item: its queued files (device) and its uploaded files (server)
+async function removeCaptureFile(kind, row) {
+  if (!confirm(`Remove ${row.name} from the whole-home ${CAP[kind].many}?`)) return;
+  const sid = CAP_SID[kind];
+  uploader.paused.add(sid);
+  try {
+    for (const e of row.entries) if (e.id != null) await files.del(e.id);
+    const cap = state.captures[kind];
+    for (const e of row.entries) {
+      if (!e.sha || !cap) continue;
+      await api.deleteFile(state.pid, sid, e.sha).catch((err) => { if (err.status !== 404) throw err; });
+      cap.files = (cap.files || []).filter((x) => x.sha256 !== e.sha);
+    }
+    uploader.setServerFiles(sid, cap ? cap.files : []);
+  } catch (e) {
+    banner(`Could not remove ${row.name}. ` + explain(e));
   } finally {
     uploader.paused.delete(sid);
   }
@@ -614,7 +687,7 @@ async function addCaptureFile(kind, fileList) {
 }
 
 async function removeCapture(kind) {
-  if (!confirm(`Remove the whole-home ${CAP[kind].noun}?`)) return;
+  if (!confirm(`Remove all whole-home ${CAP[kind].many}?`)) return;
   const sid = CAP_SID[kind];
   uploader.paused.add(sid);
   try {
