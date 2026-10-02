@@ -4,7 +4,7 @@ import pytest
 from shapely.geometry import Polygon
 from synth import furnished_room
 
-from roomscan.geometry.layout import _settle, _vertices, extract_layout
+from roomscan.geometry.layout import _fill_slots, _settle, _square_corners, _vertices, extract_layout
 from roomscan.geometry.pointcloud import Cloud
 
 WARDROBE = (1.4, 2.6, 0.0, 0.6, 1.8)  # 1.2 m wide, 0.6 m deep, 1.8 m tall, against the z = 0 wall
@@ -77,3 +77,69 @@ def test_a_notch_whose_front_snapped_onto_the_wall_becomes_one_wall():
     out = _settle(segs)
     assert len(out) == 4  # wall, step, front, step, wall -> one wall
     assert Polygon(_vertices(out)).area == pytest.approx(12.0, abs=0.03)
+
+
+def _raster_segs(pts):
+    """Raster-style segments (as _rectilinear_polygon returns them) of a CCW vertex list."""
+    pts = [np.asarray(p, float) for p in pts]
+    out = []
+    for p, q in zip(pts, pts[1:] + pts[:1]):
+        d = q - p
+        orient = "H" if abs(d[1]) < 1e-9 else "V" if abs(d[0]) < 1e-9 else "D"
+        coord = p[1] if orient == "H" else p[0] if orient == "V" else 0.0
+        out.append({"orient": orient, "coord": float(coord), "len": float(np.linalg.norm(d)), "p": p, "q": q})
+    return out
+
+
+def test_a_short_diagonal_is_the_corner_it_cut():
+    # 4 x 3 m room whose raster contour cut the (2, 0) corner region with a 0.2 m diagonal
+    segs = _raster_segs([(0, 0), (3.86, 0), (4, 0.14), (4, 3), (0, 3)])
+    out = _square_corners(segs)
+    assert [s["orient"] for s in out] == ["H", "V", "H", "V"]
+    assert Polygon(_vertices(out)).area == pytest.approx(12.0, abs=1e-6)
+
+
+def test_a_short_diagonal_between_parallel_walls_is_a_step():
+    # the x = 4 wall steps out to 4.2 at y = 1.5 through a 0.25 m diagonal
+    segs = _raster_segs([(0, 0), (4, 0), (4, 1.4), (4.2, 1.55), (4.2, 3), (0, 3)])
+    out = _square_corners(segs)
+    assert [s["orient"] for s in out] == ["H", "V", "H", "V", "H", "V"]
+    assert out[2]["coord"] == pytest.approx(1.475)
+    assert Polygon(_vertices(out)).area == pytest.approx(4 * 1.475 + 4.2 * 1.525, abs=1e-6)
+
+
+def test_a_slanted_wall_stays_slanted():
+    segs = _raster_segs([(0, 0), (3.3, 0), (4, 0.7), (4, 3), (0, 3)])  # a 1 m slanted wall
+    assert _square_corners(segs) is segs
+
+
+def _slot_room(width, depth=0.8):
+    """4 x 3 m room (counter-clockwise) with a slot `width` wide and `depth` deep cut into it
+    from the x = 4 wall, centred at y = 1.5."""
+    y0, y1 = 1.5 - width / 2, 1.5 + width / 2
+    return [_seg("H", 0.0), _seg("V", 4.0), _seg("H", y0), _seg("V", 4.0 - depth), _seg("H", y1),
+            _seg("V", 4.01), _seg("H", 3.0), _seg("V", 0.0)]
+
+
+def test_a_narrow_slot_cut_into_a_room_is_filled():
+    out = _fill_slots(_slot_room(0.18))
+    assert [s["orient"] for s in out] == ["H", "V", "H", "V"]  # the wall either side of it is one wall again
+    assert Polygon(_vertices(out)).area == pytest.approx(4.005 * 3.0, abs=0.02)
+
+
+@pytest.mark.parametrize("width, depth", [(0.6, 0.8), (0.18, 2.0)])
+def test_a_wide_notch_or_a_long_partition_is_not_a_slot(width, depth):
+    segs = _slot_room(width, depth)
+    out = _fill_slots(segs)
+    assert len(out) == len(segs) and all(a is b for a, b in zip(out, segs))
+
+
+def test_a_slot_that_reaches_another_room_stays():
+    from roomscan.geometry.layout import PlanFrame
+    frame = PlanFrame(yaw=0.0, a0=-1.0, b0=-1.0, res=0.02, shape=(300, 350))
+    others = np.zeros(frame.shape, bool)
+    r, c = frame.to_cell(np.array([[3.7, 1.5]]))
+    others[r[0], c[0]] = True  # a cell of the neighbour inside the slot
+    segs = _slot_room(0.18)
+    out = _fill_slots(segs, others, frame)
+    assert len(out) == len(segs) and all(a is b for a, b in zip(out, segs))
