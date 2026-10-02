@@ -289,6 +289,13 @@ def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str) -> ScalePlan | None:
     LiDAR self-check). None when nothing given applies."""
     notes: list[str] = []
     assigned = assign(ks, rooms, notes)
+    for name, k in assigned.items():  # numbers typed by a person: flag likely typos, still use them
+        odd = [f"{q} {v:.2f} m" for q, v in (("length", k.length), ("width", k.width)) if v is not None and v > 12]
+        if k.height is not None and not 2.0 <= k.height <= 4.5:
+            odd.append(f"height {k.height:.2f} m")
+        if odd:
+            notes.append(f"{name}: {', '.join(odd)} is unusual for one room: please check the number "
+                         f"(a typo, or centimetres?)")
     by_room = {r.name: r for r in rooms}
     ratios = [x for name, k in assigned.items() for x in ratios_for(k, by_room[name], notes)]
     if not ratios:
@@ -397,15 +404,17 @@ def tighten(out, p: ScalePlan, rooms: list[RoomDims], rel_extra: float = 0.0) ->
         k = p.assigned.get(room.id)
         measured_walls: set[str] = set()
         if k is not None and k.height is not None:
-            note = "ceiling height given by the user (tape)"
             if room.ceiling_height.value is not None:
+                # measured: keep the capture's own value and interval, so the comparison with the
+                # user's number means something (overwriting it showed a 0 % difference)
                 v = room.ceiling_height.value
-                half = abs(v - k.height) + TAPE_M
-                room.ceiling_height = _m(k.height, half, "m", note)
-            else:  # not observed: the user's number is the only one
-                room.ceiling_height = _m(k.height, TAPE_M, "m", note + "; not observed in the capture")
-            for w in room.walls:
-                w.height = room.ceiling_height
+                room.ceiling_height = room.ceiling_height.model_copy(
+                    update={"note": f"measured {v:.2f} m; user gave {k.height:.2f} m ({100 * (v / k.height - 1):+.0f} %)"})
+            else:  # not observed: the user's number is the only one, labelled as such
+                room.ceiling_height = _m(k.height, TAPE_M, "m",
+                                         "ceiling not observed in the capture: height given by the user (tape)")
+                for w in room.walls:
+                    w.height = room.ceiling_height
         r = by.get(room.id)
         if k is not None and r is not None and r.rect:
             for q in ("length", "width"):

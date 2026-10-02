@@ -106,7 +106,10 @@ def test_finish_tightens_measured_and_records_scale():
     out, layout = _output(room)
     KS.finish(out, p, layout.rooms, known, mode="room")
     ch = out.rooms[0].ceiling_height
-    assert ch.value == pytest.approx(2.6) and ch.ci90[1] - ch.ci90[0] == pytest.approx(0.02, abs=1e-3)
+    # the measured ceiling is kept (scaled by the given length), the user's height only noted:
+    # overwriting it made the comparison show 0 % whatever was measured
+    assert ch.value == pytest.approx(2.6) and "user gave 2.60 m" in (ch.note or "")
+    assert ch.ci90[1] - ch.ci90[0] > 0.02  # the capture's own interval, not the tape's
     assert out.rooms[0].walls[0].height.value == pytest.approx(2.6)
     assert out.capture.meta["known_size_scale"] == pytest.approx(1 / 0.7, rel=1e-3)
     assert any("known sizes" in w for w in out.warnings)
@@ -170,3 +173,9 @@ def test_a_photo_room_is_never_scaled_by_its_ceiling_height_alone():
     p = KS.plan(KS.parse({"rooms": {"01_hall": {"height": 2.6}}}), [KS.dims_of(room)], "room")
     assert p.per_room.get("01_hall", 1.0) == pytest.approx(1.0)
     assert any("only a ceiling height given" in w for w in p.warnings)
+
+def test_unusual_numbers_are_flagged_as_likely_typos():
+    room = rect_room("01_hall", 4.0, 3.0, 2.5)
+    p = KS.plan(KS.parse({"rooms": {"01_hall": {"length": 19.0, "height": 4.9}}}), [KS.dims_of(room)], "room")
+    assert any("unusual for one room" in w and "19.00" in w and "4.90" in w for w in p.warnings)
+
