@@ -1,0 +1,86 @@
+Output of fixloop/round2/evidence_drift.py, run on the code at tag fixloop2-before (commit 026cea1).
+Regenerate a section with: python fixloop/round2/evidence_drift.py <section> [option]
+
+### python fixloop/round2/evidence_drift.py section
+Strip across the bedroom, A plan frame y 1.0-2.0 m, vertical surfaces more than 0.6 m above the floor.
+B's far wall: x = 8.405 m, seen 0.74-1.37 m above the floor (2394 points)
+A's far wall: x = 8.835 m, seen 0.78-3.06 m above the floor (7311 points)
+A points within 5 cm of B's far wall position: 6
+
+### python fixloop/round2/evidence_drift.py walls shipped
+weights=shipped: B onto A: 92.3 % of B wall points within 15 cm of A's, median distance 1.25 cm
+wall | scan | frames | seen during (s) | position median (p10-p90) m
+left wall | A | 85 | 33-37, 143-147, 157-157 | 5.395 (5.375-5.645)
+right wall | A | 81 | 43-48, 58-62, 142-142, 151-154 | 8.775 (8.755-8.835)
+top wall | A | 73 | 44-51, 152-153 | 3.005 (2.987-3.045)
+left wall | B | 37 | 105-109 | 5.395 (5.395-5.605)
+right wall | B | 58 | 4-10 | 8.515 (8.399-8.525)
+top wall | B | 62 | 4-11 | 2.680 (2.645-2.715)
+
+### python fixloop/round2/evidence_drift.py walls current
+weights=current: B onto A: 92.3 % of B wall points within 15 cm of A's, median distance 1.25 cm
+wall | scan | frames | seen during (s) | position median (p10-p90) m
+left wall | A | 85 | 33-37, 143-147, 157-157 | 5.395 (5.375-5.645)
+right wall | A | 81 | 43-48, 58-62, 142-142, 151-154 | 8.775 (8.755-8.835)
+top wall | A | 73 | 44-51, 152-153 | 3.005 (2.987-3.045)
+left wall | B | 37 | 105-109 | 5.395 (5.395-5.605)
+right wall | B | 58 | 4-10 | 8.515 (8.399-8.525)
+top wall | B | 62 | 4-11 | 2.680 (2.645-2.715)
+
+### python fixloop/round2/evidence_drift.py walls measured
+weights=measured: B onto A: 97.3 % of B wall points within 15 cm of A's, median distance 0.69 cm
+wall | scan | frames | seen during (s) | position median (p10-p90) m
+left wall | A | 86 | 33-37, 143-147, 157-157 | 5.415 (5.385-5.635)
+right wall | A | 83 | 43-49, 58-62, 142-142, 151-154 | 8.795 (8.775-8.863)
+top wall | A | 72 | 44-51, 152-153 | 2.985 (2.975-3.015)
+left wall | B | 28 | 105-109 | 5.435 (5.412-5.435)
+right wall | B | 60 | 3-9 | 8.725 (8.655-8.745)
+top wall | B | 63 | 4-11 | 2.975 (2.945-3.005)
+
+### python fixloop/round2/evidence_drift.py closures shipped
+A weights=shipped: {'max_submap_shift_m': 0.133, 'mean_submap_shift_m': 0.055, 'accepted': 30, 'kept': 18}
+B weights=shipped: {'max_submap_shift_m': 0.028, 'mean_submap_shift_m': 0.006, 'accepted': 7, 'kept': 1}
+    0-35 fit 0.42 rmse 0.018 correction 0.621 m 3.2 deg | rejected
+    3- 8 fit 0.34 rmse 0.017 correction 0.098 m 1.7 deg | rejected
+    3-33 fit 0.35 rmse 0.018 correction 0.467 m 4.4 deg | accepted
+    4-33 fit 0.31 rmse 0.019 correction 0.430 m 5.3 deg | rejected
+    8-27 fit 0.53 rmse 0.018 correction 0.362 m 2.3 deg | accepted
+    9-15 fit 0.31 rmse 0.017 correction 0.205 m 1.5 deg | rejected
+    9-27 fit 0.64 rmse 0.019 correction 0.344 m 2.1 deg | accepted
+   10-14 fit 0.33 rmse 0.018 correction 0.151 m 0.8 deg | rejected
+   10-15 fit 0.48 rmse 0.017 correction 0.169 m 1.9 deg | accepted
+   10-27 fit 0.44 rmse 0.018 correction 0.108 m 5.3 deg | accepted
+   15-26 fit 0.30 rmse 0.018 correction 0.808 m 0.5 deg | rejected
+   15-27 fit 0.43 rmse 0.017 correction 0.168 m 0.7 deg | accepted
+   17-21 fit 0.34 rmse 0.017 correction 0.043 m 0.9 deg | rejected
+   21-25 fit 0.43 rmse 0.015 correction 0.049 m 0.4 deg | accepted | kept after optimisation
+
+### python fixloop/round2/evidence_drift.py odometry
+A: 28 of 70 consecutive submap pairs well constrained; ARKit error per 3 s step: horizontal median 1.3 cm, p90 3.7 cm; yaw median 0.22 deg, rms 0.37 deg
+B: 15 of 37 consecutive submap pairs well constrained; ARKit error per 3 s step: horizontal median 0.9 cm, p90 3.0 cm; yaw median 0.31 deg, rms 0.47 deg
+shipped odometry weights: 1 cm and 0.29 deg per step
+
+### python fixloop/round2/evidence_drift.py weights
+A: no correction: crispness 8.429
+A: shipped weights {'sigma_m': 0.01, 'sigma_deg': 0.2864788975654116, 'mcd': 0.03}: crispness 8.359, closures accepted 30, kept 18, max submap shift 0.133 m
+A: measured weights {'sigma_m': 0.02, 'sigma_deg': 0.4, 'mcd': 0.055999999999999994}: crispness 8.836, closures accepted 30, kept 25, max submap shift 0.134 m
+B: no correction: crispness 10.019
+B: shipped weights {'sigma_m': 0.01, 'sigma_deg': 0.2864788975654116, 'mcd': 0.03}: crispness 9.583, closures accepted 7, kept 1, max submap shift 0.028 m
+B: measured weights {'sigma_m': 0.02, 'sigma_deg': 0.4, 'mcd': 0.055999999999999994}: crispness 12.261, closures accepted 7, kept 6, max submap shift 0.519 m
+
+### python fixloop/round2/evidence_drift.py tolerance
+B: odometry 2 cm / 0.4 deg, pruning distance 3.0 cm: closures accepted 7, kept 1, max submap shift 0.038 m
+B: odometry 2 cm / 0.4 deg, pruning distance 5.6 cm: closures accepted 7, kept 6, max submap shift 0.519 m
+
+### python fixloop/round2/evidence_drift.py synthetic
+end drift | wrong closure | weights | closures kept | max error vs truth (correct closures) | max shift
+0.25 m | none | shipped | 6/6 | 1.8 cm | 0.187 m
+0.25 m | none | measured | 6/6 | 0.5 cm | 0.197 m
+0.35 m | none | shipped | 5/6 | 13.2 cm | 0.162 m
+0.35 m | none | measured | 6/6 | 0.8 cm | 0.276 m
+0.50 m | none | shipped | 1/6 | 41.9 cm | 0.020 m
+0.50 m | none | measured | 6/6 | 1.1 cm | 0.393 m
+0.50 m | 0.3 m, 0.0 deg | shipped | 1/7 | 41.9 cm | 0.020 m
+0.50 m | 0.3 m, 0.0 deg | measured | 6/7 | 1.1 cm | 0.393 m
+0.50 m | 0.0 m, 5.0 deg | shipped | 1/7 | 41.9 cm | 0.020 m
+0.50 m | 0.0 m, 5.0 deg | measured | 6/7 | 1.1 cm | 0.393 m
