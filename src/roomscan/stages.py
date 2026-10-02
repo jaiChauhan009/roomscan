@@ -54,6 +54,8 @@ class Stages(dict):
             self.records[name] = {"name": name, "status": status, "seconds": None, "gate": None, "note": None}
             self.plan.append(name)
         self.records[name]["status"] = status
+        if status == "running":
+            self.records[name]["_t"] = time.time()
         self._emit(name)
 
     def __setitem__(self, name: str, seconds: float) -> None:
@@ -84,6 +86,12 @@ class Stages(dict):
         rec["gate"], rec["note"] = level, note
         if level == "fail":
             rec["status"] = "failed"
+        elif rec["status"] in ("pending", "running"):
+            # a stage whose output passed its check is finished, even if its pipeline never
+            # timed it (the photo tier's export): time it from when it started
+            rec["status"] = "done"
+            if rec.get("seconds") is None and rec.get("_t"):
+                rec["seconds"] = round(time.time() - rec["_t"], 2)
         self._emit(name)
         if level == "fail":
             raise StageFailed(f"stage '{name}' failed its check: {note}")
@@ -97,7 +105,7 @@ class Stages(dict):
     def write(self, out_dir: Path) -> None:
         Path(out_dir).mkdir(parents=True, exist_ok=True)
         data = {"total_seconds": round(time.time() - self.t0, 2),
-                "stages": [self.records[s] for s in self.plan]}
+                "stages": [{k: v for k, v in self.records[s].items() if not k.startswith("_")} for s in self.plan]}
         (Path(out_dir) / "stages.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 

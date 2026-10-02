@@ -38,6 +38,17 @@ def test_export_gate_requires_an_interval_on_every_measurement():
         S.gate_export(st, {"rooms": [{"floor_area": {"value": 10.0, "ci90": None}}]})
 
 
+def test_a_passed_gate_finishes_a_stage_its_pipeline_never_timed():
+    # the photo tier's export is only checked, never timed: it must not stay "running"
+    events = []
+    st = S.Stages("photo", lambda n, s, sec, note: events.append((n, s)))
+    for name in ("load+depth", "room_fit", "stitch", "openings", "damage"):
+        st[name] = 0.1
+    S.gate_export(st, {"rooms": []})
+    assert st.records["export"]["status"] == "done" and st.records["export"]["seconds"] is not None
+    assert events[-1] == ("export", "done")
+
+
 def test_a_crash_marks_the_running_stage_failed():
     events = []
     st = S.Stages("video", lambda n, s, sec, note: events.append((n, s, note)))
