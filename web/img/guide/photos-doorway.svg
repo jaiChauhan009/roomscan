@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="dw-t dw-d">
+  <title id="dw-t">Photos: stand in the doorway</title>
+  <desc id="dw-d">Top view of a room. You stand in the doorway and take 5 to 6 photos turning from left to right, each overlapping the last.</desc>
+  <style>
+    .dw-wall{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:square}
+    .dw-door{stroke:var(--guide-bg,#fff);stroke-width:7}
+    .dw-ray{stroke:#2f80ed;stroke-width:2.2;stroke-linecap:round}
+    .dw-fan{fill:#2f80ed;opacity:.10}
+    .dw-n{font:600 13px system-ui,sans-serif;fill:#2f80ed;text-anchor:middle;dominant-baseline:central}
+    .dw-lbl{font:13px system-ui,sans-serif;fill:currentColor}
+    .dw-you{fill:#eb5757}
+  </style>
+  <rect class="dw-wall" x="20" y="15" width="280" height="170"/>
+  <line class="dw-door" x1="130" y1="185" x2="190" y2="185"/>
+  <path class="dw-fan" d="M160 175 L30 30 L290 30 Z"/>
+  <g class="dw-ray">
+    <line x1="160" y1="175" x2="40" y2="70"/><line x1="160" y1="175" x2="75" y2="30"/>
+    <line x1="160" y1="175" x2="135" y2="25"/><line x1="160" y1="175" x2="190" y2="25"/>
+    <line x1="160" y1="175" x2="245" y2="30"/><line x1="160" y1="175" x2="280" y2="70"/>
+  </g>
+  <g>
+    <circle cx="40" cy="70" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="40" y="70">1</text>
+    <circle cx="75" cy="30" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="75" y="30">2</text>
+    <circle cx="135" cy="25" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="135" y="25">3</text>
+    <circle cx="190" cy="25" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="190" y="25">4</text>
+    <circle cx="245" cy="30" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="245" y="30">5</text>
+    <circle cx="280" cy="70" r="10" fill="var(--guide-bg,#fff)" stroke="#2f80ed" stroke-width="2"/><text class="dw-n" x="280" y="70">6</text>
+  </g>
+  <circle class="dw-you" cx="160" cy="175" r="8"/>
+  <text class="dw-lbl" x="172" y="207">you, in the doorway</text>
+  <text class="dw-lbl" x="22" y="207">turn left → right</text>
+</svg>
