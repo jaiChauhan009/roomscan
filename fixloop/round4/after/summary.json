@@ -1,0 +1,256 @@
+{
+ "laser": {
+  "arkit_42446532": {
+   "ceilings": [
+    {
+     "room": "room",
+     "gt": 2.337,
+     "pred": 2.3077,
+     "err": -0.0293,
+     "ok": false,
+     "in_ci": true
+    }
+   ],
+   "gate": {
+    "n": 1,
+    "n_ok": 0,
+    "max_abs_err_m": 0.0293,
+    "gate_m": 0.015,
+    "pass": false
+   }
+  },
+  "arkit_44358446": {
+   "ceilings": [
+    {
+     "room": "room",
+     "gt": 2.387,
+     "pred": 2.3789,
+     "err": -0.0081,
+     "ok": true,
+     "in_ci": true
+    }
+   ],
+   "gate": {
+    "n": 1,
+    "n_ok": 1,
+    "max_abs_err_m": 0.0081,
+    "gate_m": 0.015,
+    "pass": true
+   }
+  },
+  "arkit_47332890": {
+   "ceilings": [
+    {
+     "room": "room",
+     "gt": 2.705,
+     "pred": 2.6884,
+     "err": -0.0166,
+     "ok": false,
+     "in_ci": true
+    }
+   ],
+   "gate": {
+    "n": 1,
+    "n_ok": 0,
+    "max_abs_err_m": 0.0166,
+    "gate_m": 0.015,
+    "pass": false
+   }
+  },
+  "arkit_47331988": {
+   "ceilings": [
+    {
+     "room": "room",
+     "gt": 2.614,
+     "pred": 2.6048,
+     "err": -0.0092,
+     "ok": true,
+     "in_ci": true
+    }
+   ],
+   "gate": {
+    "n": 1,
+    "n_ok": 1,
+    "max_abs_err_m": 0.0092,
+    "gate_m": 0.015,
+    "pass": true
+   }
+  }
+ },
+ "guards": {
+  "apt_lidar_a": [
+   {
+    "room": "room_1",
+    "area_m2": 7.43,
+    "source": "ceiling_plane",
+    "height": 3.0569
+   },
+   {
+    "room": "room_2",
+    "area_m2": 7.73,
+    "source": "ceiling_plane",
+    "height": 3.0721
+   },
+   {
+    "room": "room_3",
+    "area_m2": 2.73,
+    "source": "ceiling_plane",
+    "height": 3.0794
+   },
+   {
+    "room": "room_4",
+    "area_m2": 9.1,
+    "source": "ceiling_plane",
+    "height": 2.4497
+   },
+   {
+    "room": "room_5",
+    "area_m2": 5.96,
+    "source": "ceiling_plane",
+    "height": 2.4557
+   },
+   {
+    "room": "room_6",
+    "area_m2": 1.19,
+    "source": "ceiling_plane",
+    "height": 2.4615
+   },
+   {
+    "room": "room_7",
+    "area_m2": 2.74,
+    "source": "ceiling_plane",
+    "height": 2.3749
+   },
+   {
+    "room": "room_8",
+    "area_m2": 1.13,
+    "source": "ceiling_plane",
+    "height": 2.4479
+   },
+   {
+    "room": "room_9",
+    "area_m2": 4.17,
+    "source": "ceiling_plane",
+    "height": 2.3462
+   }
+  ],
+  "apt_lidar_b": [
+   {
+    "room": "room_1",
+    "area_m2": 4.99,
+    "source": "wall_top",
+    "height": 2.0544
+   },
+   {
+    "room": "room_2",
+    "area_m2": 8.45,
+    "source": "wall_top",
+    "height": 1.9411
+   },
+   {
+    "room": "room_3",
+    "area_m2": 9.64,
+    "source": "wall_top",
+    "height": 2.203
+   },
+   {
+    "room": "room_4",
+    "area_m2": 3.8,
+    "source": "wall_top",
+    "height": 1.8396
+   },
+   {
+    "room": "room_5",
+    "area_m2": 4.46,
+    "source": "wall_top",
+    "height": 1.5068
+   },
+   {
+    "room": "room_6",
+    "area_m2": 5.34,
+    "source": "wall_top",
+    "height": 2.0247
+   },
+   {
+    "room": "room_7",
+    "area_m2": 3.08,
+    "source": "wall_top",
+    "height": 1.8276
+   }
+  ],
+  "room_lidar": [
+   {
+    "room": "room_1",
+    "area_m2": 6.33,
+    "source": "wall_top",
+    "height": 1.7559
+   },
+   {
+    "room": "room_2",
+    "area_m2": 3.23,
+    "source": "wall_top",
+    "height": 1.7127
+   }
+  ],
+  "own_lidar_1": [
+   {
+    "room": "room_1",
+    "area_m2": 15.46,
+    "source": "ceiling_plane",
+    "height": 2.3882
+   },
+   {
+    "room": "room_2",
+    "area_m2": 13.95,
+    "source": "ceiling_plane",
+    "height": 2.4089
+   },
+   {
+    "room": "room_3",
+    "area_m2": 6.82,
+    "source": "ceiling_plane",
+    "height": 2.5324
+   },
+   {
+    "room": "room_4",
+    "area_m2": 11.87,
+    "source": "ceiling_plane",
+    "height": 2.5722
+   }
+  ],
+  "own_lidar_2": [
+   {
+    "room": "room_1",
+    "area_m2": 13.12,
+    "source": "ceiling_plane",
+    "height": 2.5969
+   },
+   {
+    "room": "room_2",
+    "area_m2": 1.6,
+    "source": "ceiling_plane",
+    "height": 2.5881
+   },
+   {
+    "room": "room_3",
+    "area_m2": 11.43,
+    "source": "ceiling_plane",
+    "height": 2.633
+   },
+   {
+    "room": "room_4",
+    "area_m2": 2.13,
+    "source": "ceiling_plane",
+    "height": 2.3627
+   }
+  ],
+  "own_lidar_3": [
+   {
+    "room": "room_1",
+    "area_m2": 11.58,
+    "source": "ceiling_plane",
+    "height": 2.6252
+   }
+  ]
+ }
+}

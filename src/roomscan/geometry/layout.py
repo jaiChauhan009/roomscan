@@ -20,7 +20,7 @@ import numpy as np
 from scipy import ndimage as ndi
 from shapely.geometry import Point, Polygon
 
-from roomscan.geometry.planes import (UP_T, WALL_T, Level, ceiling_level, floor_level,
+from roomscan.geometry.planes import (UP_T, WALL_T, Level, area_level, ceiling_level, floor_level,
                                       manhattan_yaw, wall_top_level)
 from roomscan.geometry.pointcloud import Cloud
 
@@ -791,11 +791,15 @@ def _per_room_levels(rooms: list[Room], cloud: Cloud, ab: np.ndarray, frame: Pla
         inner = ndi.binary_erosion(room.mask, np.ones((7, 7)))  # stay 6 cm off the walls
         inside = np.zeros(len(ab), bool)
         inside[ok] = inner[row[ok], col[ok]]
+        up = inside & (cloud.normals[:, 1] > UP_T)
+        down = inside & (cloud.normals[:, 1] < -UP_T)
         f = floor_level(cloud, inside)
         if f is not None and abs(f.value - floor.value) < 0.25:
-            room.floor = f
+            # the peak is the most-looked-at patch; every 25 cm patch of the floor counts once
+            room.floor = area_level(cloud.points[up, 1], ab[up], f)
         c = ceiling_level(cloud, room.floor.value, inside)
         if c is not None:
+            c = area_level(cloud.points[down, 1], ab[down], c)
             room.ceiling, room.ceiling_source = c, "ceiling_plane"
         else:
             near = np.zeros(len(ab), bool)

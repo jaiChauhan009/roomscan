@@ -97,6 +97,34 @@ def ceiling_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None,
     return _mode_refine(y, w)
 
 
+def area_level(y: np.ndarray, xz: np.ndarray, peak: Level, cell: float = 0.25, window: float = 0.06,
+               min_pts: int = 20, min_cells: int = 8) -> Level:
+    """Refine a floor or ceiling peak so that every patch of the surface counts once.
+
+    The peak of a histogram weights each patch by how long the camera dwelt on it, and a fused
+    LiDAR floor or ceiling is a few cm thick and uneven, so the peak lands on the most-looked-at
+    patch. Here: points within `window` of the peak, the median height in each `cell` x `cell`
+    patch (with >= min_pts points), then the median over patches. A step or a low table top
+    further than `window` from the peak is not part of the surface. Fewer than min_cells patches:
+    the peak is kept.
+    """
+    sel = np.abs(y - peak.value) < window
+    if sel.sum() < min_pts * min_cells:
+        return peak
+    g = np.floor(xz[sel] / cell).astype(np.int64)
+    _, inv, cnt = np.unique(g, axis=0, return_inverse=True, return_counts=True)
+    inv = inv.ravel()
+    ys = y[sel]
+    order = np.argsort(inv, kind="stable")
+    starts = np.r_[0, np.cumsum(cnt)[:-1]]
+    meds = np.array([np.median(ys[order[s:s + n]]) for s, n in zip(starts, cnt) if n >= min_pts])
+    if len(meds) < min_cells:
+        return peak
+    med = float(np.median(meds))
+    mad = float(np.median(np.abs(meds - med))) * 1.4826
+    return Level(med, max(mad / np.sqrt(len(meds)), 1e-4), int(sel.sum()))
+
+
 def wall_top_level(cloud: Cloud, floor_y: float, mask: np.ndarray | None = None) -> Level | None:
     """Fallback ceiling estimate when the ceiling was not scanned: top of wall evidence."""
     m = np.abs(cloud.normals[:, 1]) < WALL_T
