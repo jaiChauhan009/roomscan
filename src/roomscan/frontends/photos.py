@@ -525,7 +525,7 @@ def apply_known_sizes(fits: list[RoomFit], known, warnings: list[str]):
 
 
 def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: bool = True,
-                   damage: bool = True, known=None) -> dict:
+                   damage: bool = True, known=None, timing=None) -> dict:
     import json
     import time
 
@@ -536,7 +536,10 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
     from roomscan.geometry.pointcloud import fuse_capture
     from roomscan.ml.depth import DEPTH_SCALE_BIAS
 
-    timing, warnings = {}, []
+    from roomscan import stages as S
+    timing = timing if timing is not None else {}  # roomscan.stages.Stages when run from pipeline.run
+    staged = isinstance(timing, S.Stages)
+    warnings = []
     t0 = time.time()
     rooms = find_rooms(path, warnings)
     if not rooms:
@@ -575,6 +578,8 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
         Kd[1] *= dh / img.shape[0]
         photos[f] = Photo(path=f, img=img, K=K, depth=ds, Kd=Kd)
     timing["load+depth"] = time.time() - t0
+    if staged:
+        S.gate_load(timing, "load+depth", len(photos), "photo")
 
     t = time.time()
     fits: list[RoomFit] = []
@@ -653,6 +658,8 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
                              "depth_model": "Depth-Anything-V2-Metric-Indoor-Small",
                              "matcher": "EfficientLoFTR (look-back photos only)"})
     layout = layout_from_rooms([rf.room for rf in placed], yaw=0.0)
+    if staged:
+        S.gate_layout(timing, layout, name="stitch")
     cloud = fuse_capture(cap, voxel=0.03, pixel_stride=1, max_depth=8.0, progress=False)
     openings = detect_openings(cap, layout, frame_stride=1, pixel_stride=1)
     # the entry door of each linked room: known to exist at the standpoint, width not measured
@@ -668,6 +675,8 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
                                 sigma_w=0.15, connects=rf.parent, support=0,
                                 note="entry door at the capture standpoint; width assumed 0.80 m, not measured"))
     timing["openings"] = time.time() - t
+    if staged:
+        S.gate_openings(timing, openings)
     dmg, flags, scope = [], [], []
     if damage:
         t = time.time()
@@ -675,6 +684,8 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
         dmg, flags, scope, dw = assess_damage(cap, layout, openings, cloud, progress=progress)
         warnings += dw
         timing["damage"] = time.time() - t
+        if staged:
+            S.gate_damage(timing, dmg)
     info = {"id": cap.name, "tier": "photo", "source": "photo_folders", "n_frames_used": len(frames),
             "meta": dict(cap.meta, links={rf.name: rf.link for rf in placed}, overlaps_resolved=n_fix,
                          camera_height_m={rf.name: round(rf.cam_height, 3) for rf in placed})}
@@ -688,7 +699,10 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
     # UTF-8, not the Windows locale code page: room names are the user's folder names
     (out_dir / "result.json").write_text(out.model_dump_json(indent=2), encoding="utf-8")
     render_plan(out, out_dir / "plan.png")
-    return json.loads(out.model_dump_json())
+    res = json.loads(out.model_dump_json())
+    if staged:
+        S.gate_export(timing, res)
+    return res
 
 
 def _resolve_overlaps(rooms: list, warnings: list[str], gap: float = WALL_T) -> int:

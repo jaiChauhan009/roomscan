@@ -248,7 +248,10 @@ def load_known_sizes(measurements, *capture_paths: Path):
 
 
 def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: str = "loop",
-        damage: bool = True, use_cache: bool = True, progress: bool = True, measurements=None) -> dict:
+        damage: bool = True, use_cache: bool = True, progress: bool = True, measurements=None,
+        on_stage=None) -> dict:
+    """Process one capture. on_stage(name, status, seconds, note) is called as each stage of
+    the queue (roomscan.stages) starts, finishes and passes or fails its check."""
     if tier not in TIERS:
         raise InputError(f"unknown tier '{tier}': use one of {', '.join(TIERS)}")
     if drift not in DRIFT_MODES:
@@ -260,9 +263,21 @@ def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: s
     known = load_known_sizes(measurements, given, path)
     tier = detect_tier(path) if tier == "auto" else tier
     out_dir.mkdir(parents=True, exist_ok=True)
-    timing: dict[str, float] = {}
+    from roomscan.stages import Stages
+    timing = Stages(tier, on_stage, skip=() if damage else ("damage",))
     t0 = time.time()
+    try:
+        return _run_tier(path, out_dir, tier, stride, drift, damage, use_cache, progress, known, timing, t0)
+    except Exception as e:
+        msg = str(e).splitlines()[0][:200] if str(e) else ""
+        timing.fail_running(f"{type(e).__name__}: {msg}")
+        raise
+    finally:
+        timing.write(out_dir)
 
+
+def _run_tier(path, out_dir, tier, stride, drift, damage, use_cache, progress, known, timing, t0):
+    from roomscan.stages import gate_load
     if tier == "lidar":
         from roomscan.frontends.lidar_stray import load_stray
         cap = load_stray(path, stride=stride)
@@ -273,8 +288,10 @@ def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: s
         source = "video"
     else:
         from roomscan.frontends.photos import run_photo_tier
-        return run_photo_tier(path, out_dir, use_cache=use_cache, progress=progress, damage=damage, known=known)
+        return run_photo_tier(path, out_dir, use_cache=use_cache, progress=progress, damage=damage, known=known,
+                              timing=timing)
     timing["load"] = time.time() - t0
+    gate_load(timing, "load", len(cap.frames), tier)
     return run_posed(cap, out_dir, source=source, drift=drift, damage=damage, use_cache=use_cache,
                      progress=progress, timing=timing, key=(str(path.resolve()), tier, stride), known=known)
 
@@ -294,10 +311,15 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
         cap, drift_info = correct_drift(cap, use_cache=use_cache, key=key, progress=progress,
                                         **DRIFT_MODES[drift])
     timing["drift"] = time.time() - t
+    from roomscan import stages as S
+    if isinstance(timing, S.Stages):
+        S.gate_drift(timing, drift_info)
 
     t = time.time()
     cloud = cached_fuse(cap, key + (drift,), use_cache=use_cache, progress=progress)
     timing["fuse"] = time.time() - t
+    if isinstance(timing, S.Stages):
+        S.gate_fuse(timing, len(cloud.points))
 
     t = time.time()
     from roomscan.geometry.metrics import crispness
@@ -320,6 +342,8 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
             cap, cloud, layout, ks_plan = apply_known_sizes(cap, cloud, layout, known, warnings)
     if not layout.rooms:
         warnings.append("no closed room found")
+    if isinstance(timing, S.Stages):
+        S.gate_layout(timing, layout)
 
     t = time.time()
     mirrors: list = []
@@ -328,6 +352,8 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
         warnings.append(f"{mi['wall_id']}: reflective surface {mi['width']} m wide treated as a mirror, "
                         f"not reported as an opening")
     timing["openings"] = time.time() - t
+    if isinstance(timing, S.Stages):
+        S.gate_openings(timing, openings)
 
     dmg, flags, scope = [], [], []
     if damage:
@@ -336,6 +362,8 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
         dmg, flags, scope, dw = assess_damage(cap, layout, openings, cloud, progress=progress)
         warnings += dw
         timing["damage"] = time.time() - t
+        if isinstance(timing, S.Stages):
+            S.gate_damage(timing, dmg)
 
     t = time.time()
     info = {"id": cap.name, "tier": cap.tier, "source": source, "n_frames_used": len(cap.frames),
@@ -349,4 +377,7 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
     # UTF-8, not the Windows locale code page: names come from the user's folder and file names
     (out_dir / "result.json").write_text(out.model_dump_json(indent=2), encoding="utf-8")
     render_plan(out, out_dir / "plan.png")
-    return json.loads(out.model_dump_json())
+    res = json.loads(out.model_dump_json())
+    if isinstance(timing, S.Stages):
+        S.gate_export(timing, res)
+    return res
