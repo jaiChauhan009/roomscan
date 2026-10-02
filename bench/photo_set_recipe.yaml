@@ -1,0 +1,77 @@
+# Recipe for the photo-tier benchmark set: <data>/photos_with_ceiling, capture apt_photo_a
+# in bench/manifest.yaml, 7 room folders with 28 photos, plus truth.json.
+#
+#   python scripts/make_photo_set.py <data>/single_scan_with_ceiling <new folder>
+#   python scripts/make_photo_set.py --check <data>/photos_with_ceiling
+#
+# The first rebuilds the set from the raw scan, byte for byte, and checks every file against
+# the sha256 values below; the second compares an existing set with them. Only rgb.mp4 is
+# read, so changes to the LiDAR pipeline cannot change the set. The set was cut on
+# 2026-10-01 by an earlier version of the automatic selection (now `--select`), which
+# chose rooms and frames from the LiDAR layout of that day; the layout code has changed
+# since, and --select now cuts a different set from the same scan.
+#
+# This file was derived from that recorded set and the scan: frame is the number in each
+# file name, video_frame the frame actually written (found by pixel match), rotate_cw and
+# focal_35mm the values that re-encode it to the recorded bytes, truth the recorded
+# truth.json. As recorded, there is no folder 03, and truth.json lists 06_room_1, which
+# has no folder.
+#
+# frame vs video_frame: rgb.mp4 has a variable frame rate, and the selection read frame N
+# with an OpenCV seek (CAP_PROP_POS_FRAMES), which lands at N / average fps: here 4 to 80
+# frames after the N-th frame. The rebuild reads the video from the start and keeps the
+# frames at the video_frame positions (0-based), so it does not depend on OpenCV's seek.
+#
+# Per photo: file; frame; video_frame; rotate_cw, degrees clockwise applied to the stored
+# 1920x1440 frame; focal_35mm, written as EXIF FocalLengthIn35mmFilm (the only metadata);
+# sha256 of the JPEG, written by Pillow at jpeg_quality. truth.json is written as
+# json.dumps(truth, indent=2) with CRLF line ends, as recorded.
+scan: single_scan_with_ceiling
+video: {path: c7d28f72c6/rgb.mp4, bytes: 252331542, sha256: dad93c96d6255e7d9e344c772c1dad287198a0d1800dc64ee31ad8f91a54ae7c}
+jpeg_quality: 93
+photos:
+  01_room_2:
+    - {file: 01_sweep_frame005800.jpg, frame: 5800, video_frame: 5876, rotate_cw: 90, focal_35mm: 29, sha256: b47c5fde9636444ba507245f4e3c0fe7ee2d00f09dd0fc423b36f9f7b52c0feb}
+    - {file: 02_sweep_frame005720.jpg, frame: 5720, video_frame: 5798, rotate_cw: 90, focal_35mm: 29, sha256: 889a87be0f3e2e43b2a02e094f860d8a0a7af47c20b5937c2f7b0cca6c902071}
+    - {file: 03_sweep_frame005690.jpg, frame: 5690, video_frame: 5769, rotate_cw: 90, focal_35mm: 29, sha256: 8b7d1a70d7d22ac50d92d27ca5de52c54389ae0e64a111ecbca9e4b0ff0318d1}
+    - {file: 04_sweep_frame005685.jpg, frame: 5685, video_frame: 5764, rotate_cw: 90, focal_35mm: 29, sha256: 3cbf7f326c4e56b2cff1b3068e86e51e8bcd6f4c6bd0986b8e7482daf75683a2}
+  02_room_8:
+    - {file: 01_sweep_frame006500.jpg, frame: 6500, video_frame: 6542, rotate_cw: 90, focal_35mm: 29, sha256: 7b81fd61386816137998dfc1a13b6183fd022e35ac47372f0a6b2086126c5f2c}
+    - {file: 02_sweep_frame006465.jpg, frame: 6465, video_frame: 6508, rotate_cw: 90, focal_35mm: 29, sha256: 4e5251652cb355df34f1c3fdbefdb8f699bfa3db5d5837515a86e4a071e218c2}
+    - {file: 03_sweep_frame006445.jpg, frame: 6445, video_frame: 6489, rotate_cw: 90, focal_35mm: 29, sha256: 5f0e2bcb38a8d75e8b73481b97522f060b98813d91cc964327006ddde6ef4fc2}
+    - {file: 04_lookback_frame007895.jpg, frame: 7895, video_frame: 7905, rotate_cw: 90, focal_35mm: 29, sha256: 2687bff5e1f64feb4427a68d3a2358c9b7509ea224075c4379bc0551c5602f05}
+  04_room_7:
+    - {file: 01_sweep_frame009025.jpg, frame: 9025, video_frame: 9054, rotate_cw: 90, focal_35mm: 29, sha256: c12af45e911ccd576fe247963560c2a85fec6b4bf11badea434d4945a99ce9e7}
+    - {file: 02_sweep_frame008965.jpg, frame: 8965, video_frame: 8991, rotate_cw: 90, focal_35mm: 29, sha256: 599d819e9be1eb3c3f946daabfd603fdf49a5559b145f693c05985f4aacfe800}
+    - {file: 03_sweep_frame008930.jpg, frame: 8930, video_frame: 8958, rotate_cw: 90, focal_35mm: 29, sha256: 2a590f187b03ad6fed7e958db4025b72be264113c24f61562a034c044f2e8346}
+    - {file: 04_sweep_frame008855.jpg, frame: 8855, video_frame: 8888, rotate_cw: 90, focal_35mm: 29, sha256: 3bd7d17042c63ee8a3269f6eaec013fa9ad8165136740472bbc23f0b542a82c6}
+    - {file: 05_lookback_frame005690.jpg, frame: 5690, video_frame: 5769, rotate_cw: 90, focal_35mm: 29, sha256: 8b7d1a70d7d22ac50d92d27ca5de52c54389ae0e64a111ecbca9e4b0ff0318d1}
+  05_room_6:
+    - {file: 01_sweep_frame008880.jpg, frame: 8880, video_frame: 8910, rotate_cw: 90, focal_35mm: 29, sha256: b64bdd0974882053479dd482df59e6dac76381e3c40a6d44f0daec5e6296e0c9}
+    - {file: 02_sweep_frame005790.jpg, frame: 5790, video_frame: 5870, rotate_cw: 90, focal_35mm: 29, sha256: 8aff982c63aadad83cd6495a3f89ee3d371118b9ba6858f9a941f7111c6e641a}
+    - {file: 03_sweep_frame005740.jpg, frame: 5740, video_frame: 5820, rotate_cw: 90, focal_35mm: 29, sha256: 1d10a07230a3f4879ecc770ce64a7f66d7c5a1df3c25c6c800b66b15bcdb0294}
+    - {file: 04_lookback_frame005650.jpg, frame: 5650, video_frame: 5730, rotate_cw: 90, focal_35mm: 29, sha256: 5757e500bb44468c9fbe4d227dd72e715b33071734ee33dc8ca5db4468d11d2e}
+  07_room_9:
+    - {file: 01_sweep_frame007400.jpg, frame: 7400, video_frame: 7416, rotate_cw: 90, focal_35mm: 29, sha256: c9502ee021c29500c11d67cb98692dcc25dfd046f30c94d3960f2521c933d38f}
+    - {file: 02_sweep_frame007375.jpg, frame: 7375, video_frame: 7391, rotate_cw: 90, focal_35mm: 29, sha256: 0bf8b0f50257801d3b18b9d9a0ed7677ad1480c6fa5cfb53d6e748653e7ca8bb}
+    - {file: 03_sweep_frame007320.jpg, frame: 7320, video_frame: 7333, rotate_cw: 90, focal_35mm: 29, sha256: 0bb3cd0bce47363632ff2bcfe4e15b38201426de6485015a49b66c2ffccc96f6}
+    - {file: 04_lookback_frame007765.jpg, frame: 7765, video_frame: 7769, rotate_cw: 90, focal_35mm: 29, sha256: 7cfd581ef798b61f435d8bc9d697dfec329c6a535c445fd6bdf30c366f349fa4}
+  08_room_5:
+    - {file: 01_sweep_frame006605.jpg, frame: 6605, video_frame: 6645, rotate_cw: 90, focal_35mm: 29, sha256: f69fee6f77b6de91fa06d189dc0575ae7ef3eef2c57f5377e093b4028c2d6e07}
+    - {file: 02_sweep_frame006550.jpg, frame: 6550, video_frame: 6593, rotate_cw: 90, focal_35mm: 29, sha256: edbc0c9d656f4041a5e27d027cf38826a1c1dcc720299d78ad496ebf110fb870}
+    - {file: 03_lookback_frame002500.jpg, frame: 2500, video_frame: 2545, rotate_cw: 90, focal_35mm: 29, sha256: aaf87a454e0308aff7d2e2b6d5180798350d8c6d70f01e4b288498f7f34e7a42}
+  09_room_4:
+    - {file: 01_sweep_frame009475.jpg, frame: 9475, video_frame: 9500, rotate_cw: 90, focal_35mm: 29, sha256: e8221c2eae52254a6099161ee6eb2f0f00356ebec4c6fe9c3ec5e84bfbbce7c5}
+    - {file: 02_sweep_frame009420.jpg, frame: 9420, video_frame: 9446, rotate_cw: 90, focal_35mm: 29, sha256: 6302db815badedf45073d26ce7e2c5c526c972b3433452995c3f41b0b352404b}
+    - {file: 03_sweep_frame000430.jpg, frame: 430, video_frame: 436, rotate_cw: 90, focal_35mm: 29, sha256: 32fdf780453044ea82e0dbc5fc4f84adb6d3037256dbd66da9269fb8c76819c6}
+    - {file: 04_lookback_frame005550.jpg, frame: 5550, video_frame: 5627, rotate_cw: 90, focal_35mm: 29, sha256: 7483e0728b7afe4779566a0e5bed23d9b98808ee07b5df63fbd9a33655e18ed0}
+truth:
+  01_room_2: {lidar_room: room_2, parent: null, n_sweep: 4, has_look_back: false, sweep_angles_deg: [-66.9, -0.6, 36.4, 37.7]}
+  02_room_8: {lidar_room: room_8, parent: room_2, n_sweep: 3, has_look_back: true, sweep_angles_deg: [-64.9, -20.7, 3.3]}
+  04_room_7: {lidar_room: room_7, parent: room_2, n_sweep: 4, has_look_back: true, sweep_angles_deg: [-66.2, -0.4, 29.7, 47.6]}
+  05_room_6: {lidar_room: room_6, parent: room_2, n_sweep: 3, has_look_back: true, sweep_angles_deg: [-42.9, 33.1, 71.9]}
+  06_room_1: {lidar_room: room_1, parent: room_2, n_sweep: 3, has_look_back: false, sweep_angles_deg: [-46.2, -22.1, 60.7]}
+  07_room_9: {lidar_room: room_9, parent: room_8, n_sweep: 3, has_look_back: true, sweep_angles_deg: [-7.0, 1.3, 44.1]}
+  08_room_5: {lidar_room: room_5, parent: room_8, n_sweep: 2, has_look_back: true, sweep_angles_deg: [-8.6, 0.0]}
+  09_room_4: {lidar_room: room_4, parent: room_6, n_sweep: 3, has_look_back: true, sweep_angles_deg: [-72.2, -24.1, 66.9]}
+truth_sha256: 3592d6a3ab5cc47f150730210df8e287ac74412586751e27c9ce2fedff70dc39
