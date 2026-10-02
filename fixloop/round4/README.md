@@ -5,7 +5,7 @@
 | Declaration (committed before the fix) | [declaration.md](declaration.md), commit `7f6ac11` (message `fixloop4-before`) |
 | Root-cause evidence | [evidence_ceiling.py](evidence_ceiling.py), output in [evidence_output.txt](evidence_output.txt), run on `7f6ac11` |
 | Before run | [before/summary.md](before/summary.md) (`run_laser.py before` on `7f6ac11`; matches `bench/reports/`) |
-| Fix | [fix.diff](fix.diff): `planes.area_level`, used by `layout._per_room_levels`; two unit tests in `tests/test_geometry.py` |
+| Fix | commit `d517a4e`, [fix.diff](fix.diff): `planes.area_level`, used by `layout._per_room_levels`; two unit tests in `tests/test_geometry.py` |
 | After run | [after/summary.md](after/summary.md) (`run_laser.py after` on the fix commit) |
 
 ## Regenerate
@@ -13,7 +13,7 @@
 ```bash
 export ROOMSCAN_DATA=<data>          # needs the four ARKitScenes captures and the own/ scans
 git checkout 7f6ac11          && python fixloop/round4/run_laser.py before
-git checkout <fix commit>     && python fixloop/round4/run_laser.py after
+git checkout d517a4e         && python fixloop/round4/run_laser.py after
 python fixloop/round4/evidence_ceiling.py arkit_42446532 arkit_44358446 arkit_47332890 arkit_47331988 \
     apt_lidar_a apt_lidar_b room_lidar own_lidar_1 own_lidar_2 own_lidar_3   # on 7f6ac11
 ```
