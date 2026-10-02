@@ -13,7 +13,10 @@ captures:
   - {name: apt_lidar_a, path: single_scan_with_ceiling, tier: lidar}
   - {name: apt_lidar_b, path: single_scan_floor_only, tier: lidar}
   - {name: room_lidar, path: single_room, tier: lidar}
-  - {name: apt_video_b, path: single_scan_floor_only/1a8384c3f6/rgb.mp4, tier: video, reference: apt_lidar_b}
+  # the scan's own video with the rotation flag an iPhone clip filmed upright carries (frames
+  # untouched); Stray stores them sideways with no flag, which no real clip does
+  - {name: apt_video_b, path: video_floor_only/rgb_upright.mp4, tier: video, reference: apt_lidar_b,
+     prepare: "scripts/make_iphone_clip.py {data_root}/single_scan_floor_only/1a8384c3f6 {data_root}/video_floor_only"}
   - {name: apt_photo_a, path: photos_with_ceiling, tier: photo, reference: apt_lidar_a,
      prepare: "scripts/make_photo_set.py {data_root}/single_scan_with_ceiling {data_root}/photos_with_ceiling"}
 repeatability:
