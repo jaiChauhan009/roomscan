@@ -1,0 +1,40 @@
+# Dimensions measured by a consumer scanning app, for the head-to-head (brief Part 3).
+# Copy to bench/app_exports/<app>_<capture>.yaml (e.g. magicplan_flat.yaml), put the app's
+# export files next to it, and fill in what the app reports. All lengths in metres.
+#
+# Rules
+#   * Type in what the app shows, nothing else. Do not edit or correct the scan in the app,
+#     and do not work a value out yourself (e.g. a wall from the area). A value the app does
+#     not show is null; it is then left out of the comparison ("not shared").
+#   * Interior dimensions (inside face of the wall), as the ground truth is measured.
+#   * Room names are the names used in bench/ground_truth/<capture>.yaml.
+#   * Walls in the same order as the ground truth: stand in the room facing the door you
+#     came in by, start with the wall on your left, go clockwise. A different starting wall
+#     or direction is re-aligned automatically; one number per straight wall segment.
+#
+# Then run:
+#   python bench/head_to_head.py bench/ground_truth/<capture>.yaml \
+#       bench/reports/runs/<capture>/result.json bench/app_exports/<this file>
+app: magicplan                # app name as in the App Store
+version: ""                   # App Store > the app's page > Version History (top entry), or the app's settings
+plan: free                    # free tier (the brief: "free tier is sufficient")
+mode: LiDAR scan              # the scanning mode used in the app
+device: iPhone 15 Pro         # Settings > General > About > Model Name
+ios: ""                       # Settings > General > About > iOS Version
+date: ""                      # day of the scan, YYYY-MM-DD
+capture: my_flat              # our capture of the same rooms (name in bench/manifest.yaml)
+export_file:                  # the app's export(s), stored in this folder
+  - magicplan_my_flat.pdf
+notes: ""                     # anything unusual: rescans, rooms the app could not close, defaults shown
+rooms:
+  - name: living_room
+    walls: [4.21, 3.49, 4.19, 3.51]
+    ceiling_height: 2.69      # null if the app shows none (or only a default it did not measure: say so in notes)
+    openings:                 # every door / window / open passage the app placed, with its width
+      - {type: door, width: 0.89}     # type: door | window | opening
+      - {type: window, width: 1.41}
+  - name: hall
+    walls: [1.10, 3.02, 1.09, 2.99]
+    ceiling_height: null
+    openings:
+      - {type: door, width: 0.90}
