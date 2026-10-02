@@ -405,6 +405,37 @@ the hub, so the walk-in needs no internet.
 known size painted onto two walls of scan A, consistently in every frame. No false positive
 on the clean capture; both missed. Each was in view in only 2-4 of the frames examined.
 
+## Stage 17: our own captures (2 October 2026)
+
+An iPhone 16 Pro for about an hour, then a motorola moto g45. Copying needed the Apple
+Devices app and `pymobiledevice3` (Stray Scanner's files over USB, many files at a time:
+a 13 s scan in 18 s instead of 78 s). `walkin.py --check-only` checks a copy in seconds,
+so the phone can go back early.
+
+- **LiDAR, iPhone, whole flat (147 s):**
+  - 4 rooms, 59.7 m², ceilings 2.40-2.57 m, doors and windows, a mirror rejected.
+  - 2.5 min cold, offline.
+- **LiDAR, iPhone, room 4 alone (31 s):**
+  - 13.4 m² against 12.9 m² in the whole-flat scan.
+  - The one wall no furniture touches agrees to 5 mm (4.162 vs 4.157 m).
+  - The other sides are cut by furniture differently in each scan. That showed the
+    repeatability tool paired walls by their order round the room, which compared
+    different walls; it now pairs them by position.
+- **LiDAR, iPhone, part of the flat (55 s):** 4 rooms, 34.9 m². Two "holes" on a ceiling,
+  probably lights: a likely false positive.
+- **Video, moto g45 (84 s, 1080p):** 1 room of 3.3 m². Tracking broke, as on the sample
+  clip.
+- **Photos, moto g45 (186, taken while walking):**
+  - Mixed portrait and landscape photos crashed depth estimation (fixed).
+  - Rooms with 9-55 photos made the run take over 40 min; they are now thinned to 8,
+    keeping the look-back.
+  - Result: 6 rooms, 80.6 m² with a 90 % interval of 3.6-157.6 m². Honest, not useful.
+- **iPhone video and photos through WhatsApp:** recompressed (464×832; 960×1280 with EXIF
+  stripped). Both read; photos fall back to the iPhone focal length, with a warning.
+
+Tape measurements of the flat are still to come; until then video and photos are scored
+against the iPhone LiDAR plan.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,

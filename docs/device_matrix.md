@@ -10,9 +10,17 @@ we have. "Measured" means a number from `bench/` or `tests/`; everything else is
 | iPhone 15 Pro / Pro Max, 16 Pro / Pro Max, 17 Pro / Pro Max | yes | yes | yes | Stray Scanner (LiDAR); Camera app (video, photo) |
 | iPad Pro (2020 or later, LiDAR) | yes | yes | yes | same |
 | iPhone 15 / 15 Plus, 16 / 16 Plus / 16e, 17, Air (no LiDAR) | no | yes | yes | Camera app |
-| any older iPhone or Android phone | no | runs, untested | runs, untested | camera app; photos need EXIF focal length or the 26 mm default is used |
+| any older iPhone or Android phone | no | runs (tested on a moto g45) | runs (tested on a moto g45) | camera app; photos need EXIF focal length or the 26 mm default is used |
 
 The tier is chosen by what is handed over, not by the device (see `docs/capture_protocol.md`).
+
+**Devices actually run (2 October 2026)**:
+
+| Device | What | Result |
+|---|---|---|
+| iPhone 16 Pro (iPhone17,1), iOS 26.6.2, Stray Scanner | 4 LiDAR scans (13 s, 31 s, 55 s, 147 s), copied over USB-C (Apple Devices; `pymobiledevice3`) | all read unchanged; whole flat 4 rooms, 59.7 m² in 2.5 min cold; repeat of one room: its clean wall agrees to 5 mm |
+| iPhone 16 Pro, Camera app, sent through WhatsApp | 1 video (recompressed to 464×832), 58 photos (960×1280, EXIF stripped) | both read; photos fall back to the iPhone main-camera focal length, with a warning to send originals |
+| motorola moto g45 5G (Android), camera app | 1 video (1920×1080, H.264, 84 s), 186 photos (JPEG with EXIF; 183 portrait, 3 landscape) | both read. Found and fixed: mixed portrait/landscape photos crashed depth estimation; rooms photographed while walking (9-55 photos) made the photo tier run over 40 min (now thinned to 8). Video: tracking broke, 1 room |
 
 ## Processing machine
 
