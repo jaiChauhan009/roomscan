@@ -139,8 +139,10 @@ def _load_clip():
     import torch
     from transformers import CLIPModel, CLIPProcessor
 
-    model = CLIPModel.from_pretrained(CLIP_ID).eval()
-    proc = CLIPProcessor.from_pretrained(CLIP_ID)
+    from roomscan.ml.hub import pretrained
+
+    model = pretrained(CLIPModel, CLIP_ID).eval()
+    proc = pretrained(CLIPProcessor, CLIP_ID)
     prompts, owner = [], []
     for cls, ps in DAMAGE_PROMPTS.items():
         prompts += ps
