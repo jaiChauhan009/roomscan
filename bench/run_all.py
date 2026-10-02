@@ -31,6 +31,15 @@ from repeatability import compare  # noqa: E402
 from roomscan.pipeline import run  # noqa: E402
 
 
+def room_overlap(res: dict) -> float:
+    """Area where two room outlines overlap (m2); every tier, not only those with a reference."""
+    from itertools import combinations
+
+    from shapely.geometry import Polygon
+    polys = [Polygon(r["polygon"]) for r in res["rooms"]]
+    return round(sum(p.intersection(q).area for p, q in combinations(polys, 2)), 3)
+
+
 def gate_row(name: str, g: dict) -> str:
     keep = {k: v for k, v in g.items() if k not in ("pass", "gate", "overlaps", "missing", "extra")}
     return f"| {name} | {'PASS' if g.get('pass') else 'FAIL'} | {', '.join(f'{k} {v}' for k, v in keep.items())} |"
@@ -62,7 +71,8 @@ def main():
         t = time.time()
         res = run(src, runs / c["name"], tier=c["tier"], use_cache=not a.no_cache, progress=False)
         timing[c["name"]] = {"wall_s": round(time.time() - t, 1), "stages": res["timing_s"],
-                             "rooms": len(res["rooms"]), "footprint_m2": res["property"]["footprint_area"]["value"]}
+                             "rooms": len(res["rooms"]), "footprint_m2": res["property"]["footprint_area"]["value"],
+                             "overlap_m2": room_overlap(res)}
         results[c["name"]] = res
         print(f"{c['name']}: {len(res['rooms'])} rooms, {timing[c['name']]['wall_s']} s", flush=True)
     for c in man["captures"]:
@@ -105,10 +115,12 @@ def main():
 
     md = [f"# Benchmark report {a.tag}".rstrip(), "",
           "Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yaml`.", ""]
-    md += ["## Captures and timing", "", "| capture | tier | rooms | footprint m2 | wall time s | stages |", "|---|---|---|---|---|---|"]
+    md += ["## Captures and timing", "",
+           "| capture | tier | rooms | footprint m2 | room overlap m2 | wall time s | stages |",
+           "|---|---|---|---|---|---|---|"]
     for n, t in timing.items():
-        md.append(f"| {n} | {results[n]['capture']['tier']} | {t['rooms']} | {t['footprint_m2']} | {t['wall_s']} | "
-                  f"{', '.join(f'{k} {v}' for k, v in t['stages'].items())} |")
+        md.append(f"| {n} | {results[n]['capture']['tier']} | {t['rooms']} | {t['footprint_m2']} | {t['overlap_m2']} | "
+                  f"{t['wall_s']} | {', '.join(f'{k} {v}' for k, v in t['stages'].items())} |")
     for n, e in evals.items():
         md += ["", f"## {n} (tier {e['tier']}) vs {e['gt_source']}", "", "| gate | result | numbers |", "|---|---|---|"]
         md += [gate_row(k, g) for k, g in e["gates"].items()]

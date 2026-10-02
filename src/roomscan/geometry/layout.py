@@ -239,10 +239,39 @@ def _vertices(segs: list[dict]) -> np.ndarray:
     return np.array([_intersect(lines[i - 1], lines[i]) for i in range(len(lines))])
 
 
+def _clearance(others: np.ndarray, frame: PlanFrame, axis: int, coord: float, lo: float, hi: float,
+               outward: float, max_d: float) -> float:
+    """How far a wall line can move outward before it enters another room's cells.
+
+    The line is constant in plan coordinate `axis` at `coord` and spans [lo, hi] along the
+    other coordinate; `outward` is +1 or -1 along `axis`.
+    """
+    res = frame.res
+    k = np.arange(int(np.ceil(max_d / res)) + 1)
+    origin = (frame.a0, frame.b0)
+    lines = np.floor((coord + outward * (k + 0.5) * res - origin[axis]) / res).astype(int)
+    span = slice(max(int(np.floor((lo - origin[1 - axis]) / res)), 0),
+                 max(int(np.ceil((hi - origin[1 - axis]) / res)), 0))
+    rows_or_cols = others.shape[0] if axis == 1 else others.shape[1]
+    ok = (lines >= 0) & (lines < rows_or_cols)
+    hit = np.zeros(len(k), bool)
+    if axis == 1:  # line of constant b: scan rows
+        hit[ok] = others[lines[ok], span].any(axis=1)
+    else:  # constant a: scan columns
+        hit[ok] = others[span, lines[ok]].any(axis=0)
+    return float(k[np.argmax(hit)] * res) if hit.any() else max_d
+
+
 def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, cloud: Cloud,
                   floor_y: float, poly: Polygon, search_in: float = 0.15,
-                  search_out: float = 0.9) -> list[dict]:
-    """Snap each axis-aligned edge onto the real wall plane seen in the 3D points."""
+                  search_out: float = 0.9, others: np.ndarray | None = None,
+                  frame: PlanFrame | None = None) -> list[dict]:
+    """Snap each axis-aligned edge onto the real wall plane seen in the 3D points.
+
+    An edge searches up to `search_out` outward (the room's mask stops at furniture in front
+    of a wall), but never past the first cell of another room (`others`): the best-covered
+    plane beyond that belongs to the neighbour, and snapping to it made rooms overlap.
+    """
     n = len(segs)
     h = cloud.points[:, 1] - floor_y
     for i, s in enumerate(segs):
@@ -262,7 +291,9 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
                 & (np.abs(cloud.normals[:, 1]) < WALL_T))
         # signed distance outward from the current edge
         off = (s["coord"] - cloud_ab[:, axis]) * inward[axis]
-        cand &= (off > -search_in) & (off < search_out)
+        reach = search_out if others is None else _clearance(
+            others, frame, axis, s["coord"], lo + shrink, hi - shrink, -inward[axis], search_out)
+        cand &= (off > -search_in) & (off < reach)
         nn = s["_nrm"][cand] @ inward
         cand_idx = np.where(cand)[0][nn > 0.8]
         if len(cand_idx) < 30:
@@ -396,7 +427,8 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
             continue
         for s in segs:
             s["_nrm"] = nab
-        segs = _refine_walls(segs, verts, ab, sub, floor.value, poly)
+        segs = _refine_walls(segs, verts, ab, sub, floor.value, poly, others=(region > 0) & (region != li),
+                             frame=frame)
         verts = _vertices(segs)
         if not Polygon(verts).is_valid:
             segs = _fallback_segments(m, frame)

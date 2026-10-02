@@ -1,6 +1,7 @@
 """Geometry back end against synthetic rooms with exactly known dimensions."""
 import numpy as np
 import pytest
+from shapely.geometry import Polygon
 from synth import box_room, merge
 
 from roomscan.geometry.boxfit import fit_box
@@ -63,6 +64,26 @@ def test_two_rooms_joined_by_a_door_are_separated():
     assert len(layout.rooms) == 2
     areas = sorted(r.area for r in layout.rooms)
     assert areas == pytest.approx([9.0, 12.0], abs=0.15)
+
+
+def test_wall_snapping_stops_at_the_neighbouring_room():
+    # Room a's right wall is barely scanned; 0.7 m into room b a dresser faces room a. Wall
+    # snapping searches 0.9 m outward for the best-covered plane and used to pick the
+    # dresser, pushing room a 0.7 m into room b. It must stop at room b.
+    a = box_room(4.0, 3.0, 2.7, origin=(0, 0))
+    right = (np.abs(a.points[:, 0] - 4.0) < 0.01) & (a.normals[:, 0] < -0.9)
+    sparse = right & (np.floor(a.points[:, 2] / 0.02).astype(int) % 15 != 0)  # one column per 30 cm
+    a = Cloud(a.points[~sparse], a.normals[~sparse], a.weight[~sparse])
+    b = box_room(3.0, 3.0, 2.7, origin=(4.12, 0), seed=1)
+    z, y = np.meshgrid(np.arange(0.8, 2.2, 0.02), np.arange(-1.4, -0.4, 0.02))  # 1.4 m wide, 1.0 m tall
+    front = np.stack([np.full(z.size, 4.8), y.ravel(), z.ravel()], 1)
+    dresser = Cloud(front.astype(np.float32), np.tile(np.float32([-1, 0, 0]), (len(front), 1)),
+                    np.ones(len(front), np.float32))
+    layout = extract_layout(merge(a, b, dresser))
+    polys = [Polygon(r.polygon) for r in layout.rooms]
+    assert len(polys) == 2
+    assert polys[0].intersection(polys[1]).area < 0.02
+    assert sorted(p.area for p in polys) == pytest.approx([9.0, 12.0], abs=0.15)
 
 
 def test_short_wall_gaps_do_not_cut_an_unsealed_room():

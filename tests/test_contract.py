@@ -48,6 +48,21 @@ def test_every_measurement_has_an_interval(layout):
     assert len(out["rooms"]) == 2
 
 
+def test_footprint_counts_overlapping_floor_once(layout):
+    import copy
+
+    from shapely.geometry import Polygon
+    lay = copy.deepcopy(layout)
+    big, small = sorted(lay.rooms, key=lambda r: r.area, reverse=True)
+    toward = big.polygon.mean(0) - small.polygon.mean(0)
+    small.polygon = small.polygon + 0.5 * toward / np.linalg.norm(toward)  # push it 0.5 m into the big room
+    polys = [Polygon(r.polygon) for r in lay.rooms]
+    overlap = polys[0].intersection(polys[1]).area
+    assert overlap > 0.5
+    fp = _output(lay).property.footprint_area.value
+    assert fp == pytest.approx(sum(p.area for p in polys) - overlap, abs=1e-3)
+
+
 def test_intervals_widen_as_sensor_data_thins():
     widths = [np.diff(measure(4.0, 0.005, tier, "wall_length").ci90)[0] for tier in ("lidar", "video", "photo")]
     assert widths[0] < widths[1] < widths[2]

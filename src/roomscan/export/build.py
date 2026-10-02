@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 from shapely.geometry import LineString, Polygon
+from shapely.ops import unary_union
 
 from roomscan import schema as S
 from roomscan.geometry.layout import Layout
@@ -90,7 +91,8 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
             openings=ops_out, surfaces=surfaces))
 
     adjacency = _adjacency(layout, openings)
-    fp = sum(r.floor_area.value for r in rooms_out)
+    # union, not sum: where two room outlines overlap, the floor is there once
+    fp = float(unary_union([Polygon(r.polygon) for r in layout.rooms]).area) if layout.rooms else 0.0
     fp_sigma = float(np.sqrt(sum((r.floor_area.sigma or 0) ** 2 for r in rooms_out)))
     if rooms_out:
         allp = np.concatenate([r.polygon for r in layout.rooms])
