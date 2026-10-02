@@ -41,11 +41,17 @@ def predict_depth(images: list[np.ndarray], batch: int = 4, progress: bool = Fal
     from tqdm import tqdm
 
     proc, model = _model()
-    out = []
-    for i in tqdm(range(0, len(images), batch), desc="depth", disable=not progress):
-        chunk = images[i:i + batch]
+    # a batch must hold one image shape: a phone's photos mix portrait and landscape, and the
+    # processor keeps the aspect ratio, so mixed shapes cannot be stacked into one tensor
+    groups: dict[tuple, list[int]] = {}
+    for i, im in enumerate(images):
+        groups.setdefault(tuple(im.shape[:2]), []).append(i)
+    batches = [idx[k:k + batch] for idx in groups.values() for k in range(0, len(idx), batch)]
+    out: list = [None] * len(images)
+    for sel in tqdm(batches, desc="depth", disable=not progress):
         with torch.no_grad():
-            inp = proc(images=chunk, return_tensors="pt")
+            inp = proc(images=[images[j] for j in sel], return_tensors="pt")
             pd = model(**inp).predicted_depth
-        out += [d.numpy().astype(np.float32) for d in pd]
+        for j, d in zip(sel, pd):
+            out[j] = d.numpy().astype(np.float32)
     return out
