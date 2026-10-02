@@ -626,3 +626,58 @@ def test_real_run_single_room(tmp_path, monkeypatch):
         rows = c.get(f"/api/jobs/{j['job_id']}/comparison").json()["rows"]
         assert {r["quantity"] for r in rows} == {"length", "width", "height"}
         assert all(r["computed"] for r in rows if r["quantity"] in ("length", "width"))
+
+
+def test_email_is_optional_and_sent_with_plan_and_sheet_when_given(client, monkeypatch):
+    import smtplib
+
+    from server import notify
+    sent = []
+
+    class FakeSMTP:  # no real mail leaves the test
+        def __init__(self, host, port, timeout=None):
+            self.host = host
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self, context=None):
+            pass
+
+        def login(self, user, pw):
+            assert user == "me@example.com" and pw == "app-password"
+
+        def send_message(self, msg):
+            sent.append(msg)
+
+    monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
+    assert client.get("/api/health").json()["email"] is False  # not configured: the UI hides the box
+    monkeypatch.setenv("ROOMSCAN_SMTP_USER", "me@example.com")
+    monkeypatch.setenv("ROOMSCAN_SMTP_PASSWORD", "app-password")
+    assert client.get("/api/health").json()["email"] is True
+    pid, _, _ = photo_project(client)
+    assert client.post(f"/api/projects/{pid}/run", json={"force": True, "email": "not-an-address"}).status_code == 422
+    jid = client.post(f"/api/projects/{pid}/run", json={"force": True, "email": "you@example.org"}).json()["job_id"]
+    j = wait(client, jid)
+    assert j["status"] == "done"
+    t = time.time()
+    while not sent and time.time() - t < 10:
+        time.sleep(0.05)
+    assert len(sent) == 1
+    msg = sent[0]
+    assert msg["To"] == "you@example.org" and "ready" in msg["Subject"]
+    names = sorted(p.get_filename() for p in msg.iter_attachments())
+    assert names == ["plan.png", "result.xlsx"] or all(n.endswith(("plan.png", "result.xlsx")) for n in names)
+    t = time.time()
+    while client.get(f"/api/jobs/{jid}").json().get("email_status") != "sent" and time.time() - t < 10:
+        time.sleep(0.05)
+    assert client.get(f"/api/jobs/{jid}").json()["email_status"] == "sent"
+    # no address: nothing is sent, results only on the page
+    pid2, _, _ = photo_project(client, n=4)
+    wait(client, client.post(f"/api/projects/{pid2}/run", json={"force": True}).json()["job_id"])
+    time.sleep(0.3)
+    assert len(sent) == 1
+    assert notify.valid_email("a.b@c.co") and not notify.valid_email("a@b")

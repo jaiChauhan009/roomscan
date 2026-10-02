@@ -51,8 +51,15 @@ function explain(e) {
 async function checkHealth() {
   const pill = $("#api-status");
   try {
-    await api.health();
+    const hl = await api.health();
     state.apiUp = true;
+    // the optional "email me the results" box only when the server can send mail
+    const row = $("#email-row");
+    if (row) {
+      row.hidden = !(hl && hl.email);
+      const box = $("#notify-email");
+      if (box && !box.value) box.value = kv.get("notify.email", "") || "";
+    }
     pill.className = "pill up";
     pill.querySelector(".pill-text").textContent = "API online";
   } catch {
@@ -739,13 +746,19 @@ async function doVerify() {
 
 async function doRun(force = false) {
   if (force && !confirm("Some spaces need a retake. Results for them may be wrong or missing. Compute anyway?")) return;
+  const emailBox = $("#notify-email");
+  const email = emailBox && !$("#email-row").hidden ? emailBox.value.trim() : "";
+  if (email && !emailBox.checkValidity()) { banner("That email address does not look right."); emailBox.focus(); return; }
+  if (emailBox) kv.set("notify.email", email);
   $("#run").disabled = true;
   try {
-    const r = await api.run(state.pid, force);
+    const r = await api.run(state.pid, force, email || null);
     state.jid = r.job_id;
     kv.set("job." + state.pid, r.job_id);
     $("#results").hidden = true;
-    banner(r.cached ? "These captures were computed before: showing the saved result." : null, { kind: "info" });
+    const mailNote = email ? ` We will also email ${email} when it is done.` : "";
+    banner(r.cached ? "These captures were computed before: showing the saved result." + (email ? ` Emailing it to ${email}.` : "")
+      : (email ? "Computing." + mailNote : null), { kind: "info" });
     startPolling(r.job_id);
     $("#job").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
