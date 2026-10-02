@@ -22,7 +22,9 @@ import uuid
 from pathlib import Path
 
 KINDS = ("photos", "video", "lidar")
-CAPTURE_KINDS = ("video", "lidar")  # whole-home captures: a project may have one of each
+# whole-home captures: a project may have one of each. Order = run order, fastest first
+# (LiDAR ~2-3 min, video ~8-12 min on a CPU), so the LiDAR result is ready while the video runs
+CAPTURE_KINDS = ("lidar", "video")
 
 
 def capture_id(kind: str) -> str:

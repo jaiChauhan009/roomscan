@@ -477,18 +477,18 @@ def test_photos_video_and_lidar_three_runs(client, engine):
     upload_cap(client, pid, "video", "walk.mov", b"fake clip")
     upload_cap(client, pid, "lidar", "odometry.csv", b"t,f\n")
     v = client.post(f"/api/projects/{pid}/verify").json()
-    assert [(c["kind"], c["name"]) for c in v["captures"]] == [("video", "whole home: video"),
-                                                               ("lidar", "whole home: LiDAR")]
+    assert [(c["kind"], c["name"]) for c in v["captures"]] == [("lidar", "whole home: LiDAR"),
+                                                               ("video", "whole home: video")]
     assert next(f for f in v["project_findings"] if f["check"] == "tiers")["message"].startswith("3 runs")
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
     assert j["status"] == "done", j
     assert [(r["tier"], r["title"], r["prefix"]) for r in j["runs"]] == [
-        ("photos", "Rooms (photos)", "photos/"), ("video", "Whole home (video)", "whole_home_video/"),
-        ("lidar", "Whole home (LiDAR)", "whole_home_lidar/")]
-    assert [c["tier"] for c in engine.calls] == ["photo", "video", "lidar"]
+        ("photos", "Rooms (photos)", "photos/"), ("lidar", "Whole home (LiDAR)", "whole_home_lidar/"),
+        ("video", "Whole home (video)", "whole_home_video/")]  # fastest first
+    assert [c["tier"] for c in engine.calls] == ["photo", "lidar", "video"]
     meas = {"rooms": [{"length": 6.2, "width": 2.9}, {"height": 2.4}]}
     assert engine.calls[1]["kw"]["measurements"] == meas and engine.calls[2]["kw"]["measurements"] == meas
-    assert engine.calls[2]["files"] == ["odometry.csv"]
+    assert engine.calls[1]["files"] == ["odometry.csv"]  # the LiDAR run
     for r in j["runs"]:
         assert r["outputs"]["result_json"].endswith(f"/files/{r['prefix']}result.json")
         assert client.get(r["outputs"]["plan_svg"]).status_code == 200

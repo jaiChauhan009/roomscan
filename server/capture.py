@@ -1,4 +1,4 @@
-"""Project -> capture folders the engine reads (materialise), and the pre-run check (verify)
+﻿"""Project -> capture folders the engine reads (materialise), and the pre-run check (verify)
 built on roomscan.capture_quality plus structural checks.
 
 A project has rooms (spaces of kind "photos": a name, optional sizes, optional photos) and at
@@ -52,7 +52,7 @@ def content_key(p: dict) -> str:
 
 
 def present(p: dict) -> list[tuple[str, dict]]:
-    """The project's whole-home captures, (kind, capture) in a fixed order: video, LiDAR."""
+    """The project's whole-home captures, (kind, capture) in run order: LiDAR, then video (fastest first)."""
     caps = p.get("captures") or {}
     return [(k, caps[k]) for k in CAPTURE_KINDS if caps.get(k)]
 
