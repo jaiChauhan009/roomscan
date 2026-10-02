@@ -18,6 +18,8 @@ Design for CPU-only, no damage training data:
 from __future__ import annotations
 
 import os
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -87,8 +89,32 @@ class Region:
     u_range: tuple[float, float] = (0.0, 0.0)
 
 
-@lru_cache(maxsize=1)
+_clip_lock = threading.Lock()
+
+
 def _clip():
+    with _clip_lock:  # one load, also when preload_clip's thread is still at it
+        return _load_clip()
+
+
+def preload_clip() -> threading.Thread:
+    """Start loading CLIP in a background thread: the imports and weights take 5-7 s cold,
+    time the caller spends decoding video meanwhile (OpenCV and numpy release the GIL).
+    classify_tiles waits for it; a failed load is retried, and reported, there. The caller
+    joins the thread when done, so no load is left running when the process exits."""
+    def run():
+        try:
+            _clip()
+        except Exception:  # noqa: BLE001 - the foreground load reports it
+            pass
+
+    th = threading.Thread(target=run, name="clip-preload", daemon=True)
+    th.start()
+    return th
+
+
+@lru_cache(maxsize=1)
+def _load_clip():
     import torch
     from transformers import CLIPModel, CLIPProcessor
 
@@ -126,15 +152,28 @@ def classify_tiles(tiles: list[np.ndarray]) -> tuple[list[str], np.ndarray]:
     return out_cls, np.concatenate(out_p) if out_p else np.zeros(0)
 
 
+def _sharpness_chunks(n: int, max_frames: int) -> list[np.ndarray]:
+    """Per chunk of the capture, the frames select_frames compares (at most two)."""
+    return [chunk[:: max(1, len(chunk) // 2)][:2] for chunk in np.array_split(np.arange(n), max_frames)]
+
+
+def sharpness_candidates(cap: PosedCapture, max_frames: int) -> list[Frame]:
+    """Every frame select_frames(cap, max_frames) will read (images not needed to know)."""
+    fr = [f for f in cap.frames if f.rgb_fn is not None]
+    if len(fr) <= max_frames:
+        return fr
+    return [fr[i] for c in _sharpness_chunks(len(fr), max_frames) for i in c]
+
+
 def select_frames(cap: PosedCapture, max_frames: int = 24) -> list[Frame]:
     """Sharp frames spread over the capture."""
     fr = [f for f in cap.frames if f.rgb_fn is not None]
     if len(fr) <= max_frames:
         return fr
     out = []
-    for chunk in np.array_split(np.arange(len(fr)), max_frames):
+    for chunk in _sharpness_chunks(len(fr), max_frames):
         best, best_s = None, -1.0
-        for i in chunk[:: max(1, len(chunk) // 2)][:2]:
+        for i in chunk:
             img = fr[i].rgb_fn()
             if img is None:
                 continue
@@ -180,7 +219,7 @@ def surface_cells(layout: Layout, step: float = 0.5) -> tuple[np.ndarray, np.nda
 
 
 def select_frames_coverage(cap: PosedCapture, layout: Layout, max_frames: int = 64,
-                           max_candidates: int = 500) -> list[Frame]:
+                           max_candidates: int = 500, images: bool = True) -> list[Frame] | None:
     """Greedy set cover: pick frames until every surface patch has been seen.
 
     Sampling frames evenly in time misses surfaces that the walk only glanced at (on the
@@ -188,13 +227,16 @@ def select_frames_coverage(cap: PosedCapture, layout: Layout, max_frames: int = 
     a frame when it projects inside the image, lies 0.6-4.5 m away at less than 70 deg
     incidence and the frame's depth agrees (so it is not hidden behind something).
     Among frames that add coverage, slow camera rotation (less motion blur) is preferred.
+
+    images=False: decide from poses and depth only; None when that is not possible (no
+    surface patches: the fallback picks frames by image sharpness).
     """
     fr = [f for f in cap.frames if f.rgb_fn is not None]
     if len(fr) <= min(max_frames, 12):
         return fr
     P, N = surface_cells(layout)
     if not len(P):
-        return select_frames(cap, max_frames)
+        return select_frames(cap, max_frames) if images else None
     cand = fr[:: max(1, len(fr) // max_candidates)]
     V = np.zeros((len(cand), len(P)), bool)
     blur = np.zeros(len(cand))
@@ -259,17 +301,24 @@ class SurfaceIndex:
         lab[ok] = self.layout.labels[r[ok], c[ok]]
         idx = np.full(len(Pw), -1)
         table = []
-        # walls that face the camera
+        # per point: the wall facing the camera whose plane is nearest (within tol, inside
+        # the wall's extent); lowest wall number on a tie
+        best, has = np.zeros(len(Pw), np.intp), np.zeros(len(Pw), bool)
         if len(self.walls):
-            facing = ((cab[None] - self.S) * self.IN).sum(1) > 0.05
-            s = ((ab[:, None, :] - self.S[None]) * self.IN[None]).sum(-1)  # distance inside the room
-            u = ((ab[:, None, :] - self.S[None]) * self.D[None]).sum(-1)
-            hit = (np.abs(s) < self.tol) & (u > 0) & (u < self.L[None]) & facing[None]
-            cost = np.where(hit, np.abs(s), np.inf)
-            best = cost.argmin(1)
-            has = np.isfinite(cost.min(1))
-        else:
-            best, has = np.zeros(len(Pw), int), np.zeros(len(Pw), bool)
+            J = np.flatnonzero(((cab[None] - self.S) * self.IN).sum(1) > 0.05)  # walls facing the camera
+            # distance inside the room, (N, J), written out per plan axis (same terms, same
+            # order as a sum over the axis, without numpy's slow length-2 reduction); only
+            # the few (point, wall) pairs near a plane are evaluated further
+            s = (ab[:, 0:1] - self.S[J, 0]) * self.IN[J, 0] + (ab[:, 1:2] - self.S[J, 1]) * self.IN[J, 1]
+            pr, pc = np.nonzero(np.abs(s) < self.tol)
+            w = J[pc]
+            u = (ab[pr, 0] - self.S[w, 0]) * self.D[w, 0] + (ab[pr, 1] - self.S[w, 1]) * self.D[w, 1]
+            k = (u > 0) & (u < self.L[w])
+            pr, w, cost = pr[k], w[k], np.abs(s[pr[k], pc[k]])
+            order = np.lexsort((w, cost, pr))  # by point, then distance, then wall number
+            first = order[np.r_[True, pr[order][1:] != pr[order][:-1]]] if len(order) else order
+            best[pr[first]] = w[first]
+            has[pr[first]] = True
         wall_rows = {}
         for wi in np.unique(best[has]):
             room, w = self.walls[wi]
@@ -329,13 +378,13 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
         for y0 in range(0, max(H - size, 0) + 1, step):
             for x0 in range(0, max(W - size, 0) + 1, step):
                 sub = idx_img[y0:y0 + size, x0:x0 + size]
-                vals, counts = np.unique(sub[sub >= 0], return_counts=True)
-                if len(vals) == 0 or counts.max() < 0.5 * sub.size:
+                counts = np.bincount(sub[sub >= 0], minlength=len(table))  # pixels per surface
+                if counts.max() < 0.5 * sub.size:  # also when no pixel is on a surface
                     continue
                 # CLIP was trained on upright photos; the phone is often held sideways
                 tiles.append(np.ascontiguousarray(np.rot90(small[y0:y0 + size, x0:x0 + size], k_up)))
                 boxes.append((x0, y0, size))
-                surf.append(int(vals[counts.argmax()]))
+                surf.append(int(counts.argmax()))  # the most common surface, lowest number on a tie
     if not tiles:
         return []
     cls, prob = classify_tiles(tiles)
@@ -482,16 +531,39 @@ def merge(observations: list[Observation]) -> list[Region]:
     return regions
 
 
+@contextmanager
+def colour_prefetched(frames: list[Frame]):
+    """Colour frames read from a video (LiDAR tier: VideoReader) are decoded in one forward
+    pass for all of `frames` up front, and released afterwards. Images are unchanged
+    (VideoReader.prefetch); other tiers hold their images in memory already."""
+    readers: dict[int, tuple] = {}
+    for f in frames:
+        r = getattr(f.rgb_fn, "reader", None)
+        if r is not None and hasattr(r, "prefetch"):
+            readers.setdefault(id(r), (r, []))[1].append(f.rgb_fn.idx)
+    for r, idx in readers.values():
+        r.prefetch(idx)
+    try:
+        yield
+    finally:
+        for r, _ in readers.values():
+            r.prefetch([])
+
+
 def detect_damage(cap: PosedCapture, layout: Layout, threshold: float = 0.6, max_frames: int = 64,
-                  progress: bool = False) -> list[Region]:
+                  progress: bool = False, frames: list[Frame] | None = None) -> list[Region]:
+    """frames: the frames to examine, as select_frames_coverage(cap, layout, max_frames)
+    chose them (chosen here when not given)."""
     from tqdm import tqdm
 
     tol = 0.06 if cap.tier == "lidar" else 0.20
     sidx = SurfaceIndex(layout, tol)
     obs = []
+    if frames is None:
+        frames = select_frames_coverage(cap, layout, max_frames)
     # in time order: a LiDAR capture's colour frames are decoded forward from the video, and
     # every step back means decoding from the start again
-    frames = sorted(select_frames_coverage(cap, layout, max_frames), key=lambda f: f.timestamp)
+    frames = sorted(frames, key=lambda f: f.timestamp)
     for f in tqdm(frames, desc="damage", disable=not progress):
         obs += detect_frame(f, sidx, threshold)
     return merge(obs)
