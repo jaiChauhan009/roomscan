@@ -3,7 +3,8 @@ under DATA_DIR so a restart keeps it.
 
     DATA_DIR/projects/<pid>/project.json
     DATA_DIR/projects/<pid>/files/<sid>/<sha256>      file bytes, named by content hash
-    DATA_DIR/projects/<pid>/files/_capture/<sha256>   the whole-home capture's files
+    DATA_DIR/projects/<pid>/files/_capture_video/<sha256>   the whole-home video's file
+    DATA_DIR/projects/<pid>/files/_capture_lidar/<sha256>   the whole-home LiDAR scan's file
     DATA_DIR/jobs/<jid>/job.json
     DATA_DIR/jobs/<jid>/out/[<prefix>/]result.json ... outputs of each run
     DATA_DIR/jobs/<jid>/work/                          materialised capture (deleted after the run)
@@ -21,8 +22,12 @@ import uuid
 from pathlib import Path
 
 KINDS = ("photos", "video", "lidar")
-CAPTURE_KINDS = ("video", "lidar")  # a whole-home capture
-CAPTURE_ID = "_capture"  # the capture's file folder (space ids are 12 hex characters)
+CAPTURE_KINDS = ("video", "lidar")  # whole-home captures: a project may have one of each
+
+
+def capture_id(kind: str) -> str:
+    """A whole-home capture's file folder (space ids are 12 hex characters)."""
+    return f"_capture_{kind}"
 QUANTITIES = ("length", "width", "height")
 
 
@@ -96,7 +101,7 @@ class Store:
         return self.root / "projects" / pid
 
     def create_project(self) -> dict:
-        p = {"project_id": new_id(), "created": time.time(), "spaces": [], "capture": None,
+        p = {"project_id": new_id(), "created": time.time(), "spaces": [], "captures": {k: None for k in CAPTURE_KINDS},
              "last_job_id": None, "last_verify": None}
         with self.lock:
             write_json(self.pdir(p["project_id"]) / "project.json", p)
@@ -107,7 +112,15 @@ class Store:
         if not f.is_file():
             raise KeyError(pid)
         p = read_json(f)
-        p.setdefault("capture", None)
+        caps = p.setdefault("captures", {})
+        old = p.pop("capture", None)  # before: at most one capture, files under _capture/
+        if old and not caps.get(old["kind"]):
+            caps[old["kind"]] = old
+            src = self.pdir(pid) / "files" / "_capture"
+            if src.is_dir() and not (self.pdir(pid) / "files" / capture_id(old["kind"])).exists():
+                src.rename(self.pdir(pid) / "files" / capture_id(old["kind"]))
+        for k in CAPTURE_KINDS:
+            caps.setdefault(k, None)
         return p
 
     def save_project(self, p: dict) -> None:
