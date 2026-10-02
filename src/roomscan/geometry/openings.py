@@ -12,6 +12,8 @@ protocol asks for interior doors to be opened), and a mirror looks like an openi
 """
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -82,7 +84,19 @@ def detect_openings(cap: PosedCapture, layout: Layout, frame_stride: int = 2,
     F = np.array([a.room.floor.value for a in accs])
     H = np.array([a.height for a in accs])
 
-    for f in cap.frames[::frame_stride]:
+    NH = np.array([a.nh for a in accs], np.int64)
+    NU = np.array([a.nu for a in accs], np.int64)
+    # every wall's (nh, nu) grid as one slice of a flat array: counts are gathered as flat
+    # cell numbers for the whole capture and added up once at the end
+    base = np.concatenate([[0], np.cumsum(NH * NU)]).astype(np.int64)
+    hit_cells: list[np.ndarray] = []
+    pas_cells: list[np.ndarray] = []
+
+    def cells(wi, h, u):
+        return base[wi] + np.clip((h / HB).astype(int), 0, NH[wi] - 1) * NU[wi] + np.clip((u / UB).astype(int), 0, NU[wi] - 1)
+
+    def evidence(f):
+        """One frame: (hit cells, pass cells, [(wall, mirror-test samples)]), or None."""
         d = f.depth_fn()
         if f.conf_fn is not None:
             c = f.conf_fn()
@@ -92,41 +106,63 @@ def detect_openings(cap: PosedCapture, layout: Layout, frame_stride: int = 2,
         dd = d[::pixel_stride, ::pixel_stride].reshape(-1)
         ok = (dd > 0.2) & (dd < max_depth)
         if ok.sum() < 50:
-            continue
+            return None
         Pw = P[ok] @ f.T_wc[:3, :3].T + f.T_wc[:3, 3]
         C = f.T_wc[:3, 3]
         pab = fr.to_plan(Pw[:, [0, 2]])
         cab = fr.to_plan(C[None, [0, 2]])[0]
-        # signed distance beyond the wall (positive = outside the room)
-        sP = ((pab[:, None, :] - S[None]) * NO[None]).sum(-1)  # (N,W)
+        # signed distance beyond the wall (positive = outside the room), (N, W). Written out
+        # per plan axis rather than as a sum over a length-2 axis: same terms in the same
+        # order, without numpy's slow short-axis reduction.
+        sP = (pab[:, 0:1] - S[:, 0]) * NO[:, 0] + (pab[:, 1:2] - S[:, 1]) * NO[:, 1]
         sC = ((cab[None, :] - S) * NO).sum(-1)  # (W,)
         inside_cam = sC < -0.2
-        # surface hits
-        uP = ((pab[:, None, :] - S[None]) * D[None]).sum(-1)
-        hP = Pw[:, 1:2] - F[None]
-        hitm = (np.abs(sP) < 0.04) & (uP > 0) & (uP < L[None]) & (hP > 0) & (hP < H[None])
+        # Only the few (sample, wall) pairs that pass the plane tests are evaluated further.
+        # surface hits: on the wall plane, inside its extent
+        r, w = np.nonzero(np.abs(sP) < 0.04)
+        uP = (pab[r, 0] - S[w, 0]) * D[w, 0] + (pab[r, 1] - S[w, 1]) * D[w, 1]
+        hP = Pw[r, 1] - F[w]
+        m = (uP > 0) & (uP < L[w]) & (hP > 0) & (hP < H[w])
+        hits = cells(w[m], hP[m], uP[m])
         # rays crossing the plane: camera inside, sample > 15 cm beyond the wall
-        crossm = inside_cam[None] & (sP > 0.15)
-        t = np.where(crossm, sC[None] / np.where(crossm, sC[None] - sP, 1), 0)
-        X = cab[None, None, :] + t[..., None] * (pab[:, None, :] - cab[None, None, :])
-        uX = ((X - S[None]) * D[None]).sum(-1)
-        hX = (C[1] + t * (Pw[:, 1:2] - C[1])) - F[None]
-        crossm &= (uX > 0) & (uX < L[None]) & (hX > 0) & (hX < H[None])
-        for wi in np.where(hitm.any(0) | crossm.any(0))[0]:
-            a = accs[wi]
-            m = hitm[:, wi]
-            if m.any():
-                np.add.at(a.hit, (np.clip((hP[m, wi] / HB).astype(int), 0, a.nh - 1),
-                                  np.clip((uP[m, wi] / UB).astype(int), 0, a.nu - 1)), 1)
-            m = crossm[:, wi]
-            if m.any():
-                np.add.at(a.pas, (np.clip((hX[m, wi] / HB).astype(int), 0, a.nh - 1),
-                                  np.clip((uX[m, wi] / UB).astype(int), 0, a.nu - 1)), 1)
-                if cloud is not None:
-                    sel = np.where(m)[0][::7]
-                    a.beyond.append(np.concatenate([np.stack([uX[sel, wi], hX[sel, wi]], 1), Pw[sel]], 1))
+        r, w = np.nonzero(inside_cam[None] & (sP > 0.15))
+        t = sC[w] / (sC[w] - sP[r, w])
+        X0 = cab[0] + t * (pab[r, 0] - cab[0])
+        X1 = cab[1] + t * (pab[r, 1] - cab[1])
+        uX = (X0 - S[w, 0]) * D[w, 0] + (X1 - S[w, 1]) * D[w, 1]
+        hX = (C[1] + t * (Pw[r, 1] - C[1])) - F[w]
+        m = (uX > 0) & (uX < L[w]) & (hX > 0) & (hX < H[w])
+        r, w, uX, hX = r[m], w[m], uX[m], hX[m]
+        beyond = []
+        if cloud is not None and len(w):
+            # every 7th crossing sample of each wall (samples in image order) for the mirror test
+            order = np.argsort(w, kind="stable")
+            starts = np.flatnonzero(np.r_[True, w[order][1:] != w[order][:-1]])
+            for k0, k1 in zip(starts, np.r_[starts[1:], len(order)]):
+                sel = order[k0:k1][::7]
+                beyond.append((w[sel[0]], np.concatenate([np.stack([uX[sel], hX[sel]], 1), Pw[r[sel]]], 1)))
+        return hits, cells(w, hX, uX), beyond
 
-    occupied = _voxel_set(cloud.points, 0.06) if cloud is not None else None
+    # frames in parallel (numpy and the PNG decoder release the GIL), results taken in frame
+    # order: the evidence is exactly what a loop over the frames gathers
+    with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 1)) as ex:
+        for res in ex.map(evidence, cap.frames[::frame_stride]):
+            if res is None:
+                continue
+            hit_cells.append(res[0])
+            pas_cells.append(res[1])
+            for wi, samples in res[2]:
+                accs[wi].beyond.append(samples)
+
+    n_cells = int(base[-1])
+    for cell_list, attr in ((hit_cells, "hit"), (pas_cells, "pas")):
+        flat = np.concatenate(cell_list) if cell_list else np.zeros(0, np.int64)
+        # exact: integer counts, as many single additions of 1 into float32 gave
+        counts = np.bincount(flat, minlength=n_cells).astype(np.float32)
+        for wi, a in enumerate(accs):
+            setattr(a, attr, counts[base[wi]:base[wi + 1]].reshape(a.nh, a.nu).copy())
+
+    occupied = _VoxelSet(cloud.points, 0.06) if cloud is not None else None
     openings: list[Opening] = []
     for a in accs:
         for op in _extract(a, len(openings)):
@@ -141,15 +177,43 @@ def detect_openings(cap: PosedCapture, layout: Layout, frame_stride: int = 2,
     return openings
 
 
-def _voxel_set(points: np.ndarray, voxel: float) -> set:
-    k = np.floor(points / voxel).astype(np.int64)
-    # include the 6-neighbourhood so a point within ~1 voxel of a surface counts
-    allk = [k] + [k + np.array(o) for o in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
-    allk = np.concatenate(allk)
-    return set(map(tuple, np.unique(allk, axis=0)))
+_NEIGHBOURS = np.array([(0, 0, 0), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)], np.int64)
 
 
-def _is_mirror(a: _WallAcc, op: Opening, fr, occupied: set, voxel: float = 0.06) -> bool:
+class _VoxelSet:
+    """Voxels holding a cloud point, plus their 6-neighbourhood so a point within ~1 voxel of
+    a surface counts. Voxel keys are packed into one int64 and kept sorted: membership is a
+    binary search (a Python set of key tuples took 20 s to build for a 2.4 M point flat)."""
+
+    def __init__(self, points: np.ndarray, voxel: float):
+        points = points[np.isfinite(points).all(1)]
+        k = np.floor(points / voxel).astype(np.int64)
+        self.lo = (k.min(0) if len(k) else np.zeros(3, np.int64)) - 1
+        self.span = (k.max(0) if len(k) else np.zeros(3, np.int64)) + 2 - self.lo
+        self.keys = np.unique(self._pack(k))
+
+    def _pack(self, k: np.ndarray) -> np.ndarray:
+        q = k - self.lo
+        return (q[:, 0] * self.span[1] + q[:, 1]) * self.span[2] + q[:, 2]
+
+    def contains(self, keys: np.ndarray) -> np.ndarray:
+        """keys (M, 3) int64 voxel keys -> (M,) bool: the voxel or a face neighbour holds a point."""
+        out = np.zeros(len(keys), bool)
+        if not len(self.keys):
+            return out
+        for o in _NEIGHBOURS:
+            q = keys - o  # the point voxel that would have this key as its (o) neighbour
+            inside = ((q >= self.lo) & (q < self.lo + self.span)).all(1)
+            c = self._pack(q[inside])
+            pos = np.searchsorted(self.keys, c)
+            found = np.zeros(len(c), bool)
+            ok = pos < len(self.keys)
+            found[ok] = self.keys[pos[ok]] == c[ok]
+            out[np.flatnonzero(inside)[found]] = True
+        return out
+
+
+def _is_mirror(a: _WallAcc, op: Opening, fr, occupied: _VoxelSet, voxel: float = 0.06) -> bool:
     """A mirror shows the room behind the wall plane. Reflect what is seen "through" the
     opening back across the wall: if it lands on real surfaces of this room, it is a mirror."""
     if not a.beyond:
@@ -167,7 +231,7 @@ def _is_mirror(a: _WallAcc, op: Opening, fr, occupied: set, voxel: float = 0.06)
     dist = (Pw - s0) @ n3  # > 0 beyond the wall
     refl = Pw - 2 * dist[:, None] * n3
     keys = np.floor(refl / voxel).astype(np.int64)
-    frac = np.mean([tuple(k) in occupied for k in keys])
+    frac = np.mean(occupied.contains(keys))
     return bool(frac > 0.6)
 
 

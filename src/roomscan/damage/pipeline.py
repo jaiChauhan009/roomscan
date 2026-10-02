@@ -9,7 +9,8 @@ from shapely.geometry import LineString, Polygon
 
 from roomscan import schema as S
 from roomscan.capture import PosedCapture
-from roomscan.damage.detect import Region, detect_damage, select_frames
+from roomscan.damage.detect import (DIM_MEAN, Region, colour_prefetched, detect_damage, preload_clip,
+                                    select_frames, select_frames_coverage, sharpness_candidates)
 from roomscan.export.build import SHARED_WALL_GAP, room_label
 from roomscan.geometry.layout import Layout
 from roomscan.geometry.openings import Opening
@@ -152,12 +153,25 @@ def assess_damage(cap: PosedCapture, layout: Layout, openings: list[Opening], cl
     warnings: list[str] = []
     if not layout.rooms:
         return [], [], [], warnings
-    frames = select_frames(cap, 6)
-    lum = [float(np.mean(f.rgb_fn())) for f in frames if f.rgb_fn() is not None]
-    if lum and np.median(lum) < 45:
-        warnings.append("low light (median brightness %.0f/255): damage detection is unreliable on this capture"
-                        % np.median(lum))
-    regions = detect_damage(cap, layout, threshold=threshold, progress=progress)
+    # loads while the frames below are chosen and decoded
+    loading = preload_clip() if any(f.rgb_fn is not None for f in cap.frames) else None
+    try:
+        # The frames detection examines are chosen from poses and depth alone, so every colour
+        # frame read below is known before the first is read: a LiDAR video is decoded in one
+        # forward pass instead of once for the brightness check and again for detection.
+        max_frames = 64
+        chosen = select_frames_coverage(cap, layout, max_frames, images=False)
+        with colour_prefetched(sharpness_candidates(cap, 6) + (chosen or [])):
+            frames = select_frames(cap, 6)
+            lum = [float(np.mean(f.rgb_fn())) for f in frames if f.rgb_fn() is not None]
+            if lum and np.median(lum) < DIM_MEAN:  # dim frames are lifted for CLIP, but stay unreliable
+                warnings.append("low light (median brightness %.0f/255): damage detection is unreliable on this "
+                                "capture" % np.median(lum))
+            regions = detect_damage(cap, layout, threshold=threshold, max_frames=max_frames, progress=progress,
+                                    frames=chosen)
+    finally:
+        if loading is not None:
+            loading.join()
     named = [(f"dmg_{i + 1}", r) for i, r in enumerate(regions)]
     fr = layout.frame
     origin = np.min(np.concatenate([r.polygon for r in layout.rooms]), axis=0)

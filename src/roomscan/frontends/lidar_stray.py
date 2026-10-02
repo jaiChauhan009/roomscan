@@ -146,7 +146,11 @@ class VideoReader:
     requests (frame selection, then detection) do not seek the video again.
 
     Frames are returned as stored (no rotation from container metadata): the intrinsics
-    in odometry.csv refer to the stored frames."""
+    in odometry.csv refer to the stored frames.
+
+    Every step back means decoding from the start again (see get), so a caller that knows
+    which frames it will read calls prefetch() once: one forward pass decodes them all and
+    holds them, exactly as decoded, until they are requested."""
 
     def __init__(self, path: Path, max_cache: int = 64):
         self.path = path
@@ -154,6 +158,7 @@ class VideoReader:
         self.pos = -1
         self.cache: dict[int, np.ndarray] = {}
         self.max_cache = max_cache
+        self.ahead: dict[int, np.ndarray] = {}  # prefetched frames (BGR, as decoded), not yet requested
 
     def _open(self) -> cv2.VideoCapture:
         from roomscan.frontends.video import quiet_ffmpeg
@@ -163,12 +168,11 @@ class VideoReader:
         cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 0)
         return cap
 
-    def get(self, idx: int) -> np.ndarray | None:
-        if idx in self.cache:
-            return cv2.imdecode(self.cache[idx], cv2.IMREAD_COLOR)[:, :, ::-1].copy()
-        # Decode forward to frame idx; never seek. Stray's rgb.mp4 has a variable frame rate
-        # and OpenCV seeks by time (N / average fps), which on the sample scan landed 4-80
-        # frames late: colour no longer matched its pose and depth. Going back reopens.
+    def _decode(self, idx: int) -> np.ndarray | None:
+        """Frame idx as decoded (BGR). Decode forward to it; never seek. Stray's rgb.mp4 has
+        a variable frame rate and OpenCV seeks by time (N / average fps), which on the sample
+        scan landed 4-80 frames late: colour no longer matched its pose and depth. Going back
+        reopens."""
         if self.cap is None or idx <= self.pos:
             if self.cap is not None:
                 self.cap.release()
@@ -181,6 +185,34 @@ class VideoReader:
         if not ok:
             return None
         self.pos = idx
+        return img
+
+    def prefetch(self, indices) -> None:
+        """Decode these frames in one forward pass and hold them until get() asks for them.
+
+        A held frame is the very array a direct decode returns (decoding forward from the
+        start is deterministic), and get() treats it exactly like one, so prefetching never
+        changes what get() returns, only how often the video is decoded. Frames held from an
+        earlier call are dropped; prefetch([]) releases them."""
+        self.ahead = {}
+        for idx in sorted({int(i) for i in indices if int(i) >= 0 and int(i) not in self.cache}):
+            img = self._decode(idx)
+            if img is None:  # end of the video or a broken frame: get() will try again itself
+                break
+            self.ahead[idx] = img
+
+    def frame(self, idx: int) -> "VideoFrame":
+        """The rgb_fn of frame idx."""
+        return VideoFrame(self, idx)
+
+    def get(self, idx: int) -> np.ndarray | None:
+        if idx in self.cache:
+            return cv2.imdecode(self.cache[idx], cv2.IMREAD_COLOR)[:, :, ::-1].copy()
+        img = self.ahead.pop(idx, None)
+        if img is None:
+            img = self._decode(idx)
+            if img is None:
+                return None
         if len(self.cache) >= self.max_cache:
             self.cache.pop(next(iter(self.cache)))
         self.cache[idx] = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 95])[1]
@@ -193,6 +225,19 @@ class VideoReader:
         w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         cap.release()
         return (w, h) if ok else (0, 0)
+
+
+class VideoFrame:
+    """rgb_fn of one LiDAR frame: its colour image from the shared VideoReader. The reader
+    and index are visible so a consumer can prefetch() the frames it is about to read."""
+
+    __slots__ = ("reader", "idx")
+
+    def __init__(self, reader: VideoReader, idx: int):
+        self.reader, self.idx = reader, idx
+
+    def __call__(self) -> np.ndarray | None:
+        return self.reader.get(self.idx)
 
 
 def _frame_files(folder: Path, exts: tuple[str, ...]) -> dict[int, Path]:
@@ -259,7 +304,7 @@ def load_stray(path: Path, stride: int = 1) -> PosedCapture:
             K_rgb=K_rgb,
             depth_fn=(lambda p=dpath: read_depth(p, (dh, dw))),
             conf_fn=(lambda p=cpath: read_png(p)) if cpath is not None else None,
-            rgb_fn=(lambda i=fid: reader.get(i)) if reader else None,
+            rgb_fn=reader.frame(fid) if reader else None,
             depth_sigma_rel=0.01,
         ))
     if n_missing:
