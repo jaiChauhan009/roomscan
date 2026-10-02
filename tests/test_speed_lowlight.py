@@ -8,8 +8,16 @@ grids, same assignments, bit for bit.
 Mirror: a rendered room whose wall carries a mirror (LiDAR sees the reflected room behind
 the wall plane) next to a real doorway into a second room: the doorway is an opening, the
 mirror is not.
+
+Low light: a frame of the sample scan is darkened at test time (less light, sensor noise).
+Damage detection lifts dim frames to a normal exposure before CLIP and then finds a painted
+stain it misses in the dark frame as it is; frames at normal brightness are untouched.
+Video tracking (CLAHE before KLT) keeps going in dim light without a lift.
 """
 from __future__ import annotations
+
+import os
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -270,3 +278,168 @@ def test_surface_assignment_matches_the_dense_computation(scene):
             assert np.array_equal(idx, idx0) and [row[:3] for row in table] == table0
             n_wall += sum(row[2] == "wall" for row in table)
     assert n_wall > 20
+
+
+# ---------------------------------------------------------------- low light
+
+DATA = Path(os.environ.get("ROOMSCAN_DATA", Path(__file__).resolve().parents[1].parent / "data"))
+# a frame of the sample flat scan, upright 1440 x 1920: plain wall on the left, ceiling, a
+# fridge with notes, curtains (bench/photo_set_recipe.yaml builds it from the scan)
+SAMPLE = DATA / "photos_with_ceiling" / "02_room_8" / "01_sweep_frame006500.jpg"
+
+
+def _sample_frame() -> np.ndarray:
+    """The sample frame (RGB); a synthetic room-like picture of the same size when the
+    sample data is not there."""
+    if SAMPLE.exists():
+        return cv2.imread(str(SAMPLE))[:, :, ::-1].copy()
+    rng = np.random.default_rng(3)
+    img = np.full((1920, 1440, 3), 150, np.float32) + np.linspace(-30, 30, 1440)[None, :, None]
+    for _ in range(40):  # picture frames, furniture edges, switches
+        x, y = rng.integers(500, 1300), rng.integers(0, 1750)
+        cv2.rectangle(img, (int(x), int(y)), (int(x + rng.integers(40, 220)), int(y + rng.integers(40, 190))),
+                      tuple(float(c) for c in rng.uniform(40, 230, 3)), -1)
+    img += cv2.GaussianBlur(rng.normal(0, 6, img.shape).astype(np.float32), (0, 0), 2)  # wall texture
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
+def _darken(img: np.ndarray, factor: float, seed: int, read: float = 0.8, shot: float = 0.0) -> np.ndarray:
+    """The scene `factor` times as bright, plus sensor noise: read noise and shot noise
+    (variance in levels^2: read^2 + shot * signal)."""
+    v = img.astype(np.float32) * factor
+    noise = np.random.default_rng(seed).normal(0, 1, img.shape).astype(np.float32) * np.sqrt(read ** 2 + shot * v)
+    return np.clip(np.round(v + noise), 0, 255).astype(np.uint8)
+
+
+def test_only_dim_frames_are_lifted():
+    from roomscan.damage.detect import DIM_MAX_GAIN, DIM_MEAN, DIM_TARGET, lift_dim
+    img = _sample_frame()[::8, ::8]
+    assert img.mean() >= DIM_MEAN and lift_dim(img) is img  # normal light: the very same array
+    at = np.full((8, 8), int(DIM_MEAN), np.uint8)
+    assert lift_dim(at) is at
+    dim = _darken(img, 0.25, 0)
+    out = lift_dim(dim)
+    assert dim.mean() < DIM_MEAN and out.dtype == np.uint8 and out.shape == dim.shape
+    assert abs(out.mean() - DIM_TARGET) < 0.05 * DIM_TARGET
+    dark = _darken(img, 0.02, 0)  # nearly black: at most DIM_MAX_GAIN
+    assert lift_dim(dark).mean() <= DIM_MAX_GAIN * dark.mean() + 0.5
+    black = np.zeros((8, 8, 3), np.uint8)
+    assert lift_dim(black) is black
+
+
+class _Clip:
+    """Stands in for cv2.VideoCapture: hands out the given BGR frames at 25 fps."""
+
+    def __init__(self, frames):
+        self.frames, self.i = frames, -1
+
+    def isOpened(self):
+        return True
+
+    def set(self, *a):
+        return True
+
+    def get(self, prop):
+        return {cv2.CAP_PROP_FPS: 25.0, cv2.CAP_PROP_FRAME_COUNT: len(self.frames),
+                cv2.CAP_PROP_POS_MSEC: 40.0 * self.i}.get(prop, 0.0)
+
+    def grab(self):
+        self.i += 1
+        return self.i < len(self.frames)
+
+    def retrieve(self):
+        return True, self.frames[self.i].copy()
+
+    def read(self):
+        return self.retrieve() if self.grab() else (False, None)
+
+    def release(self):
+        pass
+
+
+def _pan(img: np.ndarray, n: int):
+    """n frames (BGR) of a camera panning across img, shifting and slowly zooming, with each
+    frame's map to img pixels, so every tracked point has a known true position."""
+    base = cv2.resize(img[:, :, ::-1], (960, 960 * img.shape[0] // img.shape[1]), interpolation=cv2.INTER_AREA)
+    frames, maps = [], []
+    for i in range(n):
+        M = np.array([[1 / (1 + 0.002 * i), 0, 20 + 3.0 * i], [0, 1 / (1 + 0.002 * i), 20 + 1.0 * i]])
+        frames.append(cv2.warpAffine(base, M, (672, 504), flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP))
+        maps.append(M)
+    return frames, maps
+
+
+def _track(frames, maps, monkeypatch, tmp_path):
+    """track_video on the frames -> (keyframes, mean number of tracks shared by consecutive
+    keyframes that are within 1 px of their true position)."""
+    from roomscan.frontends import video as V
+    monkeypatch.setattr(V, "_capture", lambda path, auto_rotate=True: _Clip(frames))
+    clip = tmp_path / "clip.mov"
+    clip.write_bytes(b"stand-in")
+    kfs = V.track_video(clip)["kfs"]
+    s = V.WORK_W / 672
+    good = []
+    for a, b in zip(kfs[:-1], kfs[1:]):
+        _, ia, ib = np.intersect1d(a["ids"], b["ids"], return_indices=True)
+        Ma, Mb = maps[a["frame"]], maps[b["frame"]]
+        scene = a["pts"][ia] / s @ Ma[:, :2].T + Ma[:, 2]
+        truth = np.linalg.solve(Mb[:, :2], (scene - Mb[:, 2]).T).T
+        good.append(int((np.linalg.norm(b["pts"][ib] / s - truth, axis=1) * s < 1.0).sum()))
+    return kfs, float(np.mean(good))
+
+
+def test_video_tracking_keeps_going_in_dim_light(monkeypatch, tmp_path):
+    """The video tier equalises contrast per image tile (CLAHE) before KLT, so an
+    underexposed clip (a quarter of the light, 8-bit levels the limit) still tracks: about
+    40 % of the normal-light correct tracks here (843 -> 320 per keyframe pair). Lifting the
+    exposure before CLAHE was measured and not adopted: +5 to +11 % correct tracks on average
+    over 7 sample frames, -17 % on this one (the lift clips the bright ceiling). With sensor
+    noise added, tracking breaks down (a keyframe at every frame, 20 correct tracks), and no
+    cheap filter tried (blur, median, bilateral, non-local means) brought it back."""
+    frames, maps = _pan(_sample_frame(), 40)
+    _, good = _track(frames, maps, monkeypatch, tmp_path)
+    dim = [_darken(f, 0.25, k) for k, f in enumerate(frames)]
+    _, good_dim = _track(dim, maps, monkeypatch, tmp_path)
+    assert np.mean([f.mean() for f in dim]) < 45 and good > 300
+    assert good_dim > 0.3 * good
+
+
+def _paint_stain(img: np.ndarray, cx: float, cy: float, r: float) -> np.ndarray:
+    """A brown water stain with a darker tide mark (as scripts/dev_synth_damage.py paints)."""
+    yy, xx = np.mgrid[0:img.shape[0], 0:img.shape[1]]
+    ang = np.arctan2(yy - cy, xx - cx)
+    rr = r * (1 + 0.12 * np.sin(3 * ang + 1.0) + 0.08 * np.sin(5 * ang + 2.0))
+    dist = np.hypot(xx - cx, yy - cy)
+    alpha = np.clip(1.2 - dist / rr, 0, 1) * 0.75 * (dist < rr)
+    alpha = np.maximum(alpha, 0.8 * ((np.abs(dist / rr - 0.9) < 0.08) & (dist < rr)))
+    alpha = cv2.GaussianBlur(alpha.astype(np.float32), (0, 0), 2.0)[..., None]
+    return (img * (1 - alpha) + np.array([150, 105, 60], np.float32) * alpha).astype(np.uint8)
+
+
+@pytest.mark.skipif(not SAMPLE.exists(), reason="sample data not present (scripts/fetch_data.py)")
+def test_damage_tiles_of_a_dim_frame_are_lifted_before_clip():
+    """Dim frames are lifted to a normal exposure before CLIP sees their tiles (detect_frame).
+    A stain painted on the sample frame's plain wall, the whole frame then darkened 8x."""
+    from roomscan.damage import detect as DD
+    from roomscan.damage.detect import lift_dim
+    try:
+        DD._clip()
+    except Exception as e:  # noqa: BLE001
+        pytest.skip(f"CLIP weights not available: {type(e).__name__}")
+    img = _sample_frame()
+    s = img.shape[1] / 960  # detect_frame works at 960 px wide
+    painted = _paint_stain(img.astype(np.float32), 142 * s, 412 * s, 60 * s)
+
+    def probs(im, lift):
+        small = cv2.resize(im, (960, round(im.shape[0] / s)), interpolation=cv2.INTER_AREA)
+        small = lift_dim(small) if lift else small
+        tiles = [np.ascontiguousarray(small[300:524, 30:254]), np.ascontiguousarray(small[650:874, 30:254])]
+        return DD.classify_tiles(tiles)[1]  # damage probability: stain tile, clean wall tile
+
+    stain, clean = probs(painted, True)  # normal light: nothing to lift
+    assert stain >= 0.6 > clean  # the detector's threshold
+    dark = _darken(painted, 0.12, 5)
+    stain_raw, _ = probs(dark, False)
+    stain_lift, clean_lift = probs(dark, True)
+    assert stain_raw < 0.6  # missed in the dark frame as it was
+    assert stain_lift >= DD.DIM_THRESHOLD > clean_lift  # found once lifted, with the stricter dim threshold

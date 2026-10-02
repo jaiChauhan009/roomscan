@@ -53,6 +53,27 @@ BENIGN_PROMPTS = [
 ]
 MIN_AREA = 0.01  # m2: smaller regions are fixtures or noise, not reportable damage
 MIN_CRACK_LEN = 0.20  # m
+DIM_MEAN = 45.0  # mean brightness (0-255) below which a frame is dim (the low-light warning uses it too)
+DIM_TARGET = 110.0  # mean brightness a dim frame is lifted to
+DIM_MAX_GAIN = 8.0  # at most 3 stops: below that there is little left to recover but noise
+# CLIP threshold in dim frames (lifted first, see lift_dim): the lifted sensor noise reads as
+# faint stains. On the undamaged sample flat darkened 4x and 8x with sensor noise, the usual
+# 0.6 let through 3 and 5 false regions scoring 0.64-0.74 (none in the dark frames as they
+# were, none in normal light); with 0.8 none, also 4x darker without noise, while a stain
+# painted on the single-room sample is still found at 4x and 8x (0.94-0.96).
+DIM_THRESHOLD = 0.8
+
+
+def lift_dim(img: np.ndarray) -> np.ndarray:
+    """A dim frame (mean brightness below DIM_MEAN) brought to a normal exposure by one gain
+    on its stored values; for the camera's gamma-encoded output that is what a longer
+    exposure gives. CLIP was trained on well-exposed photos and misses stains in dark tiles.
+    A frame at or above DIM_MEAN is returned as it is (the same array), so it is processed
+    exactly as before."""
+    m = float(img.mean())
+    if m >= DIM_MEAN or m <= 0.0:
+        return img
+    return cv2.convertScaleAbs(img, alpha=min(DIM_TARGET / m, DIM_MAX_GAIN))
 
 
 @dataclass
@@ -368,6 +389,11 @@ def detect_frame(frame: Frame, sidx: SurfaceIndex, threshold: float, work_w: int
         return []
     s = work_w / img.shape[1]
     small = cv2.resize(img, (work_w, int(round(img.shape[0] * s))), interpolation=cv2.INTER_AREA)
+    lifted = lift_dim(small)
+    if lifted is not small:
+        # A dim frame: CLIP sees it lifted to a normal exposure (dark tiles hide stains from
+        # it), and has to be surer, because the sensor noise is lifted with the picture.
+        small, threshold = lifted, max(threshold, DIM_THRESHOLD)
     H, W = small.shape[:2]
     idx_img = cv2.resize(idx.astype(np.float32), (W, H), interpolation=cv2.INTER_NEAREST).astype(int)
     up_cam = frame.T_wc[:3, :3].T @ np.array([0.0, 1.0, 0.0])  # world up in camera axes

@@ -9,8 +9,8 @@ from shapely.geometry import LineString, Polygon
 
 from roomscan import schema as S
 from roomscan.capture import PosedCapture
-from roomscan.damage.detect import (Region, colour_prefetched, detect_damage, preload_clip, select_frames,
-                                    select_frames_coverage, sharpness_candidates)
+from roomscan.damage.detect import (DIM_MEAN, Region, colour_prefetched, detect_damage, preload_clip,
+                                    select_frames, select_frames_coverage, sharpness_candidates)
 from roomscan.export.build import SHARED_WALL_GAP, room_label
 from roomscan.geometry.layout import Layout
 from roomscan.geometry.openings import Opening
@@ -164,7 +164,7 @@ def assess_damage(cap: PosedCapture, layout: Layout, openings: list[Opening], cl
         with colour_prefetched(sharpness_candidates(cap, 6) + (chosen or [])):
             frames = select_frames(cap, 6)
             lum = [float(np.mean(f.rgb_fn())) for f in frames if f.rgb_fn() is not None]
-            if lum and np.median(lum) < 45:
+            if lum and np.median(lum) < DIM_MEAN:  # dim frames are lifted for CLIP, but stay unreliable
                 warnings.append("low light (median brightness %.0f/255): damage detection is unreliable on this "
                                 "capture" % np.median(lum))
             regions = detect_damage(cap, layout, threshold=threshold, max_frames=max_frames, progress=progress,
