@@ -299,10 +299,20 @@ def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str) -> ScalePlan | None:
     room_scale: dict[str, float] = {}
     for name in dict.fromkeys(x.room for x in ratios):
         rs = np.array([x.r for x in ratios if x.room == name])
-        room_scale[name] = float(np.median(rs))
         if len(rs) > 1 and rs.max() / rs.min() - 1 > DISAGREE:
             notes.append(f"{name}: the given numbers disagree by {100 * (rs.max() / rs.min() - 1):.0f} % with this "
                          f"room's shape (ratios {', '.join(f'{v:.2f}' for v in rs)}): check them; intervals widened")
+        sides = np.array([x.r for x in ratios if x.room == name and x.qty != "height"])
+        if mode == "room" and not len(sides):
+            # Held out on the sample flat, scaling photo rooms by the ceiling height alone made the
+            # footprint worse (+109 % -> +177 %): fitted floor and height are not off by the same
+            # factor. A height alone is compared in the output, never used for a photo room's scale.
+            notes.append(f"{name}: only a ceiling height given: compared, not used for the scale (it does not "
+                         f"fix the floor size on photos); give a length or width")
+            continue
+        room_scale[name] = float(np.median(sides if len(sides) else rs))
+    if not room_scale:
+        return ScalePlan({}, 1.0, ratios, 0.0, "depth model (known heights compared only)", notes, assigned)
     s_all = float(np.median(list(room_scale.values())))
     if mode == "room":
         only_h = [n for n in room_scale if all(x.qty == "height" for x in ratios if x.room == n)]

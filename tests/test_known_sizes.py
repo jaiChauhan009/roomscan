@@ -63,8 +63,8 @@ def test_room_mode_per_room_scale_and_median_for_unmeasured():
 def test_disagreeing_numbers_warn_and_widen():
     rooms = [KS.dims_of(rect_room("r", 4.0, 3.0, 2.5))]
     p = KS.plan(KS.parse({"rooms": {"r": {"length": 4.0, "width": 3.6, "height": 2.5}}}), rooms, "room")
-    assert p.per_room["r"] == pytest.approx(1.0)
-    assert p.spread == pytest.approx(0.2)
+    assert p.per_room["r"] == pytest.approx(1.1)  # sides only: median of 4.0/4.0 and 3.6/3.0
+    assert p.spread == pytest.approx(0.1 / 1.1)  # 1.0 and 1.2 around 1.1: widened
     assert any("disagree" in w for w in p.warnings)
 
 
@@ -99,17 +99,15 @@ def _output(room: Room, tier: str = "photo"):
 
 def test_finish_tightens_measured_and_records_scale():
     room = rect_room("01_hall", 4.0 * 0.7, 3.0 * 0.7, 2.6 * 0.7)
-    known = KS.parse({"rooms": {"01_hall": {"height": 2.6}}})
+    known = KS.parse({"rooms": {"01_hall": {"length": 4.0, "height": 2.6}}})
     p = KS.plan(known, [KS.dims_of(room)], "room")
     KS.scale_room(room, p.per_room["01_hall"])
     assert room.height == pytest.approx(2.6) and room.walls[0].length == pytest.approx(4.0)
     out, layout = _output(room)
-    before = out.rooms[0].walls[0].length.model_copy()
     KS.finish(out, p, layout.rooms, known, mode="room")
     ch = out.rooms[0].ceiling_height
     assert ch.value == pytest.approx(2.6) and ch.ci90[1] - ch.ci90[0] == pytest.approx(0.02, abs=1e-3)
     assert out.rooms[0].walls[0].height.value == pytest.approx(2.6)
-    assert out.rooms[0].walls[0].length == before  # one number: nothing to widen with, nothing measured
     assert out.capture.meta["known_size_scale"] == pytest.approx(1 / 0.7, rel=1e-3)
     assert any("known sizes" in w for w in out.warnings)
 
@@ -164,3 +162,11 @@ def test_pipeline_loader(tmp_path):
         load_known_sizes(None, tmp_path)
     with pytest.raises(InputError):
         load_known_sizes(tmp_path / "nope.yaml")
+
+
+def test_a_photo_room_is_never_scaled_by_its_ceiling_height_alone():
+    # held out on the sample flat: height-only scaling made the photo footprint +109 % -> +177 %
+    room = rect_room("01_hall", 4.0 * 0.7, 3.0 * 0.7, 2.6 * 0.7)
+    p = KS.plan(KS.parse({"rooms": {"01_hall": {"height": 2.6}}}), [KS.dims_of(room)], "room")
+    assert p.per_room.get("01_hall", 1.0) == pytest.approx(1.0)
+    assert any("only a ceiling height given" in w for w in p.warnings)
