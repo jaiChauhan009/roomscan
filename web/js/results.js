@@ -88,8 +88,9 @@ export async function renderResults(job, jid) {
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.label === (r && r.label))));
     renderRun(r ? r.outputs : (job.outputs || {}), jid);
   };
-  tabs.replaceChildren(...(runs.length > 1 ? runs.map((r) => h("button", { type: "button", class: "btn small", "data-label": r.label, onclick: () => show(r) }, r.title || r.label)) : []));
-  tabs.hidden = runs.length < 2;
+  // one tab per finished run: Rooms (photos) / Whole home (video) / Whole home (LiDAR)
+  tabs.replaceChildren(...runs.map((r) => h("button", { type: "button", class: "btn small", "data-label": r.label, onclick: () => show(r) }, r.title || r.label)));
+  tabs.hidden = !runs.length && !(job.runs || []).some((r) => r.status === "failed");
   const failed = (job.runs || []).filter((r) => r.status === "failed");
   if (failed.length) tabs.append(h("p", { class: "small muted" }, failed.map((r) => `${r.title || r.label} failed: ${r.error || "error"}`).join(" · ")));
   show(runs[0] || null);

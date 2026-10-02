@@ -11,9 +11,15 @@ export class ApiError extends Error {
 }
 
 const enc = encodeURIComponent;
-// The whole-home capture uses the same upload queue as rooms, under this pseudo space id.
-export const CAPTURE = "_capture";
-const filesPath = (pid, sid) => sid === CAPTURE ? `/api/projects/${enc(pid)}/capture/files` : `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`;
+// The two whole-home captures (a video and / or a LiDAR scan) use the same upload queue as
+// rooms, under these pseudo space ids.
+export const CAP_SID = { video: "_capture_video", lidar: "_capture_lidar" };
+export const CAP_KINDS = ["video", "lidar"];
+export const capKindOf = (sid) => CAP_KINDS.find((k) => CAP_SID[k] === sid) || null;
+const filesPath = (pid, sid) => {
+  const k = capKindOf(sid);
+  return k ? `/api/projects/${enc(pid)}/captures/${k}/files` : `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`;
+};
 
 export function url(path) {
   if (/^https?:\/\//i.test(path)) return path;
@@ -69,8 +75,9 @@ export const api = {
   setOrder: (pid, spaceIds) => req("PUT", `/api/projects/${enc(pid)}/order`, { space_ids: spaceIds }),
   listFiles: (pid, sid) => req("GET", filesPath(pid, sid)),
   deleteFile: (pid, sid, sha) => req("DELETE", `${filesPath(pid, sid)}/${enc(sha)}`),
-  setCapture: (pid, kind) => req("PUT", `/api/projects/${enc(pid)}/capture`, { kind }),
-  deleteCapture: (pid) => req("DELETE", `/api/projects/${enc(pid)}/capture`),
+  setCapture: (pid, kind) => req("PUT", `/api/projects/${enc(pid)}/captures/${enc(kind)}`, {}),
+  getCapture: (pid, kind) => req("GET", `/api/projects/${enc(pid)}/captures/${enc(kind)}`),
+  deleteCapture: (pid, kind) => req("DELETE", `/api/projects/${enc(pid)}/captures/${enc(kind)}`),
   verify: (pid) => req("POST", `/api/projects/${enc(pid)}/verify`, {}, { timeout: 120000 }),
   run: (pid, force = false) => req("POST", `/api/projects/${enc(pid)}/run`, force ? { damage: true, force: true } : { damage: true }),
   job: (jid) => req("GET", `/api/jobs/${enc(jid)}`),

@@ -1,9 +1,10 @@
 """Mock roomscan API for exercising the web UI without the real backend.
 
 Standard library only. In-memory state; restart = fresh. Implements the web contract:
-projects, rooms (spaces of kind "photos", photos optional), one optional whole-home capture
-(video or LiDAR, PUT/GET/DELETE /capture, /capture/files), files (multipart PUT, idempotent by
-sha256), verify, run (a photos run and / or a whole-home run), jobs (a fake job that walks
+projects, rooms (spaces of kind "photos", photos optional), two optional whole-home captures
+(a video AND / OR a LiDAR scan: PUT/GET/DELETE /captures/{video|lidar}, /captures/{kind}/files, one
+file each), files (multipart PUT, idempotent by sha256), verify, run (one run per present input:
+rooms' photos, whole-home video, whole-home LiDAR), jobs (a fake job that walks
 through its stages in real time), job files and comparison (with a tier column), health.
 
     python web/dev/mock_server.py                 # http://localhost:8000
@@ -46,7 +47,8 @@ def new_id(prefix: str) -> str:
 
 
 # ---------------------------------------------------------------- verify logic
-CAPTURE = "_capture"
+CAP_SID = {"video": "_capture_video", "lidar": "_capture_lidar"}
+SID_CAP = {v: k for k, v in CAP_SID.items()}
 TITLES = {"photos": "Rooms (photos)", "video": "Whole home (video)", "lidar": "Whole home (LiDAR)"}
 
 
@@ -281,33 +283,44 @@ def get_project(pid: str) -> dict:
 
 
 def get_space(p: dict, sid: str) -> dict:
-    if sid == CAPTURE:
-        if not p.get("capture"):
-            raise ApiErr(404, "the project has no whole-home capture")
-        return p["capture"]
+    if sid in SID_CAP:
+        kind = SID_CAP[sid]
+        if not p["captures"].get(kind):
+            raise ApiErr(404, f"the project has no whole-home {kind} capture")
+        return p["captures"][kind]
     for sp in p["spaces"]:
         if sp["space_id"] == sid:
             return sp
     raise ApiErr(404, f"space {sid} not found")
 
 
-def cap_out(p: dict):
-    c = p.get("capture")
+def cap_out(p: dict, kind: str):
+    c = p["captures"].get(kind)
     return {"kind": c["kind"], "files": c["files"]} if c else None
 
 
+def caps_out(p: dict) -> dict:
+    return {k: cap_out(p, k) for k in ("video", "lidar")}
+
+
+def present_caps(p: dict) -> list[dict]:
+    return [c for c in (p["captures"].get("video"), p["captures"].get("lidar")) if c]
+
+
 def has_input(p: dict) -> bool:
-    return any(s["files"] for s in p["spaces"]) or bool(p.get("capture") and p["capture"]["files"])
+    return any(s["files"] for s in p["spaces"]) or any(c["files"] for c in present_caps(p))
 
 
 def plan_runs(p: dict) -> list[dict]:
-    """[rooms with photos] + [the whole-home capture]; output prefixes only with two runs."""
+    """[rooms with photos] + [whole-home video] + [whole-home LiDAR]; output prefixes only with two+ runs."""
     runs = []
     photos = [s["space_id"] for s in p["spaces"] if s["files"]]
     if photos:
         runs.append({"tier": "photos", "title": TITLES["photos"], "label": "photos", "space_ids": photos})
-    if p.get("capture"):
-        runs.append({"tier": p["capture"]["kind"], "title": TITLES[p["capture"]["kind"]], "label": "whole_home",
+    for c in present_caps(p):
+        if not c["files"]:
+            continue
+        runs.append({"tier": c["kind"], "title": TITLES[c["kind"]], "label": f"whole_home_{c['kind']}",
                      "space_ids": [s["space_id"] for s in p["spaces"]]})
     for r in runs:
         r["prefix"] = f"{r['label']}/" if len(runs) > 1 else ""
@@ -401,12 +414,12 @@ class Handler(BaseHTTPRequestHandler):
         ("PATCH", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "patch_space"),
         ("PUT", r"/api/projects/(?P<pid>[^/]+)/order", "set_order"),
         ("DELETE", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "delete_space"),
-        ("PUT", r"/api/projects/(?P<pid>[^/]+)/capture", "put_capture"),
-        ("GET", r"/api/projects/(?P<pid>[^/]+)/capture", "get_capture"),
-        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/capture", "delete_capture"),
-        ("GET", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files", "list_files"),
-        ("PUT", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files", "put_file"),
-        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files/(?P<sha>[0-9a-fA-F]+)", "delete_file"),
+        ("PUT", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<kind>[^/]+)", "put_capture"),
+        ("GET", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<kind>[^/]+)", "get_capture"),
+        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<kind>[^/]+)", "delete_capture"),
+        ("GET", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<sid>[^/]+)/files", "list_files"),
+        ("PUT", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<sid>[^/]+)/files", "put_file"),
+        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/captures/(?P<sid>[^/]+)/files/(?P<sha>[0-9a-fA-F]+)", "delete_file"),
         ("GET", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "list_files"),
         ("PUT", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "put_file"),
         ("DELETE", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files/(?P<sha>[0-9a-fA-F]+)", "delete_file"),
@@ -440,33 +453,37 @@ class Handler(BaseHTTPRequestHandler):
     def h_create_project(self):
         self._body()
         pid = new_id("p")
-        PROJECTS[pid] = {"project_id": pid, "spaces": [], "capture": None, "last_job_id": None, "verify": None}
+        PROJECTS[pid] = {"project_id": pid, "spaces": [], "captures": {"video": None, "lidar": None}, "last_job_id": None, "verify": None}
         self._json(200, {"project_id": pid})
 
     def h_project(self, pid):
         p = get_project(pid)
-        self._json(200, {"project_id": pid, "spaces": [space_out(s) for s in p["spaces"]], "capture": cap_out(p),
+        self._json(200, {"project_id": pid, "spaces": [space_out(s) for s in p["spaces"]], "captures": caps_out(p),
                          "last_job_id": p["last_job_id"]})
 
-    def h_put_capture(self, pid):
+    def h_put_capture(self, pid, kind):
         p = get_project(pid)
-        kind = self._jbody().get("kind")
-        if kind not in ("video", "lidar"):
+        self._body()
+        if kind not in CAP_SID:
             raise ApiErr(422, "kind must be video or lidar")
-        if not p["capture"] or p["capture"]["kind"] != kind:
-            p["capture"] = {"space_id": CAPTURE, "name": "whole home", "kind": kind, "sizes": {}, "files": []}
+        if not p["captures"].get(kind):
+            p["captures"][kind] = {"space_id": CAP_SID[kind], "name": f"whole home ({kind})", "kind": kind, "sizes": {}, "files": []}
             p["verify"] = None
-        self._json(200, cap_out(p))
+        self._json(200, cap_out(p, kind))
 
-    def h_get_capture(self, pid):
+    def h_get_capture(self, pid, kind):
         p = get_project(pid)
-        get_space(p, CAPTURE)
-        self._json(200, cap_out(p))
+        if kind not in CAP_SID:
+            raise ApiErr(404, "no such capture kind")
+        get_space(p, CAP_SID[kind])
+        self._json(200, cap_out(p, kind))
 
-    def h_delete_capture(self, pid):
+    def h_delete_capture(self, pid, kind):
         p = get_project(pid)
-        get_space(p, CAPTURE)
-        p["capture"] = None
+        if kind not in CAP_SID:
+            raise ApiErr(404, "no such capture kind")
+        get_space(p, CAP_SID[kind])
+        p["captures"][kind] = None
         p["verify"] = None
         self._json(200, {"ok": True})
 
@@ -475,7 +492,7 @@ class Handler(BaseHTTPRequestHandler):
         b = self._jbody()
         kind = b.get("kind") or "photos"
         if kind in ("video", "lidar"):
-            raise ApiErr(422, f"{kind} is a whole-home capture: PUT /api/projects/{pid}/capture")
+            raise ApiErr(422, f"{kind} is a whole-home capture: PUT /api/projects/{pid}/captures/{kind}")
         if kind != "photos":
             raise ApiErr(422, "kind must be photos")
         name = (b.get("name") or f"Room {len(p['spaces']) + 1}").strip()
@@ -512,12 +529,12 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"ok": True})
 
     def h_list_files(self, pid, sid):
-        sid = CAPTURE if sid == "capture" else sid
+        sid = CAP_SID.get(sid, sid)
         sp = get_space(get_project(pid), sid)
         self._json(200, {"files": sp["files"]})
 
     def h_put_file(self, pid, sid):
-        sid = CAPTURE if sid == "capture" else sid
+        sid = CAP_SID.get(sid, sid)
         p = get_project(pid)
         sp = get_space(p, sid)
         ctype = self.headers.get("Content-Type", "")
@@ -535,19 +552,16 @@ class Handler(BaseHTTPRequestHandler):
         for f in sp["files"]:
             if f["sha256"] == sha:
                 return self._json(200, f)
-        if sid == CAPTURE:
-            main = (lambda n: n.lower().endswith((".mp4", ".mov", ".m4v"))) if sp["kind"] == "video" else (lambda n: n.lower().endswith(".zip"))
-            other = next((f for f in sp["files"] if main(f["name"])), None)
-            if main(name) and other:
-                raise ApiErr(409, f"the whole-home capture already has a {'video' if sp['kind'] == 'video' else 'LiDAR scan (.zip)'}: "
-                                  f"{other['name']}. Delete it first to replace it")
+        if sid in SID_CAP and sp["files"]:
+            raise ApiErr(409, f"the whole-home {'video' if sp['kind'] == 'video' else 'LiDAR scan (.zip)'} already has a file: "
+                              f"{sp['files'][0]['name']}. Delete it first to replace it")
         rec = {"name": name, "sha256": sha, "size": len(data)}
         sp["files"].append(rec)
         p["verify"] = None
         self._json(200, rec)
 
     def h_delete_file(self, pid, sid, sha):
-        sid = CAPTURE if sid == "capture" else sid
+        sid = CAP_SID.get(sid, sid)
         p = get_project(pid)
         sp = get_space(p, sid)
         n = len(sp["files"])
@@ -560,21 +574,21 @@ class Handler(BaseHTTPRequestHandler):
     def h_verify(self, pid):
         p = get_project(pid)
         self._body()
-        cap = p["capture"]
-        spaces = [verify_space(s, bool(cap)) for s in p["spaces"]]
-        capture = None
-        if cap:
-            capture = verify_space(cap)
-            capture = {"name": f"whole home: {'video' if cap['kind'] == 'video' else 'LiDAR'}", "kind": cap["kind"],
-                       "status": capture["status"], "findings": capture["findings"],
-                       "advice": None if capture["status"] == "ok" else "Capture the whole home again: walk slowly through every room, tilt up to the ceiling once per room."}
+        caps = present_caps(p)
+        spaces = [verify_space(s, any(c["files"] for c in caps)) for s in p["spaces"]]
+        captures = []
+        for cap in caps:
+            v = verify_space(cap)
+            captures.append({"kind": cap["kind"], "name": f"whole home: {'video' if cap['kind'] == 'video' else 'LiDAR'}",
+                             "status": v["status"], "findings": v["findings"],
+                             "advice": None if v["status"] == "ok" else "Capture the whole home again: walk slowly through every room, tilt up to the ceiling once per room."})
         pf = []
         if not has_input(p):
             pf.append({"level": "retake", "check": "nothing to compute", "message": "Add photos to a room, or a whole-home video / LiDAR scan.", "files": []})
         ok = (not any(s["status"] == "retake" for s in spaces) and not any(f["level"] == "retake" for f in pf)
-              and not (capture and capture["status"] == "retake"))
+              and not any(c["status"] == "retake" for c in captures))
         p["verify"] = {"ok": ok}
-        self._json(200, {"ok": ok, "spaces": spaces, "capture": capture, "project_findings": pf})
+        self._json(200, {"ok": ok, "spaces": spaces, "captures": captures, "project_findings": pf})
 
     def h_run(self, pid):
         p = get_project(pid)
@@ -584,7 +598,7 @@ class Handler(BaseHTTPRequestHandler):
             raise ApiErr(409, "verify found a space that needs a retake; fix it or pass force=true")
         if not has_input(p):
             raise ApiErr(409, "nothing to compute: add photos to a room, or one whole-home video / LiDAR scan")
-        allsp = p["spaces"] + ([p["capture"]] if p["capture"] else [])
+        allsp = p["spaces"] + present_caps(p)
         key = hashlib.sha256(json.dumps([[s["name"], s["kind"], s["sizes"], sorted(f["sha256"] for f in s["files"])]
                                          for s in allsp], sort_keys=True).encode()).hexdigest()
         for j in JOBS.values():

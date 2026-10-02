@@ -65,9 +65,30 @@ def test_index_references_exist():
 def test_two_part_page():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     assert html.index('id="capture-card"') < html.index('id="spaces"')
-    assert 'name="capkind" value="video"' in html and 'name="capkind" value="lidar"' in html
+    # two independent, optional whole-home captures (no single None / Video / LiDAR choice)
+    assert 'id="cap-video" data-kind="video"' in html and 'id="cap-lidar" data-kind="lidar"' in html
+    assert "Video walkthrough" in html and "LiDAR scan" in html and "Stray Scanner .zip" in html
+    assert 'name="capkind"' not in html
     assert 'name="kind"' not in html  # rooms have no kind any more
-    assert html.index('id="guide"') < html.index('id="spaces"')  # visible, not behind a click
+    assert html.index('id="guide"') < html.index('id="spaces"')
+    app = (WEB / "js" / "app.js").read_text(encoding="utf-8")
+    api = (WEB / "js" / "api.js").read_text(encoding="utf-8")
+    assert '"_capture_video"' in api and '"_capture_lidar"' in api and "/captures/" in api
+    assert "Replace video" in app and "Replace LiDAR zip" in app
+
+
+def test_guide_is_collapsible():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    m = re.search(r'<details[^>]*id="guide"[^>]*>(.*?)</details>', html, re.S)
+    assert m, "the capture guide must be a <details> element"
+    assert "open" not in m.group(0).split(">")[0]  # opened by app.js on the first visit only
+    summary = re.search(r"<summary[^>]*>(.*?)</summary>", m.group(1), re.S)
+    assert summary and "How to capture" in summary.group(1) and 'class="chev"' in summary.group(1)
+    app = (WEB / "js" / "app.js").read_text(encoding="utf-8")
+    assert '"guide.open"' in app and '"toggle"' in app  # remembered; diagrams load on first open
+    assert 'a[href^="#guide"]' in app  # "See the guide" links open it and scroll
+    css = (WEB / "styles.css").read_text(encoding="utf-8")
+    assert ".guide[open] > summary .chev" in css and "::-webkit-details-marker" in css
 
 
 def test_js_imports_resolve():
@@ -230,30 +251,42 @@ def test_mock_contract_flow(mock_api):
 def test_mock_whole_home_capture(mock_api):
     b = mock_api
     pid = call(b, "POST", "/api/projects", {})[1]["project_id"]
-    assert call(b, "GET", f"/api/projects/{pid}")[1]["capture"] is None
+    assert call(b, "GET", f"/api/projects/{pid}")[1]["captures"] == {"video": None, "lidar": None}
     st, err = call(b, "POST", f"/api/projects/{pid}/spaces", {"name": "x", "kind": "video", "sizes": {}})
     assert st == 422 and "capture" in err["detail"]
     room = call(b, "POST", f"/api/projects/{pid}/spaces", {"name": "Lounge", "sizes": {"length": 5.0}})[1]
     assert room["kind"] == "photos"
-    st, cap = call(b, "PUT", f"/api/projects/{pid}/capture", {"kind": "video"})
-    assert st == 200 and cap == {"kind": "video", "files": []}
-    raw, ct = multipart({"sha256": hashlib.sha256(b"clip").hexdigest(), "name": "walk.mov"}, "walk.mov", b"clip")
-    assert call(b, "PUT", f"/api/projects/{pid}/capture/files", raw=raw, ctype=ct)[0] == 200
+    assert call(b, "GET", f"/api/projects/{pid}/captures/video")[0] == 404
+    # both captures at once, one file each
+    for kind, name, data in (("video", "walk.mov", b"clip"), ("lidar", "scan.zip", b"PK\x03\x04scan")):
+        st, cap = call(b, "PUT", f"/api/projects/{pid}/captures/{kind}", {})
+        assert st == 200 and cap == {"kind": kind, "files": []}
+        raw, ct = multipart({"sha256": hashlib.sha256(data).hexdigest(), "name": name}, name, data)
+        assert call(b, "PUT", f"/api/projects/{pid}/captures/{kind}/files", raw=raw, ctype=ct)[0] == 200
+        assert call(b, "GET", f"/api/projects/{pid}/captures/{kind}")[1]["files"][0]["name"] == name
     raw, ct = multipart({"sha256": hashlib.sha256(b"clip2").hexdigest(), "name": "two.mov"}, "two.mov", b"clip2")
-    st, err = call(b, "PUT", f"/api/projects/{pid}/capture/files", raw=raw, ctype=ct)
-    assert st == 409 and "already has a video" in err["detail"]
+    st, err = call(b, "PUT", f"/api/projects/{pid}/captures/video/files", raw=raw, ctype=ct)
+    assert st == 409 and "already has a file" in err["detail"]
+    caps = call(b, "GET", f"/api/projects/{pid}")[1]["captures"]
+    assert caps["video"]["kind"] == "video" and caps["lidar"]["kind"] == "lidar"
     st, v = call(b, "POST", f"/api/projects/{pid}/verify", {})
-    assert v["ok"] is True and v["capture"]["name"] == "whole home: video" and v["spaces"][0]["status"] == "ok"
+    assert v["ok"] is True and v["spaces"][0]["status"] == "ok"
+    assert [(c["kind"], c["name"]) for c in v["captures"]] == [("video", "whole home: video"), ("lidar", "whole home: LiDAR")]
+    assert all({"status", "findings", "advice"} <= set(c) for c in v["captures"])
     jid = call(b, "POST", f"/api/projects/{pid}/run", {"damage": True})[1]["job_id"]
     deadline = time.time() + 10
     while (job := call(b, "GET", f"/api/jobs/{jid}")[1])["status"] != "done" and time.time() < deadline:
         time.sleep(0.05)
-    assert job["status"] == "done" and [r["title"] for r in job["runs"]] == ["Whole home (video)"]
-    assert all(s["name"].startswith("Whole home (video): ") for s in job["stages"])
+    assert job["status"] == "done" and [r["title"] for r in job["runs"]] == ["Whole home (video)", "Whole home (LiDAR)"]
+    assert {s["name"].split(": ")[0] for s in job["stages"]} == {"Whole home (video)", "Whole home (LiDAR)"}
     rows = call(b, "GET", f"/api/jobs/{jid}/comparison")[1]["rows"]
-    assert {r["tier"] for r in rows} == {"video"} and rows[0]["space"] == "Lounge"
-    assert call(b, "DELETE", f"/api/projects/{pid}/capture")[0] == 200
-    assert call(b, "GET", f"/api/projects/{pid}/capture")[0] == 404
+    assert {r["tier"] for r in rows} == {"video", "lidar"} and rows[0]["space"] == "Lounge"
+    sha = caps["lidar"]["files"][0]["sha256"]
+    assert call(b, "DELETE", f"/api/projects/{pid}/captures/lidar/files/{sha}")[0] == 200
+    assert call(b, "GET", f"/api/projects/{pid}/captures/lidar/files")[1]["files"] == []
+    assert call(b, "DELETE", f"/api/projects/{pid}/captures/video")[0] == 200
+    assert call(b, "GET", f"/api/projects/{pid}/captures/video")[0] == 404
+    assert call(b, "GET", f"/api/projects/{pid}")[1]["captures"]["video"] is None
 
 
 def test_mock_retake_gives_409(mock_api):

@@ -29,13 +29,13 @@
 
     <section class="card intro" aria-labelledby="intro-h">
       <h2 id="intro-h">Your property</h2>
-      <p class="muted">Two parts: an optional <strong>whole-home capture</strong> (one video or one LiDAR scan of every room), and your <strong>rooms</strong> (name, optional sizes, optional photos). Then check and compute.</p>
+      <p class="muted">Two parts: an optional <strong>whole-home capture</strong> (a video and / or a LiDAR scan of every room), and your <strong>rooms</strong> (name, optional sizes, optional photos). Then check and compute.</p>
       <p class="small muted">Project <code id="project-id">&hellip;</code>
         <button type="button" id="new-project" class="link">Start a new project</button></p>
     </section>
 
-    <section class="card guide" id="guide" aria-labelledby="guide-h">
-      <h2 id="guide-h">How to capture &mdash; 1 minute</h2>
+    <details class="card guide" id="guide">
+      <summary id="guide-h"><span class="guide-title">How to capture &mdash; 1 minute</span> <span class="chev" aria-hidden="true"></span></summary>
       <p class="small muted">Before you start: open every interior door, switch on all lights, wipe the lens, zoom at <strong>1x</strong>, phone upright at chest height.</p>
       <div class="guide-grid">
         <figure id="guide-walk"><div class="guide-svg" data-svg="img/guide/video-walk.svg"></div>
@@ -49,21 +49,29 @@
         <figure id="guide-sizes"><div class="guide-svg" data-svg="img/guide/marker-and-tape.svg"></div>
           <figcaption>Sizes: tape one length or width wall to wall (a height alone is only compared).</figcaption></figure>
       </div>
-    </section>
+    </details>
 
     <section class="card capture" id="capture-card" aria-labelledby="capture-h">
-      <div class="section-head">
-        <h2 id="capture-h">Whole-home capture <span class="muted small">(optional)</span></h2>
-        <span id="capture-badge" class="badge" hidden></span>
+      <h2 id="capture-h">Whole-home capture <span class="muted small">(optional)</span></h2>
+      <p class="small muted">Add a video, a LiDAR scan, or both: each one is computed on its own and compared with your rooms.</p>
+      <div class="cap-grid">
+        <section class="cap" id="cap-video" data-kind="video" aria-labelledby="cap-video-h">
+          <div class="section-head">
+            <h3 id="cap-video-h">Video walkthrough <span class="muted small">(optional)</span></h3>
+            <span class="badge cap-badge" hidden></span>
+          </div>
+          <p class="small muted cap-tip"></p>
+          <div class="cap-body"></div>
+        </section>
+        <section class="cap" id="cap-lidar" data-kind="lidar" aria-labelledby="cap-lidar-h">
+          <div class="section-head">
+            <h3 id="cap-lidar-h">LiDAR scan <span class="muted small">(optional, Stray Scanner .zip)</span></h3>
+            <span class="badge cap-badge" hidden></span>
+          </div>
+          <p class="small muted cap-tip"></p>
+          <div class="cap-body"></div>
+        </section>
       </div>
-      <fieldset class="kinds">
-        <legend>One video or one LiDAR scan of the whole home</legend>
-        <label class="choice"><input type="radio" name="capkind" value="none" checked> <span>None</span></label>
-        <label class="choice"><input type="radio" name="capkind" value="video"> <span>Video</span></label>
-        <label class="choice"><input type="radio" name="capkind" value="lidar"> <span>LiDAR scan (.zip)</span></label>
-      </fieldset>
-      <p id="capture-tip" class="small muted"></p>
-      <div id="capture-body"></div>
     </section>
 
     <section aria-labelledby="spaces-h">

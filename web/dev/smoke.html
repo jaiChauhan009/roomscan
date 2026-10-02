@@ -36,17 +36,28 @@ f.addEventListener('load', async () => {
     inp.dispatchEvent(new w.Event('change'));
     await until(() => d.querySelector('#upload-summary').textContent.includes('All 2 files uploaded'), 'uploads');
     log('count: ' + d.querySelector('#spaces .count').textContent);
+    // the guide is a <details>, open on the very first visit (localStorage was cleared)
+    const g = d.querySelector('details#guide');
+    if (!g || !g.querySelector('summary')) throw new Error('guide is not a details/summary');
+    if (!g.open) throw new Error('guide not open on first visit');
     await until(() => d.querySelectorAll('#guide .guide-svg svg').length === 5, 'guide svgs inline');
-    const vid = d.querySelector('input[name=capkind][value=video]');
-    vid.checked = true; vid.dispatchEvent(new w.Event('change'));
-    await until(() => d.querySelector('#capture-body input[type=file]'), 'capture picker');
-    const ci = d.querySelector('#capture-body input[type=file]');
-    const dt2 = new w.DataTransfer();
-    dt2.items.add(new w.File([new Uint8Array([0, 0, 0, 24])], 'walk.mov', { type: 'video/quicktime' }));
-    ci.files = dt2.files;
-    ci.dispatchEvent(new w.Event('change'));
-    await until(() => d.querySelector('#upload-summary').textContent.includes('All 3 files uploaded'), 'capture upload');
-    log('capture: ' + d.querySelector('#capture-body').textContent);
+    if (w.localStorage.getItem('roomscan.guide.open') !== 'false') throw new Error('returning visit would not collapse the guide');
+    // both whole-home captures, independently
+    const addCap = async (kind, file) => {
+      await until(() => d.querySelector(`#cap-${kind} .cap-body input[type=file]`), kind + ' picker');
+      const ci = d.querySelector(`#cap-${kind} .cap-body input[type=file]`);
+      const dt2 = new w.DataTransfer();
+      dt2.items.add(file);
+      ci.files = dt2.files;
+      ci.dispatchEvent(new w.Event('change'));
+    };
+    await addCap('video', new w.File([new Uint8Array([0, 0, 0, 24])], 'walk.mov', { type: 'video/quicktime' }));
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 3 files uploaded'), 'video upload');
+    await addCap('lidar', new w.File([new Uint8Array([80, 75, 3, 4])], 'scan.zip', { type: 'application/zip' }));
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 4 files uploaded'), 'lidar upload');
+    log('video: ' + d.querySelector('#cap-video .cap-body').textContent);
+    log('lidar: ' + d.querySelector('#cap-lidar .cap-body').textContent);
+    if (!/Replace video/.test(d.querySelector('#cap-video').textContent)) throw new Error('no Replace video button');
     const H = d.querySelector('input[id^="H-"]');
     H.value = '2.5';
     H.dispatchEvent(new w.Event('change'));
@@ -69,8 +80,12 @@ f.addEventListener('load', async () => {
     log('comparison: ' + d.querySelector('#comparison-table').textContent);
     log('damage: ' + d.querySelector('#damage').textContent);
     log('downloads: ' + d.querySelectorAll('#downloads a').length);
-    if (d.querySelectorAll('#run-tabs button').length !== 2) throw new Error('expected a tab per run');
-    if (!/Whole home: video/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no tier column');
+    const tabs = [...d.querySelectorAll('#run-tabs button')].map(b => b.textContent);
+    log('tabs: ' + tabs.join(' | '));
+    if (tabs.join('|') !== 'Rooms (photos)|Whole home (video)|Whole home (LiDAR)') throw new Error('expected a tab per run');
+    if (!/Whole home: video/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no video tier rows');
+    if (!/Whole home: LiDAR/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no LiDAR tier rows');
+    if (!d.querySelector('#cap-video .cap-badge:not([hidden])') || !d.querySelector('#cap-lidar .cap-badge:not([hidden])')) throw new Error('capture badges missing');
     const sw = d.documentElement.scrollWidth;
     log('scrollWidth: ' + sw);
     if (sw > 360) throw new Error('horizontal scroll at 360 px: ' + sw);

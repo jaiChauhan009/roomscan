@@ -127,8 +127,6 @@ section { margin-bottom: 20px; }
 }
 fieldset { border: 0; padding: 0; margin: 12px 0; min-width: 0; }
 legend { font-size: .875rem; color: var(--muted); margin-bottom: 6px; padding: 0; }
-.kinds { display: flex; flex-wrap: wrap; gap: 8px; }
-.kinds legend { width: 100%; }
 .choice {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 12px;
   border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
@@ -235,4 +233,18 @@ td .ci { display: block; color: var(--muted); font-size: .75rem; white-space: no
 .guide-grid figure { margin: 0; }
 .guide-svg svg { width: 100%; height: auto; display: block; color: var(--text); }
 .guide-grid figcaption { font-size: .85rem; margin-top: 4px; }
-.capture .kinds { margin: 8px 0; }
+/* collapsible guide: one compact line with a small chevron when closed */
+.guide > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; margin: -6px 0; }
+.guide > summary::-webkit-details-marker { display: none; }
+.guide > summary .chev { width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; margin: 0 4px 4px 0; flex: none; }
+.guide[open] > summary .chev { transform: rotate(-135deg); margin-bottom: 0; }
+.guide[open] > summary { margin-bottom: 8px; }
+.guide > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .guide > summary .chev { transition: none; } }
+
+/* two independent whole-home captures */
+.cap-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 8px; }
+@media (min-width: 760px) { .cap-grid { grid-template-columns: repeat(2, 1fr); } }
+.cap { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.cap h3 { margin: 0; font-size: 1rem; }
+.cap ul { padding-left: 1.1rem; margin: 6px 0; overflow-wrap: anywhere; }
