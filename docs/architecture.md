@@ -157,10 +157,14 @@ overlap after placement are separated at the shared wall.
 
 ### 5.1 Drift correction (`geometry/drift.py`)
 
-Phone tracking drifts a few centimetres per ten metres. The trajectory is cut into 3 s
-submaps. Submaps that revisit a place are aligned with point-to-plane ICP, and a pose
-graph (Open3D) spreads the correction. Only heading and position are corrected; gravity
-from the phone is kept. `--drift off` disables it for the ablation.
+Phone tracking drifts: on the sample scans 1-4 cm and 0.2-0.5° per 3 s, up to 0.5 m
+around a flat. The trajectory is cut into 3 s submaps. `_find_loops` aligns submaps that
+revisit a place with point-to-plane ICP; `_optimise` runs a robust pose graph (Open3D)
+whose odometry edges are weighted by ARKit's measured error (`ODO_SIGMA_M`,
+`ODO_SIGMA_DEG`), and prunes closures that stay inconsistent (`PRUNE_DIST`). Only heading
+and position are corrected; gravity from the phone is kept. `--drift off` disables it for
+the ablation. The fused-cloud cache is keyed on the corrected poses, so a change here is
+never served an old cloud.
 
 ### 5.2 Fused cloud (`geometry/pointcloud.py`)
 

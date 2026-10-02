@@ -2,16 +2,17 @@
 
 roomscan: phone capture → measured, stitched floor plan with damage assessment.
 Six pages maximum. Structure in [architecture.md](architecture.md), history in
-[worklog.md](worklog.md), numbers in `fixloop/after/benchmark.md`.
+[worklog.md](worklog.md), numbers in `fixloop/round2/after/benchmark.md`.
 
 ## 1. Summary
 
 One command turns a LiDAR scan, a video or per-room photo folders into a JSON plan and a
 rendered plan, with a 90 % interval on every number. All three tiers run end to end on a
-CPU-only laptop. The LiDAR geometry is precise (synthetic rooms recovered to under 1 mm)
-but room segmentation is not yet repeatable across two scans of the same flat. The video
-and photo tiers are far from their gates on the only data available, which is derived
-from a LiDAR scan rather than captured per protocol.
+CPU-only laptop. The LiDAR geometry is precise (synthetic rooms recovered to under 1 mm).
+Two scans of the same flat now agree as point clouds to a median 7 mm, but they still
+divide the flat into different rooms, so the repeatability gate fails. The video and photo
+tiers are far from their gates on the only data available, which is derived from a LiDAR
+scan rather than captured per protocol.
 
 **The main limitation of this report: no ground truth.** No iPhone and no laser measurer
 were available. All real-capture numbers are either self-consistency (repeatability,
@@ -87,18 +88,27 @@ Device matrix: `docs/device_matrix.md`.
 
 The trajectory is cut into 3 s submaps. Revisits are aligned with point-to-plane ICP, and
 an Open3D pose graph spreads the correction. Gravity is kept from ARKit and only heading
-and position change.
+and position change. Odometry edges are weighted by ARKit's measured error between
+consecutive submaps (p90 3.0-3.7 cm, rms 0.37-0.47° per step, by ICP).
 
-| Capture | Drift | Footprint m² | Wall crispness | Loop residual |
+| Capture | Drift | Footprint m² | Wall crispness | Largest submap move |
 |---|---|---|---|---|
-| A | off | 47.1 | 8.43 | n/a |
-| A | on | 50.2 | 8.36 | 8.3 → 2.7 cm |
-| B | off | 40.9 | 10.02 | n/a |
-| B | on | 41.2 | 9.58 | 16.9 → 2.5 cm |
+| A | off | 47.2 | 8.43 | n/a |
+| A | on | 49.5 | 8.84 | 0.13 m |
+| B | off | 42.2 | 10.02 | n/a |
+| B | on | 49.0 | 12.26 | 0.52 m |
 
-Loop closure removes the measurable loop error but does not sharpen walls, so ARKit
-drift on these captures is small. A heading snap to wall directions was tried and left
-off: it blurred walls (crispness 8.4 → 6.5) because 3 s submaps hold too little wall.
+**Until fix-loop round 2 this correction did almost nothing.** Odometry was weighted at 1 cm
+and 0.29° per step, so the pose graph could not bend far enough for a large loop closure
+and pruned it. On scan B it moved nothing by more than 2.8 cm and made walls *less* sharp
+(9.58 vs 10.02 off), while B's first 10 s sat 26-33 cm off. The loop residual we reported
+(16.9 → 2.5 cm) fell because closures were pruned, not because drift was corrected; the
+ablation table still prints it, but the submap move and crispness are the evidence. A
+synthetic loop with B's closure pattern reproduces the threshold: the
+old weights work up to 0.25 m of drift and do nothing at 0.5 m (`tests/test_drift.py`).
+
+A heading snap to wall directions was tried and left off: it blurred walls (crispness
+8.4 → 6.5) because 3 s submaps hold too little wall.
 
 ## 6. Error budget (LiDAR tier)
 
@@ -106,18 +116,18 @@ off: it blurred walls (crispness 8.4 → 6.5) because 3 s submaps hold too littl
 |---|---|---|
 | Depth noise on a wall plane | ~1 cm per point, < 2 mm on a fitted plane of 1,000+ points | plane spread in `result.json` |
 | Plane fitting on synthetic rooms | < 1 mm | `tests/test_geometry.py` |
-| Residual drift after loop closure | ~2.5 cm across a flat | ablation table |
-| Wall occluded by furniture (no upper sweep) | 30-50 cm per side | fix-loop post-mortem |
+| Drift left after correction | 7 mm median between two scans; up to 7 cm on a wall seen only in a scan's first seconds | `fixloop/round2/walls_after.txt` |
+| Wall snapping into the next room | up to 0.8 m on one edge; 1.2-3.8 m² double-counted in a flat's footprint | `fixloop/round2/README.md` |
 | Segmentation differences between captures | whole rooms | repeatability before / after |
 
-The budget is dominated by segmentation and occlusion, not by sensor noise.
+The budget is dominated by segmentation, not by sensor noise or drift.
 
 ## 7. Calibration analysis
 
 Every measurement uses `sigma = sqrt((k·raw)² + abs² + (rel·value)²)`. The per-tier
 terms in `calibration.yaml` are priors. Against the LiDAR reference, 90 % intervals
-contain the reference value 50 % of the time for video and 27 % for photos: **both are
-far too narrow.** LiDAR coverage cannot be measured without ground truth. Missing
+contain the reference value 77 % of the time for video (17 values) and 28 % for photos:
+**both are too narrow, photos far too narrow.** LiDAR coverage cannot be measured without ground truth. Missing
 quantities are reported as missing: an unscanned ceiling is `null` with a lower bound.
 
 The harness to refit the terms exists (`bench/evaluate.py` reports coverage). The data
@@ -131,13 +141,27 @@ to a wall test that demanded evidence above the height scan B ever looked at. Th
 declaration was committed before the fix.
 
 The fix closed the footprint gap from −45 % to −18 %. The prediction (±10 %, 6+ rooms
-paired, ≤ 5 cm walls) was badly wrong. It exposed a second cause: furniture occluding
-the low part of walls. The full post-mortem is in `fixloop/README.md`, including why the
-evidence experiment could not have shown that second cause.
+paired, ≤ 5 cm walls) was badly wrong. The round-1 post-mortem blamed furniture occluding
+the low part of walls (`fixloop/README.md`).
+
+**Round 2** (`fixloop/round2/`) tested that and found it wrong: where B puts the bedroom's far
+wall, A has no surface at all. The walls B saw in its first 10 s were 26-33 cm off because
+the drift correction never corrected anything (section 5). The declaration was committed
+before the fix. Fix: odometry weighted by ARKit's measured error, and the unsealed-room
+fallback reading gap-closed walls. Every declared number came true: B moves 0.52 m,
+bedroom walls within +2 / −7 / −1 cm of A's, footprint gap −18 % → −0.9 %. The gate still
+fails as predicted: B saw no door heads or ceilings, so it divides the flat differently and
+no room pairs. The post-mortem also reports what the footprint number hides: room
+polygons overlap, and by the union of rooms the gap is −6.3 %.
 
 ## 9. Known failure modes
 
-- **Scans without an upward sweep:** walls snap to furniture fronts (fix-loop finding).
+- **Scans without an upward sweep:** no door heads and no ceilings, so rooms merge that a
+  full scan keeps apart (fix-loop round 2).
+- **Overlapping room polygons:** wall snapping can move an edge up to 0.8 m into the next
+  room; the footprint then double-counts the overlap. Not fixed yet.
+- **Drift at the very start of a scan:** a submap moves as one piece, so tracking that is
+  still settling inside one 3 s submap leaves up to 7 cm.
 - **Open-plan areas and corridors:** room boundaries differ between captures; rooms split
   or merge.
 - **Video tier:** fast sweeps, motion blur and blank walls break tracking into segments;

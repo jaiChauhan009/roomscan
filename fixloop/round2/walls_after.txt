@@ -1,0 +1,8 @@
+weights=current: B onto A: 97.3 % of B wall points within 15 cm of A's, median distance 0.69 cm
+wall | scan | frames | seen during (s) | position median (p10-p90) m
+left wall | A | 86 | 33-37, 143-147, 157-157 | 5.415 (5.385-5.635)
+right wall | A | 83 | 43-49, 58-62, 142-142, 151-154 | 8.795 (8.775-8.863)
+top wall | A | 72 | 44-51, 152-153 | 2.985 (2.975-3.015)
+left wall | B | 28 | 105-109 | 5.435 (5.412-5.435)
+right wall | B | 60 | 3-9 | 8.725 (8.655-8.745)
+top wall | B | 63 | 4-11 | 2.975 (2.945-3.005)

@@ -22,13 +22,14 @@ The tier is chosen by what is handed over, not by the device (see `docs/capture_
 | macOS / Linux, Python 3.11 | expected to work (pure Python + wheels); not run yet |
 | GPU | not needed; not used |
 
-Times on the development laptop (CPU only), from `fixloop/before/benchmark.md`:
+Times on the development laptop (CPU only), from `fixloop/round2/after/benchmark.md`:
 
 | Capture | Tier | Time |
 |---|---|---|
-| whole flat, 215 s scan, 9 rooms | LiDAR | 170 s (damage ~80 s) |
-| single room, 37 s scan | LiDAR | 27 s |
-| whole flat, 115 s clip | video | ~8 min first run, ~100 s with cached depth |
+| whole flat, 215 s scan, 9 rooms | LiDAR | 226 s (damage ~100 s) |
+| whole flat, 115 s floor-only scan, 7 rooms | LiDAR | 131 s |
+| single room, 37 s scan | LiDAR | 41 s |
+| whole flat, 115 s clip | video | ~8 min first run, ~115 s with cached depth |
 | 7 rooms, 34 photos | photo | ~3 min |
 
 ## Accuracy each tier delivers
@@ -36,11 +37,11 @@ Times on the development laptop (CPU only), from `fixloop/before/benchmark.md`:
 | | LiDAR | video | photo |
 |---|---|---|---|
 | Wall length, synthetic room (exact truth) | < 1 mm | not tested | ±4 cm on a noisy synthetic box |
-| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 51 % | vs LiDAR reference: median error 97 % |
-| Ceiling height | synthetic < 5 mm; real: no ground truth | not recovered on sample | vs LiDAR reference: up to 1.1 m off |
-| Footprint, real capture | two scans of one flat: see fix loop | −85 % vs reference | +133 % vs reference |
-| Repeatability, two scans of one flat | before fix: 9 vs 6 rooms; after: see `fixloop/after/` | not measured | not measured |
-| Interval coverage (should be ~90 %) | not measured (no truth) | 54 % vs reference | 30 % vs reference |
+| Wall length, real capture | **no ground truth yet** | vs LiDAR reference: median error 40 % | vs LiDAR reference: median error 103 % |
+| Ceiling height | synthetic < 5 mm; real: no ground truth | not recovered on sample | vs LiDAR reference: up to 0.83 m off |
+| Footprint, real capture | two scans of one flat: −0.9 % (sum of rooms), −6.3 % (union) | −92 % vs reference | +136 % vs reference |
+| Repeatability, two scans of one flat | point clouds agree to 7 mm median; rooms 9 vs 7, none paired (`fixloop/round2/`) | not measured | not measured |
+| Interval coverage (should be ~90 %) | not measured (no truth) | 77 % vs reference | 28 % vs reference |
 | Brief's gate | 2 cm openings, 1.5 cm ceiling, 1 cm repeat | ±3 % walls | ±8 % walls, stitched footprint |
 | Honest status | geometry is precise; segmentation not yet repeatable | far from gate | far from gate |
 

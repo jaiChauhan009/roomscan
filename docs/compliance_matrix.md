@@ -35,8 +35,8 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | Laser / tape ground truth, raw data submitted | `bench/ground_truth/TEMPLATE.yaml`, `scripts/fetch_data.py` | template + raw sample data | missing: no measurements of the sample flat |
 | Gate: opening widths ≤ 2 cm on ≥ 85 %, missed and phantom count | `bench/evaluate.py` | `opening_width` rows | implemented; not scorable on LiDAR without truth |
 | Gate: ceiling ≤ 1.5 cm, repeat spread ≤ 1 cm, say biased vs unrepeatable | `evaluate.py`, `repeatability.py` | report rows | implemented; ceiling truth missing |
-| Gate: repeatability 1 cm / 0.5 % per wall | `bench/repeatability.py` | `fixloop/before` and `fixloop/after` | partial: failing; fix-loop target |
-| Gate: drift accountability + on/off ablation | `geometry/drift.py`, `bench/run_all.py` | drift ablation table | done |
+| Gate: repeatability 1 cm / 0.5 % per wall | `bench/repeatability.py` | `fixloop/after`, `fixloop/round2/after` | partial: failing. Point clouds of the two scans agree to 7 mm, but the scans divide the flat into different rooms (scan B has no upward sweep); fix-loop target, two rounds |
+| Gate: drift accountability + on/off ablation | `geometry/drift.py`, `bench/run_all.py`, `tests/test_drift.py` | drift ablation table | done. Before round 2 the correction was a no-op on scan B; now B moves 0.52 m and walls are sharper with it on |
 | Gate: photo whole-property stitch, no overlaps, ±8 % footprint | `photos.py`, `evaluate.py` | photo rows | partial: no overlaps passes; footprint fails |
 | Photo ±8 %, video ±3 %, calibration at every tier | `evaluate.py` (`calibration` row) | report rows | partial: measured, failing |
 
@@ -50,10 +50,10 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Declaration: worst gate + failing number, root cause + evidence, fix + prediction | `fixloop/declaration.md` | committed before the fix (`c9255e9`) | done |
-| Shipped fix | commit `1e8c490` | diff in `fixloop/README.md` | done |
-| Before and after runs, regenerable | `fixloop/before/`, `fixloop/after/`, tag `fixloop-before` | benchmark reports | done |
-| Readable diff | `fixloop/README.md` | | done |
+| Declaration: worst gate + failing number, root cause + evidence, fix + prediction | `fixloop/declaration.md`, `fixloop/round2/declaration.md` | each committed before its fix (`c9255e9`, `482b4fb`) | done |
+| Shipped fix | commits `1e8c490` (round 1), `cb55b8b` (round 2) | `fixloop/fix.diff`, `fixloop/round2/fix.diff` | done |
+| Before and after runs, regenerable | `fixloop/before/`, `fixloop/after/`, `fixloop/round2/after/`, tags `fixloop-before`, `fixloop2-before` | benchmark reports | done |
+| Readable diff | `fixloop/fix.diff`, `fixloop/round2/fix.diff` (refactor separate: `refactor.diff`) | | done |
 
 ## Part 5: process
 
@@ -69,8 +69,8 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | 2. Capture route + device matrix | `docs/capture_protocol.md`, `docs/device_matrix.md` | done |
 | 3. Repo, README to running in < 15 min, one command per capture | `README.md` | partial: not yet timed on a clean machine |
 | 4. Reproduction bundle | `scripts/fetch_data.py`, `scripts/fetch_weights.py`, `bench/run_all.py` | done |
-| 5. Benchmark report: gates at three tiers, repeatability, head-to-head, timing | `fixloop/after/benchmark.md` | partial: no head-to-head, no real ground truth |
+| 5. Benchmark report: gates at three tiers, repeatability, head-to-head, timing | `fixloop/round2/after/benchmark.md` | partial: no head-to-head, no real ground truth |
 | 6. Fix loop bundle | `fixloop/` | done |
-| 7. Technical report, max 6 pages | `docs/tech_report.md` | missing |
+| 7. Technical report, max 6 pages | `docs/tech_report.md` | done |
 | 8. Raw benchmark data | `scripts/fetch_data.py` (sample scans) | partial: no own captures, no app exports |
 | Mirrors, glass, wet-look surfaces, low light covered | `openings.py` (mirror test), `planes.py` (glossy floor), `damage/pipeline.py` (low-light warning), tests | partial: handled in code and tests; no real capture of each |

@@ -8,12 +8,12 @@ For the structure of the finished system see [architecture.md](architecture.md).
 
 | Area | State |
 |---|---|
-| LiDAR tier | Works end to end. Accurate on synthetic rooms (under 1 mm). Two real scans of the sample flat are **not repeatable**: after the fix-loop change, 10 vs 7 rooms and footprint −18 % (was −45 %). |
+| LiDAR tier | Works end to end. Accurate on synthetic rooms (under 1 mm). Two real scans of the sample flat now agree as point clouds (7 mm median) but are divided into different rooms (9 vs 7, none paired), so they are **not repeatable** by the gate. Footprint −0.9 % (sum of rooms) / −6.3 % (union); it was −45 % before round 1. |
 | Video tier | Runs end to end. Weak: 1 of 6 rooms recovered on the sample flat. |
 | Photo tier | Runs end to end and stitches rooms without overlaps. Sizes far off on the proxy photo set (footprint +133 %). |
 | Damage, rules, scope | Working. 0-2 small false positives on the undamaged flat; a painted test stain is found in 3 of 5 frames, area underestimated. |
 | Benchmark harness | Working. All numbers regenerate with `python bench/run_all.py`. |
-| Tests | 16 tests on synthetic rooms pass. |
+| Tests | 19 tests on synthetic rooms and a synthetic drifting loop pass. |
 | Not done yet | Head-to-head against a consumer app, real captures with laser ground truth, interval calibration on real truth, clean-machine install timing. All need an iPhone or a second machine. |
 
 Two limits apply to every number below:
@@ -91,7 +91,8 @@ truth exists.
 the phone.
 
 **Measured.** On scan A: 30 loop closures, residual 8.3 cm → 2.7 cm. On scan B: 7
-closures, 16.9 cm → 2.5 cm.
+closures, 16.9 cm → 2.5 cm. *(Wrong reading, found in stage 11: the residuals fell because
+closures were pruned. On B the correction moved nothing by more than 2.8 cm.)*
 
 **Tried and switched off.** A per-submap heading snap to the wall directions made walls
 *less* sharp (crispness 8.4 → 6.5), because 3 s of data holds too little wall. It remains
@@ -229,6 +230,44 @@ The gate still fails and the prediction was badly wrong. The post-mortem found a
 cause hidden behind the first: with no upper sweep, furniture fronts stand in for walls,
 and B's bedroom comes out 32-53 cm short per side. The evidence experiment could not
 show this because it removed points but kept A's upward-looking camera paths.
+*(Stage 11 tested the furniture explanation and found it wrong.)*
+
+## Stage 11: fix loop, round 2 (commits `482b4fb`, `b39f339`, `cb55b8b`, `2f4ed8b`)
+
+**Testing round 1's explanation first.** If B's short bedroom wall were a furniture front,
+A would have a surface there too. It has 6 points; A's wall is 43 cm further out
+(`fixloop/round2/evidence_drift.py section`). So the furniture explanation was wrong.
+
+**What it actually was.** B starts and ends in the bedroom. The walls B saw in its first
+10 s were 26-33 cm off A; the wall it saw 100 s later matched A exactly. The drift
+correction should have fixed exactly this, so we looked at what it did on B: it moved no
+submap by more than 2.8 cm and kept 1 of 7 loop closures.
+
+**Why.** The pose graph weighted ARKit's odometry at 1 cm and 0.29° per 3 s step. ICP
+between consecutive submaps measures 3.0-3.7 cm (p90) and 0.37-0.47° (rms). Open3D weights
+a closure by its error before the first step and prunes it if the error does not shrink;
+with stiff odometry the graph cannot bend, so every closure asking for a large correction
+was pruned. A synthetic loop with B's closure pattern shows the threshold: the old weights
+work up to 0.25 m of drift and do nothing at 0.5 m. The reported B loop residual (16.9 →
+2.5 cm) came from the pruning, and walls were *less* sharp with the correction on.
+
+**Fix** (declaration committed first). Odometry weighted by the measured error; pruning
+distance 1.4 × submap voxel, which keeps Open3D's tolerance where it was. With B corrected,
+a second cause showed: the unsealed-room fallback read raw walls and cut B's bedroom along
+short gaps behind the bed head. It now reads the gap-closed walls. A behaviour-neutral
+refactor came first so the fix diff is 2 constants and 1 line. A cache bug found on the
+way: fused clouds were cached without the poses, so the after run would have reused the
+before clouds. Fixed separately.
+
+**Result.** Every declared prediction held: B moves 0.52 m, crispness 9.58 → 12.26 (A 8.36
+→ 8.84), bedroom walls within +2 / −7 / −1 cm of A's, footprint gap −18 % → −0.9 %. The gate
+still fails as declared: B saw no door heads or ceilings, so it divides the flat into
+different rooms and none pair.
+
+**Found while checking the result.** Room polygons overlap in every LiDAR plan since round
+1: wall snapping can push an edge into the next room. The footprint sums rooms, so it
+double-counts: by union the gap is −6.3 %, not −0.9 %. `room_lidar` changed by 4 m² from
+the layout part, with no ground truth to say whether for better.
 
 ## Documentation added
 
@@ -237,10 +276,11 @@ show this because it removed points but kept A's upward-looking camera paths.
 
 ## Still to do
 
-1. Second repeatability fix: snap wall edges to evidence above furniture height, or to the
-   floor-wall junction, when the wall itself is occluded.
+1. Room polygons must not overlap: wall snapping must stay on the room's own side of its
+   neighbours, and the footprint should be the union of rooms.
 2. Real captures with laser ground truth, in all three tiers, including a room captured
-   twice and a furnished room with staged damage in two classes. Needs an iPhone.
+   twice per protocol (upward sweep included) and a furnished room with staged damage in
+   two classes. Needs an iPhone.
 3. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
 4. Refit `calibration.yaml` on real ground truth so intervals are calibrated.
 5. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the

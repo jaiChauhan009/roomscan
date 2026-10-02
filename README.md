@@ -97,6 +97,6 @@ src/roomscan/
   export/                    build.py (output contract), render.py (plan)
 bench/                       gates, evaluation, repeatability, run_all, ground truth
 docs/                        capture protocol, device matrix, compliance matrix, report
-fixloop/                     fix declaration, before / after runs
+fixloop/                     fix loop round 1 (declaration, before / after runs); round2/
 scripts/                     fetch_weights, fetch_data, make_photo_set, dev tools
 ```

@@ -1,0 +1,140 @@
+diff --git a/src/roomscan/geometry/drift.py b/src/roomscan/geometry/drift.py
+index 384c8fa..8c03665 100644
+--- a/src/roomscan/geometry/drift.py
++++ b/src/roomscan/geometry/drift.py
+@@ -1,6 +1,7 @@
+ """Accumulated-drift correction for multi-room captures.
+ 
+-ARKit visual-inertial odometry drifts slowly (a few cm per 10 m, mostly in heading).
++ARKit visual-inertial odometry drifts: on the sample scans by 1-4 cm and 0.2-0.5 degrees
++per 3 s, which adds up to 0.3-0.5 m between the start and the end of a floor-only scan.
+ Two complementary corrections, both switchable for the ablation:
+ 
+ 1. Pose-graph loop closure. The trajectory is cut into submaps (~3 s each). Consecutive
+@@ -27,9 +28,17 @@ SUBMAP_S = 3.0  # seconds per submap
+ LOOP_RADIUS = 2.0  # m, centroid distance for loop candidates
+ MIN_GAP = 4  # submaps; skip near-consecutive pairs
+ SUBMAP_VOXEL = 0.04  # m, voxel size of the submap clouds that loop closures are registered on
+-ODO_SIGMA_M = 0.01  # error assumed for ARKit's relative pose per submap step: position (m)
+-ODO_SIGMA_DEG = float(np.degrees(0.005))  # and rotation (deg)
+-PRUNE_DIST = 0.03  # m; a loop closure still off by more than this after optimisation is pruned
++# Error of ARKit's relative pose between consecutive submaps, as measured by ICP on the
++# sample scans (fixloop/round2/evidence_drift.py odometry): p90 3.0-3.7 cm, rms
++# 0.37-0.47 deg per 3 s step. Odometry weighted tighter than this (it was 1 cm / 0.29 deg)
++# overrules every loop closure that asks for a large correction, and those get pruned.
++ODO_SIGMA_M = 0.02
++ODO_SIGMA_DEG = 0.4
++# Open3D prunes a loop closure whose information-weighted error stays above
++# PRUNE_DIST^2 x the mean information of all edges, which are mostly odometry edges.
++# 1.4 x voxel is Open3D's own choice; with the odometry weights above it keeps that
++# tolerance where 3 cm with the old weights had it (7.8 vs 9.0).
++PRUNE_DIST = 1.4 * SUBMAP_VOXEL
+ 
+ 
+ def _yaw_of(R: np.ndarray) -> float:
+diff --git a/src/roomscan/geometry/layout.py b/src/roomscan/geometry/layout.py
+index ad2d173..20ff108 100644
+--- a/src/roomscan/geometry/layout.py
++++ b/src/roomscan/geometry/layout.py
+@@ -361,7 +361,9 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
+     lab, nlab = ndi.label(~sealed)
+     border = set(np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]]).tolist())
+     ceil_map = _ceiling_map(sub, ab, frame, floor.value)
+-    enclosed = _enclosed(wall | lintel)
++    # gap-closed walls, as in the sealing test: a wall seen only above a bed head has short
++    # gaps, and every row through one would otherwise cut an unsealed room in two
++    enclosed = _enclosed(barrier)
+     region = np.zeros(frame.shape, np.int32)
+     k = 0
+     for li in range(1, nlab + 1):
+diff --git a/tests/test_drift.py b/tests/test_drift.py
+new file mode 100644
+index 0000000..b14d54a
+--- /dev/null
++++ b/tests/test_drift.py
+@@ -0,0 +1,59 @@
++"""Pose-graph drift correction on a synthetic loop with known drift.
++
++The closure pattern is the one scan B of the sample flat produces: few loop closures, the
++first one tying the start of the capture to its end. Closures are exact, so after the
++correction every closure should hold to about a centimetre.
++"""
++import numpy as np
++
++from roomscan.geometry import drift
++
++PAIRS = [(3, 33), (8, 27), (9, 27), (10, 15), (15, 27), (21, 25)]
++INFO = np.diag([7500.0] * 3 + [2500.0] * 3)  # about what 2,500 ICP correspondences give
++
++
++def _loop(end_drift_m: float, n: int = 38):
++    """Submap anchors around an elliptic loop, true and with drift growing linearly along it."""
++    true, drifted = [], []
++    for k in range(n):
++        a = 2 * np.pi * k / n
++        T = np.eye(4)
++        T[:3, :3] = drift._rot_y(-a)
++        T[:3, 3] = [3 * np.cos(a), 0.0, 2 * np.sin(a)]
++        f = k / (n - 1)
++        E = np.eye(4)
++        E[:3, :3] = drift._rot_y(np.deg2rad(4 * end_drift_m * f))
++        E[:3, 3] = [end_drift_m * f, 0.0, 0.4 * end_drift_m * f]
++        true.append(T)
++        drifted.append(E @ T)
++    return true, drifted
++
++
++def _closure(true, i, j, error=None):
++    T = np.linalg.inv(true[j]) @ true[i]
++    return {"i": i, "j": j, "T": T if error is None else error @ T, "info": INFO, "shift": 0.0}
++
++
++def _worst_closure_error(new, true, pairs):
++    return max(np.linalg.norm((np.linalg.inv(np.linalg.inv(new[j]) @ new[i]) @ (np.linalg.inv(true[j]) @ true[i]))[:3, 3])
++               for i, j in pairs)
++
++
++def test_half_metre_of_drift_is_corrected():
++    # scan B: 0.5 m between the start and the end of the loop. The weights shipped before
++    # fix-loop round 2 pruned 5 of these 6 closures and moved nothing.
++    true, drifted = _loop(0.5)
++    new, kept = drift._optimise(drifted, [_closure(true, i, j) for i, j in PAIRS])
++    assert len(kept) == len(PAIRS)
++    assert _worst_closure_error(new, true, PAIRS) < 0.02
++    assert max(np.linalg.norm(a[:3, 3] - b[:3, 3]) for a, b in zip(new, drifted)) > 0.35
++
++
++def test_a_wrong_loop_closure_is_pruned():
++    true, drifted = _loop(0.5)
++    wrong = np.eye(4)
++    wrong[:3, 3] = [0.3, 0.0, 0.0]  # a closure that slid 30 cm along a corridor
++    loops = [_closure(true, i, j) for i, j in PAIRS] + [_closure(true, 12, 30, error=wrong)]
++    new, kept = drift._optimise(drifted, loops)
++    assert len(kept) == len(PAIRS)
++    assert _worst_closure_error(new, true, PAIRS) < 0.02
+diff --git a/tests/test_geometry.py b/tests/test_geometry.py
+index c53e916..e31ba8a 100644
+--- a/tests/test_geometry.py
++++ b/tests/test_geometry.py
+@@ -65,6 +65,21 @@ def test_two_rooms_joined_by_a_door_are_separated():
+     assert areas == pytest.approx([9.0, 12.0], abs=0.15)
+ 
+ 
++def test_short_wall_gaps_do_not_cut_an_unsealed_room():
++    # A room joined to the rest of the flat through an open doorway (no door head seen) falls
++    # back to the four-direction enclosure test. A wall seen only above a bed head has short
++    # gaps, and those must not cut the room into strips (fix-loop round 2).
++    from roomscan.geometry.layout import _close_gaps, _enclosed
++    walls = np.zeros((160, 160), bool)
++    walls[30, 30:130] = walls[129, 30:130] = True
++    walls[30:130, 30] = walls[30:130, 129] = True
++    walls[60:66, 129] = walls[90:95, 129] = False  # 10-12 cm gaps on a 2 cm grid
++    inside = np.zeros_like(walls)
++    inside[33:127, 33:127] = True
++    assert not _enclosed(walls)[inside].all()  # raw walls: every row through a gap is cut
++    assert _enclosed(_close_gaps(walls))[inside].all()
++
++
+ def test_box_fit_recovers_rectangle_from_noisy_cloud():
+     c = box_room(4.0, 3.0, 2.6, noise=0.03, step=0.04)
+     room = fit_box(c, 0.0, "r", noise=0.08)

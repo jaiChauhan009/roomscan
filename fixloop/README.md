@@ -1,5 +1,11 @@
 # Fix loop
 
+Two rounds on the same gate (LiDAR repeatability). This page is round 1.
+**Round 2** is in [round2/](round2/README.md): it tested this page's post-mortem, found it
+wrong, and fixed the actual cause (scan B's drift was never corrected).
+
+## Round 1
+
 | Step | Where |
 |---|---|
 | Declaration (committed before the fix) | [declaration.md](declaration.md), commit `c9255e9` |
@@ -44,6 +50,11 @@ everything downstream of the footprint.
 **What the hypothesis got right.** Scan B lost walls because the test demanded evidence
 above the height the scan ever looked at. Making the band relative recovered 13.4 m² of
 B's floor and both bedrooms that were missing (see the two plans in `after/runs/`).
+
+> **Corrected in round 2.** The furniture explanation below is wrong. Where B puts the
+> bedroom's far wall, A has no surface at all (6 points against 7,311 on A's wall 43 cm
+> further out). The walls B saw in its first 10 s are displaced because B's drift was
+> never corrected. Evidence in `round2/evidence_output.txt`. The text is kept as written.
 
 **What it missed. A second cause, of similar size, was hidden behind the first.**
 Scan B sees walls only up to ~1.6 m. In furnished rooms the lower part of most walls is
