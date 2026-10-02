@@ -13,23 +13,101 @@ Intrinsics: an iPhone clip carries no calibration. We use, in order: a camera_ma
 or intrinsics.json next to the video, an explicit hfov, or the iPhone main-camera default
 (DEFAULT_HFOV_DEG). A focal-length error shows up as scale error and is covered by the
 tier's calibrated interval.
+
+Input: .mov / .mp4 / .m4v, H.264 or HEVC (8 or 10 bit), any resolution and frame rate,
+variable frame rate included (frame times are read from the file, not derived from an
+average rate). A clip filmed with the phone upright is stored landscape with a rotation
+flag; the flag is applied so frames are upright, as the depth model expects.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import cv2
 import numpy as np
 
 from roomscan.capture import Frame, PosedCapture
+from roomscan.pipeline import VIDEO_EXT, InputError, capture_videos, unwrap
 
 DEFAULT_HFOV_DEG = 63.0  # iPhone 15 main camera, 1x, video mode (stabilisation crop)
 WORK_W = 640
 DEPTH_W = 256  # depth maps are reduced to LiDAR-like resolution for the shared back end
 CACHE = Path(".cache")
 MAX_KEYFRAMES = 320
+MIN_SECONDS = 3.0  # shorter clips cannot show a room
+CODEC_HINT = ("the file is damaged or incomplete, or its codec is not supported (this build decodes H.264 "
+              "and HEVC in .mov / .mp4). Copy the original clip again (not through a chat app)")
+
+
+def quiet_ffmpeg() -> None:
+    """Keep FFmpeg's own log lines ("moov atom not found", per-frame decode errors) off the
+    console: our messages say what is wrong. OpenCV reads OPENCV_FFMPEG_LOGLEVEL when its
+    FFmpeg plugin starts (first capture); on Windows the plugin reads msvcrt's copy of the
+    environment, which os.environ does not update. A level the user set is kept."""
+    if "OPENCV_FFMPEG_LOGLEVEL" in os.environ:
+        return
+    os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "-8"  # AV_LOG_QUIET
+    if os.name == "nt":
+        try:
+            import ctypes
+            ctypes.cdll.msvcrt._putenv(b"OPENCV_FFMPEG_LOGLEVEL=-8")
+        except (OSError, AttributeError):
+            pass
+
+
+def _capture(video: Path, auto_rotate: bool = True) -> cv2.VideoCapture:
+    quiet_ffmpeg()
+    cap = cv2.VideoCapture(str(video))  # FFmpeg backend: non-ASCII Windows paths work here
+    # explicit, because OpenCV's default differs between versions (4.11: off)
+    cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1 if auto_rotate else 0)
+    return cap
+
+
+def probe_video(video: Path, auto_rotate: bool = True) -> dict:
+    """fps, frame count (container estimate, may be 0), upright frame size and the rotation
+    flag of a clip; InputError when it cannot be opened or its first frame not decoded."""
+    video = Path(video)
+    if not video.is_file():
+        raise InputError(f"{video} does not exist")
+    if video.stat().st_size == 0:
+        raise InputError(f"{video.name} is empty (0 bytes): copy the clip again")
+    cap = _capture(video, auto_rotate)
+    try:
+        if not cap.isOpened():
+            raise InputError(f"cannot open video {video.name}: {CODEC_HINT}")
+        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC)).to_bytes(4, "little").decode("latin1").strip("\x00 ")
+        ok, img = cap.read()
+        if not ok or img is None:
+            raise InputError(f"cannot decode video {video.name} (codec '{fourcc or 'unknown'}'): {CODEC_HINT}")
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        return {"fps": float(fps) if np.isfinite(fps) and 1.0 <= fps <= 1000.0 else 30.0,
+                "n_frames": max(0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)),
+                "size": (int(img.shape[1]), int(img.shape[0])),
+                "rotation": int(cap.get(cv2.CAP_PROP_ORIENTATION_META) or 0) if auto_rotate else 0,
+                "codec": fourcc}
+    finally:
+        cap.release()
+
+
+def find_video(path: Path) -> Path:
+    """The clip to process: `path` itself, or the one walk-through clip in a folder (Live
+    Photo companions of photos are not clips)."""
+    path = Path(path)
+    if path.is_file():
+        return path
+    if not path.is_dir():
+        raise InputError(f"{path} does not exist")
+    vids = capture_videos(unwrap(path))
+    if not vids:
+        raise InputError(f"no video ({', '.join(sorted(VIDEO_EXT))}) in {path}")
+    if len(vids) > 1:
+        names = ", ".join(p.name for p in vids[:4]) + (", ..." if len(vids) > 4 else "")
+        raise InputError(f"{path} holds {len(vids)} videos ({names}): the video tier takes one walk-through "
+                         f"clip, pass that file")
+    return vids[0]
 
 
 def _intrinsics(video: Path, w: int, h: int, hfov_deg: float | None) -> tuple[np.ndarray, str]:
@@ -93,9 +171,10 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
     """Pass 1: KLT tracks + keyframe candidates (frequent; thinned by select_keyframes)."""
     from tqdm import tqdm
 
-    cap = cv2.VideoCapture(str(video))
-    src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    info = probe_video(video)
+    cap = _capture(video)
+    src_fps = info["fps"]
+    n = info["n_frames"]  # estimate only: the loop below runs until the decoder stops
     step = max(1, int(round(src_fps / target_fps)))
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     lk = dict(winSize=(21, 21), maxLevel=3,
@@ -107,7 +186,7 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
     next_id = 0
     kfs = []  # dicts: frame, t, img, ids, pts
 
-    def add_keyframe(i, img, gray):
+    def add_keyframe(i, t_s, img, gray):
         nonlocal pts, ids, next_id, kf_pos
         mask = np.full(gray.shape, 255, np.uint8)
         for p in pts:
@@ -124,26 +203,33 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
         kf_pos = {int(t): p.copy() for t, p in zip(ids, pts)}
         sharp = float(cv2.Laplacian(gray, cv2.CV_32F).var())
         jpg = cv2.imencode(".jpg", img[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, 92])[1]
-        kfs.append({"frame": i, "t": i / src_fps, "jpg": jpg, "ids": ids.copy(), "pts": pts.copy(),
+        kfs.append({"frame": i, "t": t_s, "jpg": jpg, "ids": ids.copy(), "pts": pts.copy(),
                     "sharp": sharp})
 
     i = -1
     since_kf = 0
-    for _ in tqdm(range(n), desc="track", disable=not progress):
-        if not cap.grab():
-            break
+    t_last = -1.0
+    bar = tqdm(total=n or None, desc="track", disable=not progress)
+    # until the decoder stops: the container's frame count is an estimate (variable frame rate)
+    while cap.grab():
         i += 1
+        bar.update(1)
+        # presentation time of this frame; i / fps is only right at a constant frame rate
+        t_s = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if not (np.isfinite(t_s) and t_s > t_last):
+            t_s = t_last + 1.0 / src_fps if t_last >= 0 else 0.0
+        t_last = t_s
         if i % step:
             continue
         ok, bgr = cap.retrieve()
-        if not ok:
-            break
+        if not ok or bgr is None:
+            continue  # one undecodable frame: keep going
         h0, w0 = bgr.shape[:2]
         s = WORK_W / max(w0, h0)
         img = cv2.resize(bgr, (int(round(w0 * s)), int(round(h0 * s))), interpolation=cv2.INTER_AREA)
         gray = clahe.apply(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
         if prev is None:
-            add_keyframe(i, img[:, :, ::-1].copy(), gray)
+            add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
             prev = gray
             continue
         if len(pts):
@@ -162,10 +248,12 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
         alive = len(old) / n_kf
         par = float(np.median(np.linalg.norm(pts[sel] - old, axis=1))) if len(old) else 1e9
         if par > kf_parallax or alive < 0.7 or since_kf > 2 * target_fps:
-            add_keyframe(i, img[:, :, ::-1].copy(), gray)
+            add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
             since_kf = 0
+    bar.close()
     cap.release()
-    return {"kfs": kfs, "fps": src_fps, "n_frames": i + 1}
+    return {"kfs": kfs, "fps": src_fps, "n_frames": i + 1, "duration_s": max(t_last, 0.0),
+            "rotation": info["rotation"], "codec": info["codec"]}
 
 
 def solve_poses(kfs: list[dict], depths: list[np.ndarray], K: np.ndarray) -> tuple[list[int], list[np.ndarray], list[float], dict]:
@@ -490,20 +578,24 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
                hfov_deg: float | None = None) -> PosedCapture:
     from roomscan.ml.depth import DEPTH_SCALE_BIAS
 
-    path = Path(path)
-    video = path if path.is_file() else next(p for p in sorted(path.iterdir())
-                                             if p.suffix.lower() in {".mp4", ".mov", ".m4v"})
+    video = find_video(Path(path))
     tr = track_video(video, progress=progress)
+    if len(tr["kfs"]) < 2 or tr["duration_s"] < MIN_SECONDS:
+        raise InputError(f"{video.name} is too short ({tr['n_frames']} frames, {tr['duration_s']:.1f} s): the video "
+                         f"tier needs a walk through the rooms (docs/capture_protocol.md)")
     kfs = select_keyframes(tr["kfs"])
     imgs = [k["img"] for k in kfs]
     h, w = imgs[0].shape[:2]
     K, k_src = _intrinsics(video, w, h, hfov_deg)
-    key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}".encode()).hexdigest()[:16]
+    # rotated clips are keyed apart: depth cached before rotation was applied must not be reused
+    rot = f"|rot{tr['rotation']}" if tr["rotation"] else ""
+    key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}{rot}".encode()).hexdigest()[:16]
     depths = cached_depths(imgs, key, use_cache, progress)
     kept, poses, scales, stats = solve_poses(kfs, depths, K)
     # map units -> metres: the model's own (bias-corrected) scale, median over keyframes
     metric = float(np.median(1.0 / np.array(scales))) / DEPTH_SCALE_BIAS
     meta = {"source": "video", "video": video.name, "intrinsics": k_src, "n_video_frames": tr["n_frames"],
+            "codec": tr["codec"], "rotation_applied_deg": tr["rotation"], "duration_s": round(tr["duration_s"], 2),
             "n_keyframe_candidates": len(tr["kfs"]), "n_keyframes": len(kfs), "n_tracked": len(kept), "vo_segments": stats["segments"],
             "vo_segments_merged": stats["segments_merged"], "vo_median_inliers": stats["median_inliers"], "metric_scale": round(metric, 4),
             "depth_model": "Depth-Anything-V2-Metric-Indoor-Small"}
