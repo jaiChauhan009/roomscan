@@ -78,13 +78,16 @@ function cell(meas, d = 2, unit = "") {
   return h("td", { class: "num" }, v, ci ? h("span", { class: "ci" }, ci) : null);
 }
 
-export async function renderResults(job, jid) {
+let selectedLabel = null;
+
+export async function renderResults(job, jid, partial = false) {
   const sec = $("#results");
   sec.hidden = false;
   // one tab per run that finished: the rooms' photos, the whole-home video / LiDAR scan
   const runs = (job.runs || []).filter((r) => r.status === "done" && r.outputs && Object.keys(r.outputs).length);
   const tabs = $("#run-tabs");
   const show = (r) => {
+    selectedLabel = r ? r.label : null;
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.label === (r && r.label))));
     renderRun(r ? r.outputs : (job.outputs || {}), jid);
   };
@@ -93,7 +96,17 @@ export async function renderResults(job, jid) {
   tabs.hidden = !runs.length && !(job.runs || []).some((r) => r.status === "failed");
   const failed = (job.runs || []).filter((r) => r.status === "failed");
   if (failed.length) tabs.append(h("p", { class: "small muted" }, failed.map((r) => `${r.title || r.label} failed: ${r.error || "error"}`).join(" · ")));
-  show(runs[0] || null);
+  const waiting = (job.runs || []).filter((r) => r.status === "running" || r.status === "pending");
+  if (partial && waiting.length) {
+    tabs.hidden = false;
+    tabs.append(h("p", { class: "small muted" },
+      `Still processing: ${waiting.map((r) => r.title || r.label).join(", ")}. Its results appear here when it finishes.`));
+  }
+  show(runs.find((r) => r.label === selectedLabel) || runs[0] || null);
+  if (partial) {
+    $("#comparison-table").replaceChildren(h("p", { class: "small muted" }, "The size comparison appears when every run has finished."));
+    return;
+  }
   try {
     const cmp = await api.comparison(jid);
     renderComparison(cmp && cmp.rows || []);

@@ -783,8 +783,14 @@ async function poll() {
     pollFails = 0;
     $("#job-poll").textContent = "";
     renderJob(job, jid);
+    // show each run's results as soon as that run finishes (LiDAR is ready long before a video)
+    const doneRuns = (job.runs || []).filter((r) => r.status === "done").length;
+    const key = `${jid}:${doneRuns}:${job.status}`;
+    if (doneRuns && resultsShownFor !== key && (job.status === "done" || job.status === "running")) {
+      resultsShownFor = key;
+      renderResults(job, jid, job.status !== "done");
+    }
     if (job.status === "done") {
-      if (resultsShownFor !== jid) { resultsShownFor = jid; renderResults(job, jid); }
       pollJid = null;
       return;
     }
