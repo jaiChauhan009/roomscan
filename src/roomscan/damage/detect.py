@@ -29,6 +29,8 @@ from roomscan.geometry.layout import Layout
 from roomscan.geometry.pointcloud import backproject
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+# CLIP loads from pytorch_model.bin; stop transformers also fetching the hub's converted copy (605 MB, unused)
+os.environ.setdefault("DISABLE_SAFETENSORS_CONVERSION", "1")
 CLIP_ID = "openai/clip-vit-base-patch32"
 
 DAMAGE_PROMPTS = {

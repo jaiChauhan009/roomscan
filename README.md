@@ -28,7 +28,7 @@ git clone https://github.com/jaiChauhan009/roomscan.git
 cd roomscan
 uv --version                            # no uv yet? install it first (below)
 uv sync --extra ml                      # .venv with Python 3.11 and all dependencies (1.4 GB on disk)
-uv run python scripts/fetch_weights.py  # pretrained models into the Hugging Face cache (1.4 GB)
+uv run python scripts/fetch_weights.py  # pretrained models into the Hugging Face cache (0.77 GB)
 ```
 
 Installing uv (once per machine), any one of:
@@ -75,8 +75,8 @@ One-time setup, almost all of it downloading:
 | `git clone` | 14 MB | 4 s |
 | `pip install uv` (only if uv is missing) | 18 MB | 25 s |
 | `uv sync --extra ml` | 0.40 GB (+24 MB, about 20 s, if Python 3.11 is missing) | 9 min 15 s |
-| `uv run python scripts/fetch_weights.py` | 1.4 GB | 3 min 31 s |
-| total | 1.8 GB | about 13.5 min |
+| `uv run python scripts/fetch_weights.py` | 0.77 GB | about 2 min 20 s (estimate, see below) |
+| total | 1.2 GB | about 12.5 min |
 
 Then per capture, weights already fetched (sample captures, see below):
 
@@ -91,10 +91,17 @@ cached in `.cache/`, so a second run of the same video is faster. Other jobs sha
 during several of these runs, so an idle machine is faster; `bench/reports/benchmark.md`
 lists per-stage times with warm caches.
 
-Adding up the steps, README to a first LiDAR plan took about 15.5 minutes here, about 12.5 of
-them downloading, and to a first video plan about 22 minutes. So the 15-minute target depends
-on the connection: the one-time downloads are 1.8 GB, about 3 minutes at 10 MB/s (the LiDAR
-path would then take about 6 minutes; estimate, not measured) but 30 minutes at 1 MB/s.
+`fetch_weights.py` took 3 min 31 s on the clean copy while it also downloaded a second copy of
+the CLIP weights (605 MB) that is never loaded; it no longer does, and its time above is that
+measurement minus the copy's share of the download. Back to back on a slower connection here
+(about 3 MB/s from Hugging Face), the script took 6 min 54 s with the copy and 4 min 54 s
+without.
+
+Adding up the steps with that estimate, README to a first LiDAR plan takes about 14.5
+minutes here, about 11.5 of them downloading, and to a first video plan about 20.5 minutes. So
+the 15-minute target depends on the connection: the one-time downloads are 1.2 GB, about 2
+minutes at 10 MB/s (the LiDAR path would then take about 5 minutes; estimate, not measured)
+but 20 minutes at 1 MB/s.
 
 Linux downloads much more. The PyPI build of torch for Linux bundles CUDA libraries (cuDNN,
 cuBLAS, NCCL, triton) that this CPU-only pipeline never uses, so `uv sync --extra ml` fetches
@@ -188,11 +195,12 @@ Requirement-by-requirement status: [docs/compliance_matrix.md](docs/compliance_m
 |---|---|---|---|
 | Depth Anything V2 Metric Indoor Small | Apache-2.0 | depth for video and photo tiers | 99 MB |
 | EfficientLoFTR | Apache-2.0 | matching the look-back photo (photo-tier stitching) | 64 MB |
-| CLIP ViT-B/32 | MIT | zero-shot damage classification | 1.2 GB |
+| CLIP ViT-B/32 | MIT | zero-shot damage classification | 609 MB |
 
-Weights are fetched by `scripts/fetch_weights.py`; none are stored in the repository. CLIP
-counts twice: `openai/clip-vit-base-patch32` publishes only `pytorch_model.bin`, and
-transformers also downloads the hub's converted `model.safetensors` (605 MB each).
+Weights are fetched by `scripts/fetch_weights.py`; none are stored in the repository.
+`openai/clip-vit-base-patch32` publishes only `pytorch_model.bin` (605 MB), which transformers
+loads; roomscan sets `DISABLE_SAFETENSORS_CONVERSION=1` when it is unset, so transformers does
+not also download the hub's converted `model.safetensors` (another 605 MB, never loaded).
 
 ## Repository layout
 
