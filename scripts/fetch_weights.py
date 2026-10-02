@@ -11,7 +11,7 @@ Each model is loaded the way the pipeline loads it (transformers `from_pretraine
 model ids from roomscan), so every file the pipeline asks for ends up in the cache. A list
 of file patterns is not enough: openai/clip-vit-base-patch32 publishes its weights only as
 pytorch_model.bin. transformers loads that file and, unless DISABLE_SAFETENSORS_CONVERSION
-is set, also downloads the hub's converted model.safetensors copy (605 MB) in a background
+is 1, also downloads the hub's converted model.safetensors copy (605 MB) in a background
 thread, a copy it never loads. roomscan and this script set the variable to 1 when it is
 unset, so that copy is not fetched; if you set it to 0 yourself, the copy is fetched here
 instead of during the first capture run.
