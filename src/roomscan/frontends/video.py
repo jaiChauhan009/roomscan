@@ -47,6 +47,8 @@ MAX_KEYFRAMES = 320
 # tracks, kept 470 of 494 keyframes and found 1 room instead of 2)
 DEPTH_DT = 0.0
 DEPTH_MIN_SHARED = 160
+DEPTH_PX = 392  # depth model input short side for this tier
+TRACK_FPS = 25.0
 MIN_SECONDS = 3.0  # shorter clips cannot show a room
 CODEC_HINT = ("the file is damaged or incomplete, or its codec is not supported (this build decodes H.264 "
               "and HEVC in .mov / .mp4). Copy the original clip again (not through a chat app)")
@@ -669,7 +671,7 @@ def cached_depths(imgs: list[np.ndarray], key: str, use_cache: bool, progress: b
             for i in idx:
                 out[i] = z[f"d{i}"].astype(np.float32)
             return out
-    depths = predict_depth([imgs[i] for i in idx], progress=progress)
+    depths = predict_depth([imgs[i] for i in idx], progress=progress, px=DEPTH_PX)
     if use_cache:
         CACHE.mkdir(exist_ok=True)
         np.savez_compressed(cf, **{f"d{i}": d.astype(np.float16) for i, d in zip(idx, depths)})
@@ -685,19 +687,20 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
     video = find_video(Path(path))
     prof = {}
     t0 = time.time()
-    tr = track_video(video, progress=progress)
+    tr = track_video(video, target_fps=TRACK_FPS, progress=progress)
     prof["track"] = time.time() - t0
     if len(tr["kfs"]) < 2 or tr["duration_s"] < MIN_SECONDS:
         raise InputError(f"{video.name} is too short ({tr['n_frames']} frames, {tr['duration_s']:.1f} s): the video "
                          f"tier needs a walk through the rooms (docs/capture_protocol.md)")
     kfs = select_keyframes(tr["kfs"])
-    want = depth_keyframes(kfs)
+    want = depth_keyframes(kfs, DEPTH_DT, DEPTH_MIN_SHARED)
     imgs = [k["img"] for k in kfs]
     h, w = imgs[0].shape[:2]
     K, k_src = _intrinsics(video, w, h, hfov_deg, rotation=tr["rotation"])
     # rotated clips are keyed apart: depth cached before rotation was applied must not be reused
     rot = f"|rot{tr['rotation']}" if tr["rotation"] else ""
     sub = f"|dk{sum(want)}" if not all(want) else ""  # depth on every keyframe: the key as before
+    sub += f"|px{DEPTH_PX}" if DEPTH_PX != 392 else ""
     key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}{rot}{sub}"
                        .encode()).hexdigest()[:16]
     t0 = time.time()
