@@ -609,7 +609,7 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
         m = ndi.binary_opening(m, np.ones((5, 5)))
         if (m & free).sum() * res * res < MIN_ROOM_AREA:
             continue
-        for mm in _split_necks(m, ceil_map, res):
+        for mm in _split_necks(m, ceil_map, res, high_cov=high_cov):
             if (mm & free).sum() * res * res >= MIN_ROOM_AREA:
                 k += 1
                 region[mm] = k
@@ -690,12 +690,38 @@ def _ceiling_map(cloud: Cloud, ab: np.ndarray, frame: PlanFrame, floor_y: float)
         return np.where(n > 0, s / n, np.nan)
 
 
-def _split_necks(m: np.ndarray, ceil_map: np.ndarray, res: float) -> list[np.ndarray]:
+def _furniture_gap(seg: np.ndarray, x: int, y: int, m: np.ndarray, ceil_map: np.ndarray,
+                   high_cov: np.ndarray | None, cx: float, cy: float) -> bool:
+    """A neck between two pieces of furniture rather than a doorway.
+
+    Both conditions together (each alone also matches real doorways): the capture saw the
+    ceiling right over the neck, at both parts' ceiling height (it looked up there), and yet
+    nothing beside the neck continues above door-head height (a doorway's jambs carry wall
+    up to the ceiling; furniture tops out below it).
+    """
+    if high_cov is None or not (np.isfinite(cx) and np.isfinite(cy)):
+        return False
+    mx, my = seg == x, seg == y
+    neck = (mx & ndi.binary_dilation(my)) | (my & ndi.binary_dilation(mx))
+    cn = ceil_map[ndi.binary_dilation(neck, np.ones((11, 11)))]  # +-10 cm round the neck
+    seen = np.isfinite(cn)
+    if seen.mean() < 0.6:
+        return False
+    cmed = float(np.median(cn[seen]))
+    if abs(cmed - cx) > 0.12 or abs(cmed - cy) > 0.12:
+        return False
+    flanks = ndi.binary_dilation(neck, np.ones((15, 15))) & ~m  # +-14 cm, outside the region
+    return int((high_cov[flanks] >= 1).sum()) <= 2
+
+
+def _split_necks(m: np.ndarray, ceil_map: np.ndarray, res: float,
+                 high_cov: np.ndarray | None = None) -> list[np.ndarray]:
     """Split a sealed region at narrow necks (doorways without a detected lintel).
 
     Watershed on the distance transform gives candidate rooms; two neighbours stay
     merged when the opening between them is about as wide as the narrower of the two
-    (open-plan continuation) and their ceilings are at the same height.
+    (open-plan continuation) and their ceilings are at the same height, or when the
+    neck is a gap between furniture (`_furniture_gap`).
     """
     from skimage.morphology import h_maxima
     from skimage.segmentation import watershed
@@ -742,6 +768,9 @@ def _split_necks(m: np.ndarray, ceil_map: np.ndarray, res: float) -> list[np.nda
             same_ceiling = not (np.isfinite(cx) and np.isfinite(cy) and abs(cx - cy) > 0.12)
             open_plan = blen >= 0.8 * 2 * min(wx, wy)
             tiny = min(ax, ay) < 1.5
+            if not (open_plan or tiny) and same_ceiling and _furniture_gap(seg, x, y, m, ceil_map, high_cov,
+                                                                           cx, cy):
+                open_plan = True
             if (same_ceiling and open_plan) or tiny:
                 score = blen / (2 * min(wx, wy)) + (10 if tiny else 0)
                 if best is None or score > best[0]:

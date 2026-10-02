@@ -86,6 +86,44 @@ def test_wall_snapping_stops_at_the_neighbouring_room():
     assert sorted(p.area for p in polys) == pytest.approx([9.0, 12.0], abs=0.15)
 
 
+def _box(x0, x1, z0, z1, h, floor_y=-1.4):
+    """Sides and top of a solid piece of furniture standing on the floor."""
+    from synth import _plane
+    parts = [_plane((x0, floor_y, z0), (1, 0, 0), (0, 1, 0), (0, 0, -1), x1 - x0, h, 0.02),
+             _plane((x0, floor_y, z1), (1, 0, 0), (0, 1, 0), (0, 0, 1), x1 - x0, h, 0.02),
+             _plane((x0, floor_y, z0), (0, 0, 1), (0, 1, 0), (-1, 0, 0), z1 - z0, h, 0.02),
+             _plane((x1, floor_y, z0), (0, 0, 1), (0, 1, 0), (1, 0, 0), z1 - z0, h, 0.02),
+             _plane((x0, floor_y + h, z0), (1, 0, 0), (0, 0, 1), (0, 1, 0), x1 - x0, z1 - z0, 0.02)]
+    return Cloud(np.concatenate([p for p, _ in parts]).astype(np.float32),
+                 np.concatenate([n for _, n in parts]).astype(np.float32),
+                 np.ones(sum(len(p) for p, _ in parts), np.float32))
+
+
+def test_gap_between_two_wardrobes_does_not_split_the_room():
+    # ARKitScenes 42446532: a 2.5 x 4.9 m bedroom with furniture 1.95 m tall reaching in from
+    # both long walls, 0.7 m apart. The gap is a door-wide neck, but the ceiling is seen right
+    # over it and nothing beside it rises above door-head height: one room, not two.
+    room = box_room(2.5, 4.9, 2.34)
+    layout = extract_layout(merge(room, _box(0.0, 0.9, 2.1, 2.7, 1.95), _box(1.6, 2.5, 2.1, 2.7, 1.95)))
+    assert len(layout.rooms) == 1
+    assert layout.rooms[0].area > 0.85 * 2.5 * 4.9  # (the outline may still notch round the furniture)
+
+
+def test_low_doorway_without_detected_lintel_still_separates_rooms():
+    # a 2.30 m ceiling over a 2.05 m door: the wall above the door is too short to count as a
+    # lintel, so the door is a neck; its jambs and the wall over it rise above door height,
+    # which makes it a doorway (not a furniture gap), even with the ceiling seen over it
+    # (only one 10 cm height bin of wall above door-head height: the check counts any)
+    from synth import _plane
+    a = box_room(4.0, 3.0, 2.3, origin=(0, 0), door=(1, 1.0, 0.9, 2.05))
+    b = box_room(3.0, 3.0, 2.3, origin=(4.12, 0), door=(3, 1.1, 0.9, 2.05), seed=1)
+    p, n = _plane((4.0, -1.4 + 2.3, 0.0), (1, 0, 0), (0, 0, 1), (0, -1, 0), 0.12, 3.0, 0.02)  # ceiling over the wall
+    over = Cloud(p.astype(np.float32), n.astype(np.float32), np.ones(len(p), np.float32))
+    layout = extract_layout(merge(a, b, over))
+    assert len(layout.rooms) == 2
+    assert sorted(r.area for r in layout.rooms) == pytest.approx([9.0, 12.0], abs=0.15)
+
+
 def test_short_wall_gaps_do_not_cut_an_unsealed_room():
     # A room joined to the rest of the flat through an open doorway (no door head seen) falls
     # back to the four-direction enclosure test. A wall seen only above a bed head has short
