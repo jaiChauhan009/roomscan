@@ -494,6 +494,19 @@ def test_stray_export_layouts(tmp_path, monkeypatch):
         prepare_input(bad)
 
 
+def test_walkin_check_only_reports_without_running(tmp_path, capsys):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("walkin", Path(__file__).parent.parent / "scripts" / "walkin.py")
+    walkin = importlib.util.module_from_spec(spec)
+    sys.modules["walkin"] = walkin  # its dataclasses look the module up
+    spec.loader.exec_module(walkin)
+    scan = make_stray(tmp_path / "phone" / "room_lidar_1" / "c7d28f72c6")
+    assert walkin.main([str(tmp_path / "phone" / "room_lidar_1"), "--check-only"]) == 0
+    assert "LiDAR tier" in capsys.readouterr().out and not (tmp_path / "runs").exists()
+    shutil.rmtree(scan / "depth")  # an incomplete copy stops with one line
+    assert walkin.main([str(scan), "--check-only"]) == 2
+
+
 def test_stray_export_missing_optional_parts(tmp_path):
     scan = make_stray(tmp_path / f"{NON_ASCII}" / "scan", confidence=False, imu=False, rgb=False, old_odometry=True)
     cap = lidar_stray.load_stray(scan.parent)

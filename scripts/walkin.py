@@ -459,6 +459,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="the tier the examiners chose; stop if the input is something else")
     ap.add_argument("--no-damage", action="store_true", help="skip damage detection (geometry only, faster)")
     ap.add_argument("--keep-temp", action="store_true", help="keep the temporary folder (caches, unzipped input)")
+    ap.add_argument("--check-only", action="store_true",
+                    help="only find the capture and check it is complete and readable (seconds), then stop: "
+                         "use it while the phone is still there")
     a = ap.parse_args(argv)
 
     t0 = time.time()
@@ -476,6 +479,10 @@ def main(argv: list[str] | None = None) -> int:
         except InputError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
+        if a.check_only:
+            print("\n".join([f"ok: {a.capture} -> {TIER_NAME[cap.tier]} tier, {what}"]
+                            + [f"  note: {n}" for n in cap.notes]))
+            return 0
         out = (a.out or cwd / "runs" / f"walkin_{cap.name}_{datetime.now():%Y%m%d_%H%M%S}").absolute()
         models = _go_offline(_models(cap.tier, not a.no_damage))
         head = ["roomscan walk-in run",
