@@ -1,0 +1,121 @@
+
+== arkit_42446532  rooms 1  truth ceiling_height 2.337
+  room_1 (8.1 m2 mask)
+    floor   mode -0.9760 plane -0.0213 cellmed -0.0145 (vs mode) tilt 0.33 deg rms 0.0268 | pts >1cm above/below mode 0.13/0.62, cells 0.01/0.75 of 89
+    ceiling mode +1.3063 plane +0.0117 cellmed +0.0108 (vs mode) tilt 0.10 deg rms 0.0235 | pts >1cm above/below mode 0.47/0.16, cells 0.52/0.00 of 141
+    height: mode 2.2822 (-0.0548), plane 2.3152 (-0.0218), cellmed 2.3075 (-0.0295)
+  walls within 10 cm of the laser (benchmark): signed rel err -0.0144
+
+== arkit_44358446  rooms 1  truth ceiling_height 2.387
+  room_1 (7.3 m2 mask)
+    floor   mode -1.2762 plane +0.0029 cellmed +0.0008 (vs mode) tilt 0.49 deg rms 0.0172 | pts >1cm above/below mode 0.30/0.12, cells 0.16/0.01 of 87
+    ceiling mode +1.0937 plane +0.0063 cellmed +0.0076 (vs mode) tilt 0.58 deg rms 0.0181 | pts >1cm above/below mode 0.44/0.18, cells 0.41/0.06 of 117
+    height: mode 2.3699 (-0.0171), plane 2.3734 (-0.0136), cellmed 2.3767 (-0.0103)
+  walls within 10 cm of the laser (benchmark): signed rel err -0.0102, -0.0065
+
+== arkit_47332890  rooms 1  truth ceiling_height 2.705
+  room_1 (11.6 m2 mask)
+    floor   mode -0.6025 plane +0.0022 cellmed -0.0007 (vs mode) tilt 0.19 deg rms 0.0124 | pts >1cm above/below mode 0.30/0.30, cells 0.19/0.08 of 125
+    ceiling mode +2.0804 plane +0.0015 cellmed +0.0043 (vs mode) tilt 0.67 deg rms 0.0237 | pts >1cm above/below mode 0.35/0.25, cells 0.33/0.04 of 193
+    height: mode 2.6830 (-0.0220), plane 2.6823 (-0.0227), cellmed 2.6880 (-0.0170)
+  walls within 10 cm of the laser (benchmark): signed rel err -0.0098, -0.0173
+
+== arkit_47331988  rooms 1  truth ceiling_height 2.614
+  room_1 (10.1 m2 mask)
+    floor   mode +0.3509 plane -0.0044 cellmed -0.0013 (vs mode) tilt 0.09 deg rms 0.0181 | pts >1cm above/below mode 0.24/0.37, cells 0.02/0.11 of 105
+    ceiling mode +2.9547 plane -0.0031 cellmed -0.0003 (vs mode) tilt 0.46 deg rms 0.0152 | pts >1cm above/below mode 0.24/0.30, cells 0.15/0.17 of 136
+    height: mode 2.6038 (-0.0102), plane 2.6051 (-0.0089), cellmed 2.6048 (-0.0092)
+  walls within 10 cm of the laser (benchmark): signed rel err -0.0046, -0.0153, -0.0046, -0.0153
+
+== apt_lidar_a  rooms 9  truth ceiling_height None
+  room_4 (9.1 m2 mask)
+    floor   mode -1.5124 plane -0.0071 cellmed -0.0087 (vs mode) tilt 0.56 deg rms 0.0252 | pts >1cm above/below mode 0.25/0.44, cells 0.10/0.37 of 140
+    ceiling mode +0.9309 plane +0.0080 cellmed -0.0038 (vs mode) tilt 0.83 deg rms 0.0184 | pts >1cm above/below mode 0.31/0.37, cells 0.29/0.30 of 86
+    height: mode 2.4433, plane 2.4585, cellmed 2.4482
+  room_2 (7.7 m2 mask)
+    floor   mode -1.5125 plane +0.0163 cellmed +0.0021 (vs mode) tilt 0.91 deg rms 0.0139 | pts >1cm above/below mode 0.31/0.08, cells 0.28/0.00 of 76
+    ceiling mode +1.5616 plane -0.0006 cellmed +0.0002 (vs mode) tilt 0.04 deg rms 0.0051 | pts >1cm above/below mode 0.05/0.04, cells 0.02/0.01 of 126
+    height: mode 3.0742, plane 3.0572, cellmed 3.0723
+  room_1 (7.4 m2 mask)
+    floor   mode -1.5282 plane +0.0051 cellmed +0.0016 (vs mode) tilt 0.08 deg rms 0.0135 | pts >1cm above/below mode 0.41/0.15, cells 0.25/0.02 of 97
+    ceiling mode +1.5354 plane -0.0068 cellmed -0.0041 (vs mode) tilt 0.14 deg rms 0.0193 | pts >1cm above/below mode 0.15/0.44, cells 0.09/0.34 of 122
+    height: mode 3.0636, plane 3.0517, cellmed 3.0579
+  room_5 (6.0 m2 mask)
+    floor   mode -1.5432 plane +0.0051 cellmed +0.0083 (vs mode) tilt 0.35 deg rms 0.0227 | pts >1cm above/below mode 0.45/0.17, cells 0.35/0.11 of 72
+    ceiling mode +0.9197 plane +0.0058 cellmed +0.0021 (vs mode) tilt 0.31 deg rms 0.0076 | pts >1cm above/below mode 0.10/0.16, cells 0.00/0.09 of 53
+    height: mode 2.4629, plane 2.4636, cellmed 2.4567
+  room_9 (4.2 m2 mask)
+    floor   mode -1.5129 plane +0.0056 cellmed +0.0031 (vs mode) tilt 0.21 deg rms 0.0162 | pts >1cm above/below mode 0.40/0.10, cells 0.18/0.02 of 62
+    ceiling mode +0.8335 plane -0.0010 cellmed +0.0006 (vs mode) tilt 0.49 deg rms 0.0044 | pts >1cm above/below mode 0.23/0.12, cells 0.04/0.04 of 69
+    height: mode 2.3464, plane 2.3399, cellmed 2.3439
+  room_7 (2.7 m2 mask)
+    floor   mode -1.5533 plane +0.0003 cellmed +0.0001 (vs mode) tilt 0.25 deg rms 0.0013 | pts >1cm above/below mode 0.03/0.04, cells 0.00/0.00 of 24
+    ceiling mode +0.8217 plane +0.0001 cellmed +0.0011 (vs mode) tilt 0.66 deg rms 0.0077 | pts >1cm above/below mode 0.12/0.16, cells 0.09/0.09 of 46
+    height: mode 2.3750, plane 2.3748, cellmed 2.3760
+  room_3 (2.7 m2 mask)
+    floor   mode -1.5068 plane +0.0016 cellmed +0.0011 (vs mode) tilt 0.81 deg rms 0.0082 | pts >1cm above/below mode 0.18/0.29, cells 0.08/0.13 of 38
+    ceiling mode +1.5728 plane -0.0056 cellmed -0.0001 (vs mode) tilt 0.90 deg rms 0.0127 | pts >1cm above/below mode 0.13/0.43, cells 0.10/0.32 of 41
+    height: mode 3.0796, plane 3.0724, cellmed 3.0784
+  room_6 (1.2 m2 mask)
+    floor   mode -1.5402 plane +0.0065 cellmed +0.0010 (vs mode) tilt 1.58 deg rms 0.0229 | pts >1cm above/below mode 0.30/0.15, cells 0.08/0.08 of 24
+    ceiling mode +0.9230 plane +0.0054 cellmed +0.0014 (vs mode) tilt 1.68 deg rms 0.0212 | pts >1cm above/below mode 0.37/0.17, cells 0.21/0.04 of 24
+    height: mode 2.4633, plane 2.4622, cellmed 2.4636
+  room_8 (1.1 m2 mask)
+    floor   mode -1.4929 plane -0.0031 cellmed -0.0008 (vs mode) tilt 0.38 deg rms 0.0111 | pts >1cm above/below mode 0.12/0.41, cells 0.00/0.33 of 24
+    ceiling mode +0.9568 plane -0.0016 cellmed -0.0003 (vs mode) tilt 0.92 deg rms 0.0120 | pts >1cm above/below mode 0.02/0.28, cells 0.04/0.17 of 24
+    height: mode 2.4497, plane 2.4511, cellmed 2.4503
+
+== apt_lidar_b  rooms 7  truth ceiling_height None
+  room_3: ceiling wall_top, skipped
+  room_2: ceiling wall_top, skipped
+  room_6: ceiling wall_top, skipped
+  room_1: ceiling wall_top, skipped
+  room_5: ceiling wall_top, skipped
+  room_4: ceiling wall_top, skipped
+  room_7: ceiling wall_top, skipped
+
+== room_lidar  rooms 2  truth ceiling_height None
+  room_1: ceiling wall_top, skipped
+  room_2: ceiling wall_top, skipped
+
+== own_lidar_1  rooms 4  truth ceiling_height None
+  room_1 (15.5 m2 mask)
+    floor   mode -1.7650 plane +0.0113 cellmed +0.0107 (vs mode) tilt 0.27 deg rms 0.0267 | pts >1cm above/below mode 0.52/0.20, cells 0.52/0.00 of 262
+    ceiling mode +0.6339 plane -0.0275 cellmed -0.0018 (vs mode) tilt 0.64 deg rms 0.0105 | pts >1cm above/below mode 0.22/0.18, cells 0.00/0.27 of 45
+    height: mode 2.3989, plane 2.3600, cellmed 2.3864
+  room_2 (13.9 m2 mask)
+    floor   mode -1.7455 plane -0.0030 cellmed -0.0014 (vs mode) tilt 0.23 deg rms 0.0224 | pts >1cm above/below mode 0.35/0.33, cells 0.18/0.09 of 244
+    ceiling mode +0.6562 plane +0.0386 cellmed +0.0060 (vs mode) tilt 0.93 deg rms 0.0079 | pts >1cm above/below mode 0.41/0.00, cells 0.42/0.00 of 38
+    height: mode 2.4017, plane 2.4433, cellmed 2.4090
+  room_4 (11.9 m2 mask)
+    floor   mode -1.7526 plane -0.0014 cellmed -0.0016 (vs mode) tilt 0.37 deg rms 0.0147 | pts >1cm above/below mode 0.24/0.39, cells 0.12/0.32 of 152
+    ceiling mode +0.8167 plane +0.0484 cellmed -0.0011 (vs mode) tilt 0.77 deg rms 0.0580 | pts >1cm above/below mode 0.67/0.09, cells 0.24/0.17 of 88
+    height: mode 2.5692, plane 2.6190, cellmed 2.5697
+  room_3 (6.8 m2 mask)
+    floor   mode -1.7302 plane -0.0096 cellmed -0.0082 (vs mode) tilt 0.39 deg rms 0.0285 | pts >1cm above/below mode 0.25/0.50, cells 0.02/0.50 of 100
+    ceiling mode +0.7935 plane -0.0021 cellmed +0.0047 (vs mode) tilt 1.42 deg rms 0.0095 | pts >1cm above/below mode 0.36/0.20, cells 0.46/0.14 of 37
+    height: mode 2.5237, plane 2.5312, cellmed 2.5366
+
+== own_lidar_2  rooms 4  truth ceiling_height None
+  room_1 (13.1 m2 mask)
+    floor   mode -1.5473 plane -0.0043 cellmed -0.0010 (vs mode) tilt 0.32 deg rms 0.0210 | pts >1cm above/below mode 0.28/0.36, cells 0.15/0.23 of 223
+    ceiling mode +1.0504 plane -0.0021 cellmed -0.0019 (vs mode) tilt 0.12 deg rms 0.0191 | pts >1cm above/below mode 0.29/0.35, cells 0.14/0.08 of 214
+    height: mode 2.5977, plane 2.6000, cellmed 2.5969
+  room_3 (11.4 m2 mask)
+    floor   mode -1.6017 plane +0.0046 cellmed +0.0069 (vs mode) tilt 0.38 deg rms 0.0162 | pts >1cm above/below mode 0.34/0.14, cells 0.31/0.07 of 206
+    ceiling mode +1.0168 plane +0.0551 cellmed +0.0242 (vs mode) tilt 0.41 deg rms 0.0584 | pts >1cm above/below mode 0.79/0.12, cells 0.72/0.18 of 116
+    height: mode 2.6186, plane 2.6690, cellmed 2.6360
+  room_4 (2.1 m2 mask)
+    floor   mode -1.5862 plane +0.0184 cellmed +0.0150 (vs mode) tilt 0.46 deg rms 0.0303 | pts >1cm above/below mode 0.63/0.11, cells 0.81/0.00 of 37
+    ceiling mode +0.7891 plane +0.0046 cellmed +0.0019 (vs mode) tilt 0.61 deg rms 0.0180 | pts >1cm above/below mode 0.34/0.17, cells 0.19/0.00 of 37
+    height: mode 2.3753, plane 2.3615, cellmed 2.3622
+  room_2 (1.6 m2 mask)
+    floor   mode -1.5791 plane +0.0009 cellmed +0.0005 (vs mode) tilt 0.83 deg rms 0.0063 | pts >1cm above/below mode 0.09/0.12, cells 0.04/0.00 of 24
+    ceiling mode +1.0084 plane +0.0664 cellmed +0.0004 (vs mode) tilt 5.89 deg rms 0.0438 | pts >1cm above/below mode 0.79/0.11, cells 0.33/0.13 of 15
+    height: mode 2.5876, plane 2.6531, cellmed 2.5875
+
+== own_lidar_3  rooms 1  truth ceiling_height None
+  room_1 (11.6 m2 mask)
+    floor   mode -1.4671 plane +0.0051 cellmed +0.0016 (vs mode) tilt 0.54 deg rms 0.0139 | pts >1cm above/below mode 0.33/0.22, cells 0.30/0.13 of 143
+    ceiling mode +1.1574 plane +0.0024 cellmed +0.0041 (vs mode) tilt 0.52 deg rms 0.0092 | pts >1cm above/below mode 0.19/0.11, cells 0.18/0.04 of 28
+    height: mode 2.6245, plane 2.6218, cellmed 2.6270
