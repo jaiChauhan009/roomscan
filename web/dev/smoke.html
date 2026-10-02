@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Headless smoke harness (dev only, not deployed): drives index.html in a 360 px iframe
+     against the mock API and prints SMOKE OK or FAIL into #log. Used by
+     tests/test_web_static.py with headless Chrome/Edge --dump-dom. Manual use:
+     http://localhost:5173/dev/smoke.html?api=http://localhost:8000 -->
+<meta charset="utf-8"><title>smoke</title><body><pre id="log"></pre>
+<iframe id="f" style="width:360px;height:800px;border:1px solid #ccc"></iframe>
+<script>
+const api = new URLSearchParams(location.search).get('api') || 'http://localhost:8000';
+const log = (m) => { document.getElementById('log').textContent += m + "\n"; };
+const errs = [];
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function until(fn, what, t = 20000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < t) { try { const v = fn(); if (v) return v; } catch (e) {} await sleep(100); }
+  throw new Error('timeout: ' + what);
+}
+try { localStorage.clear(); } catch (e) {}
+const f = document.getElementById('f');
+f.addEventListener('load', async () => {
+  const w = f.contentWindow, d = f.contentDocument;
+  w.addEventListener('error', e => errs.push(String(e.message)));
+  w.addEventListener('unhandledrejection', e => errs.push('rejection ' + String(e.reason)));
+  try {
+    await until(() => d.querySelector('#api-status.up'), 'api up');
+    await until(() => /\S{3,}/.test(d.querySelector('#project-id').textContent) && !d.querySelector('#project-id').textContent.includes('…'), 'project id');
+    log('project ' + d.querySelector('#project-id').textContent);
+    d.querySelector('#add-space button[type=submit]').click();
+    await until(() => d.querySelector('#spaces li.space'), 'space card');
+    log('space: ' + d.querySelector('#spaces .name-input').value);
+    const inp = d.querySelector('#spaces li.space input[type=file]');
+    const dt = new w.DataTransfer();
+    dt.items.add(new w.File([new Uint8Array([255, 216, 1])], 'a.jpg', { type: 'image/jpeg' }));
+    dt.items.add(new w.File([new Uint8Array([255, 216, 2])], 'b_blur.jpg', { type: 'image/jpeg' }));
+    inp.files = dt.files;
+    inp.dispatchEvent(new w.Event('change'));
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 2 files uploaded'), 'uploads');
+    log('count: ' + d.querySelector('#spaces .count').textContent);
+    const H = d.querySelector('input[id^="H-"]');
+    H.value = '2.5';
+    H.dispatchEvent(new w.Event('change'));
+    await until(() => d.querySelector('.sizes-hint[aria-live]').textContent === 'Saved.', 'sizes saved');
+    d.querySelector('#verify').click();
+    await until(() => d.querySelector('#spaces .badge.warn, #spaces .badge.ok'), 'verify badge');
+    await sleep(300);
+    log('badge: ' + d.querySelector('#spaces .badge').textContent);
+    log('findings: ' + ((d.querySelector('#spaces .findings') || {}).textContent || '-'));
+    log('hint: ' + d.querySelector('#run-hint').textContent);
+    if (d.querySelector('#run').disabled) throw new Error('run button disabled after verify');
+    d.querySelector('#run').click();
+    await until(() => !d.querySelector('#job').hidden, 'job section');
+    await until(() => !d.querySelector('#results').hidden && d.querySelector('#summary dd'), 'results', 30000);
+    await until(() => d.querySelector('#comparison-table table'), 'comparison table');
+    await until(() => d.querySelector('#plan-img').naturalWidth > 0, 'plan image');
+    log('stages: ' + [...d.querySelectorAll('#stages li')].map(l => l.className.replace('stage ', '')).join(','));
+    log('summary: ' + d.querySelector('#summary').textContent);
+    log('rooms: ' + d.querySelector('#rooms-table').textContent);
+    log('comparison: ' + d.querySelector('#comparison-table').textContent);
+    log('damage: ' + d.querySelector('#damage').textContent);
+    log('downloads: ' + d.querySelectorAll('#downloads a').length);
+    const sw = d.documentElement.scrollWidth;
+    log('scrollWidth: ' + sw);
+    if (sw > 360) throw new Error('horizontal scroll at 360 px: ' + sw);
+    const pid = d.querySelector('#project-id').textContent;
+    if (!w.localStorage.getItem('roomscan.job.' + pid)) throw new Error('job id not stored');
+    log(errs.length ? 'FAIL js errors: ' + errs.join(' | ') : 'SMOKE OK');
+  } catch (e) {
+    const q = (s) => { const el = d.querySelector(s); return el ? el.textContent.trim().replace(/\s+/g, ' ') : '-'; };
+    log('state: banner=' + q('#banner') + ' / uploads=' + q('#upload-summary') + ' / spaces=' + q('#spaces') + ' / hint=' + q('#run-hint') + ' / job=' + q('#job'));
+    log('FAIL ' + e.message + (errs.length ? ' / js errors: ' + errs.join(' | ') : ''));
+  }
+  // Report to the test harness's static server (404 when served by anything else: harmless).
+  fetch('/__smoke_result', { method: 'POST', body: document.getElementById('log').textContent }).catch(() => {});
+});
+f.src = '../index.html?api=' + encodeURIComponent(api);
+</script>
