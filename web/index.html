@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Phone photos, video or LiDAR scans to a measured floor plan.">
+  <title>roomscan</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <h1 class="brand"><span aria-hidden="true">&#9638;</span> roomscan</h1>
+      <button type="button" id="api-status" class="pill" aria-live="polite" title="API status. Click to check again.">
+        <span class="dot" aria-hidden="true"></span><span class="pill-text">Checking API&hellip;</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <section class="card intro" aria-labelledby="intro-h">
+      <h2 id="intro-h">Your property</h2>
+      <p class="muted">Add one space per room, in the order you walk through the property. Add the photos, video or LiDAR scan for each, then check and compute.</p>
+      <p class="small muted">Project <code id="project-id">&hellip;</code>
+        <button type="button" id="new-project" class="link">Start a new project</button></p>
+    </section>
+
+    <section aria-labelledby="spaces-h">
+      <div class="section-head">
+        <h2 id="spaces-h">Spaces <span class="muted small" id="spaces-count"></span></h2>
+      </div>
+      <ol id="spaces" class="spaces" aria-describedby="walk-hint"></ol>
+      <p id="walk-hint" class="small muted">Walk order is the list order. Use &uarr; / &darr; to move a space.</p>
+
+      <form id="add-space" class="card add-space" autocomplete="off">
+        <h3>Add a space</h3>
+        <div class="row">
+          <label class="field grow">
+            <span>Name</span>
+            <input id="new-name" name="name" type="text" maxlength="60" placeholder="Room 1">
+          </label>
+        </div>
+        <fieldset class="kinds">
+          <legend>What will you add?</legend>
+          <label class="choice"><input type="radio" name="kind" value="photos" checked> <span>Photos</span></label>
+          <label class="choice"><input type="radio" name="kind" value="video"> <span>Video</span></label>
+          <label class="choice"><input type="radio" name="kind" value="lidar"> <span>LiDAR scan (.zip)</span></label>
+        </fieldset>
+        <button type="submit" class="btn primary">+ Add space</button>
+      </form>
+
+      <details class="card guide">
+        <summary>How to capture (1 minute read)</summary>
+        <div class="guide-body">
+          <p><strong>Before you start:</strong> open every interior door, switch on all lights, wipe the lens, keep the zoom at <strong>1x</strong>, hold the phone upright at chest height.</p>
+          <h4>Photos (2 to 8 per room)</h4>
+          <ol>
+            <li>Stand in the doorway you came in by, back against the door frame.</li>
+            <li>Take 5&ndash;6 photos turning from left to right, each overlapping the last by about a third. Floor and ceiling in every photo.</li>
+            <li>Every room except the first: turn around and take one photo looking back into the room you came from.</li>
+          </ol>
+          <p class="small muted">Send originals (Files, AirDrop, cable). Chat apps shrink photos and they will be rejected.</p>
+          <h4>Video (about a minute per room)</h4>
+          <ol>
+            <li>Video mode, 1x. Walk slowly, one step every two seconds, around the room.</li>
+            <li>Tilt up to the ceiling once in each room. Keep some floor in view; never turn on the spot.</li>
+          </ol>
+          <h4>LiDAR (Pro iPhone / iPad Pro, 30&ndash;40 s per room)</h4>
+          <ol>
+            <li>Record with the free <strong>Stray Scanner</strong> app: walk slowly round each room, tilt up to the ceiling and down to the floor once.</li>
+            <li>Files app &gt; On My iPhone &gt; Stray Scanner: press and hold the newest folder &gt; <strong>Compress</strong>, then add the .zip here.</li>
+          </ol>
+          <h4>Optional: printed A4 scale marker</h4>
+          <p>For photos and video, tape one printed marker (printed at 100&nbsp;%, square 180&nbsp;mm) flat on a wall at chest height in each room, and keep it in view in 3 or more photos or a few seconds of video. It makes the sizes much more accurate.</p>
+          <h4>Sizes (L / B / H)</h4>
+          <p>Optional, in metres. One is enough. For photos and video, a length or breadth (wall to wall) improves the scale; a ceiling height alone is only compared with ours, not used for scale.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="check-h">
+      <h2 id="check-h">Check and compute</h2>
+      <p id="upload-summary" class="small muted" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" id="verify" class="btn">Check captures</button>
+        <button type="button" id="run" class="btn primary" disabled>Start computing</button>
+        <button type="button" id="run-anyway" class="btn ghost" hidden>Run anyway</button>
+      </div>
+      <p id="run-hint" class="small muted" aria-live="polite">Check the captures first.</p>
+      <div id="project-findings"></div>
+    </section>
+
+    <section id="job" class="card" aria-labelledby="job-h" hidden>
+      <div class="section-head">
+        <h2 id="job-h">Computing</h2>
+        <span id="job-status" class="badge"></span>
+      </div>
+      <p class="small muted">Job <code id="job-id"></code> <span id="job-poll"></span></p>
+      <ol id="stages" class="stages" aria-live="polite"></ol>
+      <div id="job-error" class="error-box" role="alert" hidden></div>
+      <div class="actions" id="job-actions" hidden>
+        <button type="button" id="run-again" class="btn">Run again</button>
+      </div>
+    </section>
+
+    <section id="results" aria-labelledby="results-h" hidden>
+      <h2 id="results-h">Results</h2>
+      <div class="card">
+        <dl id="summary" class="summary"></dl>
+        <div class="downloads" id="downloads"></div>
+      </div>
+      <figure class="card plan">
+        <img id="plan-img" alt="Floor plan of the property" decoding="async">
+        <figcaption class="small muted">Floor plan. Open <a id="plan-svg-link" target="_blank" rel="noopener">plan.svg</a> to zoom.</figcaption>
+      </figure>
+      <div class="card">
+        <h3>Rooms</h3>
+        <div class="table-wrap" id="rooms-table"></div>
+      </div>
+      <div class="card">
+        <h3>Your sizes vs ours</h3>
+        <div class="table-wrap" id="comparison-table"></div>
+      </div>
+      <div class="card">
+        <h3>Damage</h3>
+        <div id="damage"></div>
+      </div>
+      <div class="card" id="warnings-card" hidden>
+        <h3>Notes from the pipeline</h3>
+        <ul id="warnings" class="small"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap footer small muted">
+    <details>
+      <summary>API address</summary>
+      <form id="api-form" class="row">
+        <label class="field grow"><span>Base URL</span><input id="api-input" type="url" inputmode="url" spellcheck="false" placeholder="http://localhost:8000"></label>
+        <button type="submit" class="btn">Save and reload</button>
+      </form>
+    </details>
+  </footer>
+</body>
+</html>
