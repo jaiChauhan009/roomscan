@@ -24,3 +24,6 @@ calibration:
   accept: [0.80, 0.98]               # ASSUMED band for "calibrated" given small samples
 head_to_head:
   win_or_tie_fraction: 0.70          # brief
+damage:                              # ASSUMED: the brief names no damage threshold
+  extent_rel: 0.30                   # width and height of each staged region within 30 %
+  max_phantom: 0                     # no region reported where nothing was staged

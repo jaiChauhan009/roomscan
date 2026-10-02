@@ -115,3 +115,37 @@ def test_evaluation_against_exact_truth(layout):
     assert g["no_room_overlap"]["pass"] and g["rooms_found"]["pass"]
     gt["rooms"][0]["walls"] = [4.3, 3.0, 4.3, 3.0]  # a 30 cm error must fail the wall gate
     assert not evaluate(out, gt)["gates"]["wall_length"]["pass"]
+
+
+def test_staged_damage_is_scored_by_surface_class_and_size(layout):
+    from evaluate import _wall_cost, evaluate, pred_walls
+
+    out = json.loads(_output(layout).model_dump_json())
+    gt = {"source": "synthetic", "rooms": [
+        {"name": "main", "ceiling_height": 2.7, "walls": [4.0, 3.0, 4.0, 3.0]},
+        {"name": "bath", "ceiling_height": 2.7, "walls": [1.6, 2.0, 1.6, 2.0]}],
+        "damage": [{"room": "main", "surface": "wall", "wall": 2, "class": "water_stain", "width": 0.40,
+                    "height": 0.30, "left": 0.6, "bottom": 0.10},
+                   {"room": "main", "surface": "wall", "wall": 3, "class": "crack", "width": 0.70, "height": 0.75,
+                    "left": 0.05, "bottom": 1.30}]}
+    main = max(out["rooms"], key=lambda r: r["floor_area"]["value"])
+    pw = pred_walls(main)
+    paired = dict(_wall_cost(gt["rooms"][0]["walls"], [w["length"]["value"] for w in pw])[1])
+
+    def region(rid, wall_index, cls, w, h, z):
+        m = lambda v: {"value": v, "ci90": [v * 0.8, v * 1.2], "sigma": v * 0.1, "unit": "m"}
+        return {"id": rid, "surface_id": pw[paired[wall_index]]["id"], "room_id": main["id"], "damage_class": cls,
+                "score": 0.9, "area": {**m(w * h * 0.6), "unit": "m2"}, "extent_u": m(w), "extent_v": m(h),
+                "center": [0.0, 0.0, z], "evidence_frames": [1]}
+
+    out["damage"] = [region("d1", 1, "water_stain", 0.44, 0.28, 0.25)]  # staged wall 2: found, sizes +10 % / -7 %
+    res = evaluate(out, gt)
+    st = {d.get("class"): d["status"] for d in res["damage"]}
+    assert st == {"water_stain": "found", "crack": "missed"} and not res["gates"]["damage"]["pass"]
+    assert res["gates"]["damage"]["median_extent_rel_err"] == pytest.approx(0.085, abs=0.01)
+    out["damage"].append(region("d2", 2, "mold", 0.7, 0.75, 1.7))  # right wall, wrong class
+    out["damage"].append(region("d3", 0, "hole", 0.1, 0.1, 1.0))  # nothing staged there: phantom
+    g = evaluate(out, gt)["gates"]["damage"]
+    assert (g["found"], g["wrong_class"], g["missed"], g["phantom"]) == (1, 1, 0, 1) and not g["pass"]
+    out["damage"] = [region("d1", 1, "water_stain", 0.44, 0.28, 0.25), region("d2", 2, "crack", 0.65, 0.8, 1.7)]
+    assert evaluate(out, gt)["gates"]["damage"]["pass"]

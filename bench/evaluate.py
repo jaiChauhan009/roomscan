@@ -88,6 +88,54 @@ def match_rooms(gt_rooms: list[dict], pred_rooms: list[dict]) -> dict[str, str |
     return out
 
 
+def _score_damage(pred: dict, gt: dict, mapping: dict, wall_ids: dict) -> tuple[list[dict], dict]:
+    """Staged damage against what was reported.
+
+    A staged region is found when a reported region lies on the same surface (the truth
+    wall's paired wall, or the room's floor or ceiling) with the same class; on the same
+    surface with another class it is "wrong_class"; otherwise "missed". Extents are the
+    bounding box, as measured with a tape. A reported region matched to nothing is a
+    phantom. Gate thresholds are in gates.yaml (assumed: the brief gives none).
+    """
+    used, rows = set(), []
+    for d in gt["damage"]:
+        pid = mapping.get(d["room"])
+        surf = None
+        if pid is not None:
+            surf = (wall_ids.get(d["room"], {}).get(int(d["wall"]) - 1) if d.get("surface", "wall") == "wall"
+                    else f"{pid}_{d['surface']}")
+        zc = float(d.get("bottom", 0.0)) + float(d.get("height", 0.0)) / 2
+        cands = [r for r in pred["damage"] if surf and r["surface_id"] == surf and r["id"] not in used]
+        pool = [r for r in cands if r["damage_class"] == d["class"]] or cands
+        row = {"room": d["room"], "surface": surf, "class": d["class"], "width": d.get("width"),
+               "height": d.get("height")}
+        if not pool:
+            rows.append({**row, "status": "missed"})
+            continue
+        r = min(pool, key=lambda x: abs(x["center"][2] - zc))
+        used.add(r["id"])
+        w, h = r["extent_u"]["value"], r["extent_v"]["value"]
+        rows.append({**row, "status": "found" if r["damage_class"] == d["class"] else "wrong_class",
+                     "pred_id": r["id"], "pred_class": r["damage_class"], "pred_width": w, "pred_height": h,
+                     "width_rel_err": round(w / d["width"] - 1, 3) if w and d.get("width") else None,
+                     "height_rel_err": round(h / d["height"] - 1, 3) if h and d.get("height") else None,
+                     "centre_height_err": round(r["center"][2] - zc, 3),
+                     "width_in_ci": _inside(r["extent_u"], d["width"]) if d.get("width") else None,
+                     "height_in_ci": _inside(r["extent_v"], d["height"]) if d.get("height") else None})
+    phantoms = [r["id"] for r in pred["damage"] if r["id"] not in used]
+    gate = GATES.get("damage", {})
+    errs = [abs(x[k]) for x in rows if x["status"] == "found" for k in ("width_rel_err", "height_rel_err")
+            if x.get(k) is not None]
+    n = len(rows)
+    found = sum(x["status"] == "found" for x in rows)
+    summary = {"staged": n, "found": found, "wrong_class": sum(x["status"] == "wrong_class" for x in rows),
+               "missed": sum(x["status"] == "missed" for x in rows), "phantom": len(phantoms),
+               "median_extent_rel_err": round(float(np.median(errs)), 3) if errs else None,
+               "pass": bool(found == n and len(phantoms) <= gate.get("max_phantom", 0)
+                            and all(e <= gate.get("extent_rel", 0.30) for e in errs))}
+    return rows + [{"status": "phantom", "pred_id": p} for p in phantoms], summary
+
+
 def _sample(kind: str, room: str, m: dict, truth: float) -> dict | None:
     """One predicted measurement with its interval against the truth, for bench/calibrate.py."""
     if m.get("value") is None or not m.get("sigma"):
@@ -105,6 +153,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
     P = {r["id"]: r for r in pred["rooms"]}
     mapping = match_rooms(gt["rooms"], pred["rooms"])
     walls, ceil, opens, cover, samples = [], [], [], [], []
+    wall_ids: dict[str, dict[int, str]] = {}  # truth room -> truth wall index -> predicted wall id
     for g in gt["rooms"]:
         pid = mapping[g["name"]]
         if pid is None:
@@ -121,6 +170,7 @@ def evaluate(pred: dict, gt: dict) -> dict:
         gw = list(g.get("walls", []))
         if gw:
             _, pairs = _wall_cost(gw, [w["length"]["value"] for w in pw])
+            wall_ids[g["name"]] = {int(gi): pw[pi]["id"] for gi, pi in pairs}
             gate = GATES["wall_length"][tier]
             used = set()
             for gi, pi in pairs:
@@ -221,6 +271,8 @@ def evaluate(pred: dict, gt: dict) -> dict:
         ga = {frozenset(a) for a in gt["adjacency"]}
         g["adjacency"] = {"gt": len(ga), "found": len(ga & pa), "missing": sorted(sorted(a) for a in ga - pa),
                           "extra": sorted(sorted(a) for a in pa - ga), "pass": bool(ga <= pa and not (pa - ga))}
+    if gt.get("damage") is not None:
+        res["damage"], g["damage"] = _score_damage(pred, gt, mapping, wall_ids)
     from shapely.geometry import Polygon
     polys = [(r["id"], Polygon(r["polygon"]).buffer(0)) for r in pred["rooms"]]
     overlaps = [(a, b, round(pa_.intersection(pb_).area, 3)) for i, (a, pa_) in enumerate(polys)

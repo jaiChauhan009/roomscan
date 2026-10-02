@@ -21,7 +21,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 |---|---|---|---|
 | Per-room plan: walls, ceiling height, floor area, openings | `geometry/layout.py`, `geometry/openings.py` | `result.json` → `rooms[]` | done |
 | Stitched multi-room plan with adjacency | `layout.py`, `export/build.py` (`_adjacency`) | `property.adjacency`, `plan.png`; room overlap column in the benchmark | done for LiDAR (no room overlaps); partial for photo / video |
-| Damage regions per surface, class, metric extent | `damage/detect.py` | `damage[]` | partial: synthetic stain found, area under-measured; no real staged damage yet |
+| Damage regions per surface, class, metric extent | `damage/detect.py`, scored by `bench/evaluate.py` | `damage[]`; damage rows of the benchmark report | partial: scoring done (found / wrong class / missed / phantom, extent errors; gate assumed, the brief gives none); 0 false positives on the undamaged flat; no real staged damage yet |
 | Concealed-damage flags with the rule that fired | `damage/rules.yaml`, `damage/pipeline.py` | `concealed_damage_flags[].rule_id/rule` | done (tested in `tests/test_contract.py`) |
 | Scope line items keyed to surfaces | `damage/scope.yaml`, `damage/pipeline.py` | `scope[]` | done (tested) |
 | Confidence interval on every measurement | `uncertainty/intervals.py`, `calibration.yaml`, `bench/calibrate.py` | every `{value, ci90, sigma}`; `bench/reports/calibration.md` | done (tested). Scales fitted per tier; held-out coverage LiDAR 0.95 (two-scan precision), video 0.91, photo 0.90. Refit on laser truth when it exists |

@@ -140,6 +140,15 @@ def main():
     for n, e in evals.items():
         md += ["", f"## {n} (tier {e['tier']}) vs {e['gt_source']}", "", "| gate | result | numbers |", "|---|---|---|"]
         md += [gate_row(k, g) for k, g in e["gates"].items()]
+        if e.get("damage"):
+            md += ["", "| staged damage | surface | status | reported class | width m (ours) | height m (ours) |",
+                   "|---|---|---|---|---|---|"]
+            for d in e["damage"]:
+                if d["status"] == "phantom":
+                    md.append(f"| (none staged) | | phantom {d['pred_id']} | | | |")
+                    continue
+                md.append(f"| {d['room']} {d['class']} | {d['surface']} | {d['status']} | {d.get('pred_class', '')} | "
+                          f"{d['width']} ({d.get('pred_width', '')}) | {d['height']} ({d.get('pred_height', '')}) |")
     md += ["", "## Repeatability (same space, same tier, two captures)", ""]
     for r in reps:
         md += [f"**{r['a']} vs {r['b']}** (tier {r['tier']}): {'PASS' if r['pass'] else 'FAIL'}; rooms {r['rooms_a']} vs "
