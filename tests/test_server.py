@@ -773,3 +773,14 @@ def test_numbered_room_names_are_not_numbered_twice(client, engine):
         upload(client, pid, s["space_id"], f"IMG_{i}.jpg", jpeg(i))
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
     assert j["status"] == "done" and engine.calls[-1]["folders"] == ["01_room_8"]
+
+
+def test_email_report_lists_every_room_by_the_users_name():
+    from server.notify import _room_lines
+    q = {"value": 12.5, "ci90": [11.0, 14.0]}
+    lines = _room_lines({"rooms": [{"id": "01_hall", "label": "room", "floor_area": q},
+                                   {"id": "room_2", "label": "room"}],
+                         "damage": [{}], "scope": [{}, {}]})
+    assert lines[0].startswith("    1. hall: floor 12.50 m2 (11.00-14.00)")
+    assert lines[1].startswith("    2. room 2:")
+    assert "damage regions: 1" in lines[2] and "scope items: 2" in lines[2]

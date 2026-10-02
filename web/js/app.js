@@ -53,13 +53,12 @@ async function checkHealth() {
   try {
     const hl = await api.health();
     state.apiUp = true;
-    // the optional "email me the results" box only when the server can send mail
-    const row = $("#email-row");
-    if (row) {
-      row.hidden = !(hl && hl.email);
-      const box = $("#notify-email");
-      if (box && !box.value) box.value = kv.get("notify.email", "") || "";
-    }
+    // the optional "email me the report" box is always shown; a note says when the server cannot send mail
+    state.emailOn = !!(hl && hl.email);
+    const off = $("#email-off");
+    if (off) off.hidden = state.emailOn;
+    const box = $("#notify-email");
+    if (box && !box.value) box.value = kv.get("notify.email", "") || "";
     pill.className = "pill up";
     pill.querySelector(".pill-text").textContent = "API online";
   } catch {
@@ -817,21 +816,28 @@ async function doVerify() {
   }
 }
 
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.id === "notify-email") kv.set("notify.email", e.target.value.trim());
+});
+
 async function doRun(force = false) {
   if (force && !confirm("Some spaces need a retake. Results for them may be wrong or missing. Compute anyway?")) return;
   const emailBox = $("#notify-email");
-  const email = emailBox && !$("#email-row").hidden ? emailBox.value.trim() : "";
+  const email = emailBox ? emailBox.value.trim() : "";
   if (email && !emailBox.checkValidity()) { banner("That email address does not look right."); emailBox.focus(); return; }
   if (emailBox) kv.set("notify.email", email);
   $("#run").disabled = true;
   try {
     const r = await api.run(state.pid, force, email || null);
     state.jid = r.job_id;
+    state.mailTo = email && state.emailOn ? { jid: r.job_id, email } : null;
+    mailPolls = 0;
     kv.set("job." + state.pid, r.job_id);
     $("#results").hidden = true;
-    const mailNote = email ? ` We will also email ${email} when it is done.` : "";
-    banner(r.cached ? "These captures were computed before: showing the saved result." + (email ? ` Emailing it to ${email}.` : "")
-      : (email ? "Computing." + mailNote : null), { kind: "info" });
+    const mailing = email && state.emailOn;
+    const mailNote = mailing ? ` It runs in the background: you can close this page, the report goes to ${email} when it is done.` : "";
+    banner(r.cached ? "These captures were computed before: showing the saved result." + (mailing ? ` Emailing it to ${email}.` : "")
+      : (mailing ? "Computing." + mailNote : null), { kind: "info" });
     startPolling(r.job_id);
     $("#job").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
@@ -859,6 +865,22 @@ function startPolling(jid) {
   poll();
 }
 
+let mailPolls = 0;
+
+/** The "report emailed to ..." line; true while the email has not gone out yet. */
+function renderEmailStatus(job) {
+  const el = $("#job-email");
+  if (!el) return false;
+  const to = state.mailTo && state.mailTo.jid === job.job_id ? state.mailTo.email : "";
+  const st = job.email_status || "";
+  if (!to && !st) { el.hidden = true; return false; }
+  el.hidden = false;
+  if (st === "sent") el.textContent = `Report emailed${to ? " to " + to : ""}.`;
+  else if (st.startsWith("failed")) el.textContent = "The email could not be sent; the results are below.";
+  else el.textContent = `Running in the background: the report will be emailed to ${to} when it is done. You can close this page.`;
+  return !st;
+}
+
 async function poll() {
   const jid = pollJid;
   if (!jid) return;
@@ -869,6 +891,7 @@ async function poll() {
     pollFails = 0;
     $("#job-poll").textContent = "";
     renderJob(job, jid);
+    const mailWaiting = renderEmailStatus(job);
     // show each run's results as soon as that run finishes (LiDAR is ready long before a video)
     const doneRuns = (job.runs || []).filter((r) => r.status === "done").length;
     const key = `${jid}:${doneRuns}:${job.status}`;
@@ -876,11 +899,12 @@ async function poll() {
       resultsShownFor = key;
       renderResults(job, jid, job.status !== "done");
     }
-    if (job.status === "done") {
+    if (job.status === "done" || job.status === "failed") {
+      // the email goes out just after the job ends: keep asking a little while for its status
+      if (mailWaiting && mailPolls++ < 20) { setTimeout(poll, 3000); return; }
       pollJid = null;
       return;
     }
-    if (job.status === "failed") { pollJid = null; return; }
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
       kv.set("job." + state.pid, null);

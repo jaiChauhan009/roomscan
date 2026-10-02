@@ -32,6 +32,12 @@
       <p class="muted">Two parts: an optional <strong>whole-home capture</strong> (a video and / or a LiDAR scan of every room), and your <strong>rooms</strong> (name, optional sizes, optional photos). Then check and compute.</p>
       <p class="small muted">Project <code id="project-id">&hellip;</code>
         <button type="button" id="new-project" class="link">Start a new project</button></p>
+      <div id="email-row" class="field">
+        <label for="notify-email">Email me the report <span class="muted small">(optional)</span></label>
+        <input id="notify-email" aria-label="Email me the report (optional)" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <p class="small muted" id="email-note">Add your photos, video and LiDAR, start computing, and you can close the page: the whole job runs in the background and the report (plan, spreadsheet, every room's sizes) is emailed when it is done. Leave it empty to see the results on this page only.</p>
+        <p class="small warn" id="email-off" hidden>Email is not switched on for this server yet: the results will show on this page.</p>
+      </div>
     </section>
 
     <details class="card guide" id="guide">
@@ -96,11 +102,6 @@
     <section class="card" aria-labelledby="check-h">
       <h2 id="check-h">Check and compute</h2>
       <p id="upload-summary" class="small muted" aria-live="polite"></p>
-      <div id="email-row" class="field" hidden>
-        <label for="notify-email">Email me the results <span class="muted small">(optional)</span></label>
-        <input id="notify-email" aria-label="Email me the results (optional)" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
-        <p class="small muted">Processing can take several minutes: we send the plan and the spreadsheet when it is done. You can close this page. Results also show here.</p>
-      </div>
       <div class="actions">
         <button type="button" id="verify" class="btn">Check captures</button>
         <button type="button" id="run" class="btn primary" disabled>Start computing</button>
@@ -116,6 +117,7 @@
         <span id="job-status" class="badge"></span>
       </div>
       <p class="small muted">Job <code id="job-id"></code> <span id="job-poll"></span></p>
+      <p id="job-email" class="small muted" aria-live="polite" hidden></p>
       <ol id="stages" class="stages" aria-live="polite"></ol>
       <div id="job-error" class="error-box" role="alert" hidden></div>
       <div class="actions" id="job-actions" hidden>

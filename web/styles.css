@@ -254,3 +254,4 @@ td .ci { display: block; color: var(--muted); font-size: .75rem; white-space: no
 .cap-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .cap-row > span { min-width: 0; overflow-wrap: anywhere; }
 .cap-verify { margin-top: 4px; }
+p.warn { color: var(--warn); }

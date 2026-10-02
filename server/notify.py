@@ -36,6 +36,31 @@ def valid_email(addr: str | None) -> bool:
     return bool(addr) and bool(EMAIL_RE.match(addr.strip()))
 
 
+def _fmt(q: dict | None, unit: str) -> str:
+    if not q or q.get("value") is None:
+        return "-"
+    lo, hi = (q.get("ci90") or [None, None])[:2]
+    rng = f" ({lo:.2f}-{hi:.2f})" if lo is not None and hi is not None else ""
+    return f"{q['value']:.2f} {unit}{rng}"
+
+
+def _room_lines(res: dict) -> list[str]:
+    """One line per room (area, perimeter, ceiling with 90 % ranges), then the damage summary."""
+    out = []
+    for i, room in enumerate(res.get("rooms") or [], 1):
+        rid = str(room.get("id") or "")
+        # photo rooms keep the user's name in the id ("01_hall"); found rooms are "room_3"
+        name = room.get("name") or (re.sub(r"^\d+_", "", rid).replace("_", " ") if rid and not
+                                    re.fullmatch(r"room_\d+", rid) else f"{room.get('label') or 'room'} {i}")
+        out.append(f"    {i}. {name}: floor {_fmt(room.get('floor_area'), 'm2')}, "
+                   f"perimeter {_fmt(room.get('perimeter'), 'm')}, ceiling {_fmt(room.get('ceiling_height'), 'm')}")
+    n_dmg, n_flag, n_scope = (len(res.get(k) or []) for k in ("damage", "concealed_damage_flags", "scope"))
+    out.append(f"    damage regions: {n_dmg}, concealed-damage flags: {n_flag}, scope items: {n_scope}")
+    for w in (res.get("warnings") or [])[:3]:
+        out.append(f"    note: {str(w.get('message') if isinstance(w, dict) else w)[:160]}")
+    return out
+
+
 def _summary(j: dict, out_dir: Path, api: str, web: str) -> tuple[str, str, list[tuple[str, bytes, str]]]:
     ok = j["status"] == "done"
     lines, attach, size = [], [], 0
@@ -47,14 +72,16 @@ def _summary(j: dict, out_dir: Path, api: str, web: str) -> tuple[str, str, list
             continue
         n_rooms += int(r.get("n_rooms") or 0)
         odir = out_dir / r.get("prefix", "") if r.get("prefix") else out_dir
-        fp = ""
+        fp, detail = "", []
         try:
             res = json.loads((odir / "result.json").read_text(encoding="utf-8"))
             f = res["property"]["footprint_area"]
             fp = f", footprint {f['value']:.1f} m2 (90 % range {f['ci90'][0]:.1f}-{f['ci90'][1]:.1f})"
+            detail = _room_lines(res)
         except Exception:  # noqa: BLE001 - the email still goes out without it
             pass
         lines.append(f"- {title}: {r.get('n_rooms', 0)} room(s){fp}")
+        lines.extend(detail)
         for k, fn in (("plan_png", "plan.png"), ("result_xlsx", "result.xlsx")):
             url = (r.get("outputs") or {}).get(k)
             if url:
@@ -73,7 +100,8 @@ def _summary(j: dict, out_dir: Path, api: str, web: str) -> tuple[str, str, list
         "", *lines, "",
         f"Open the results: {web.rstrip('/')}/  (job {j['job_id']})",
         *([f"Problems: {j['error']}"] if j.get("error") else []),
-        "", "The plan and the spreadsheet are attached where they fit. Links work while the server keeps the "
+        "", "Sizes are in metres with the 90 % range in brackets.",
+        "The plan and the spreadsheet are attached where they fit. Links work while the server keeps the "
         "results (a few days).",
     ])
     return subject, body, attach
