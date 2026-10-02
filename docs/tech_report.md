@@ -124,14 +124,28 @@ The budget is dominated by segmentation, not by sensor noise or drift.
 
 ## 7. Calibration analysis
 
-Every measurement uses `sigma = sqrt((k·raw)² + abs² + (rel·value)²)`. The per-tier
-terms in `calibration.yaml` are priors. Against the LiDAR reference, 90 % intervals
-contain the reference value 77 % of the time for video (17 values) and 28 % for photos:
-**both are too narrow, photos far too narrow.** LiDAR coverage cannot be measured without ground truth. Missing
-quantities are reported as missing: an unscanned ceiling is `null` with a lower bound.
+Every measurement uses `sigma = scale · sqrt((k·raw)² + abs² + (rel·value)²)`. `k`,
+`abs` and `rel` are priors; `scale` is fitted per tier by `bench/calibrate.py` (split
+conformal: the (n+1)·0.9 quantile of |error| / sigma). With the priors alone, 90 %
+intervals held the truth 28 % of the time for photos, 77 % for video and, by the agreement
+of the two scans, 58 % for LiDAR walls: confident garbage on thin input.
 
-The harness to refit the terms exists (`bench/evaluate.py` reports coverage). The data
-to refit them (laser ground truth) does not.
+| Tier | Truth used | Samples | Scale | Held-out coverage | 3 m wall, 90 % |
+|---|---|---|---|---|---|
+| LiDAR | same wall in both scans of the flat | 19 walls, 8 rooms | 2.61 | 0.95 | ±6 cm |
+| video | LiDAR reference | 17 walls, 1 room | 8.29 | not measurable | ±0.93 m |
+| photo | LiDAR reference | 40 lengths, 7 rooms | 6.62 | 0.90 | ±1.72 m |
+
+Held-out coverage is leave-one-room-out: fitted on the other rooms, scored on the room left
+out. In-sample coverage is 90 % or more by construction and is not evidence. Limits, stated
+plainly: LiDAR is calibrated for precision only (a bias both scans share is invisible);
+video rests on one room; photo and video are scored against our own LiDAR, not a laser;
+and the photo set does not follow the capture protocol, so protocol photos may well come
+out better than these intervals say. Thinner data never gets a narrower interval than
+richer data: the script checks a reference measurement per tier and raises the thinner
+tier where needed. With laser ground truth the same script refits on it
+(`run_all.py --eval-only`, then `calibrate.py --write`). Missing quantities are reported as
+missing: an unscanned ceiling is `null` with a lower bound.
 
 ## 8. Fix loop
 

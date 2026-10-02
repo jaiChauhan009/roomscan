@@ -24,7 +24,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | Damage regions per surface, class, metric extent | `damage/detect.py` | `damage[]` | partial: synthetic stain found, area under-measured; no real staged damage yet |
 | Concealed-damage flags with the rule that fired | `damage/rules.yaml`, `damage/pipeline.py` | `concealed_damage_flags[].rule_id/rule` | done (tested in `tests/test_contract.py`) |
 | Scope line items keyed to surfaces | `damage/scope.yaml`, `damage/pipeline.py` | `scope[]` | done (tested) |
-| Confidence interval on every measurement | `uncertainty/intervals.py` | every `{value, ci90, sigma}` | done (tested); calibration not yet fitted on truth |
+| Confidence interval on every measurement | `uncertainty/intervals.py`, `calibration.yaml`, `bench/calibrate.py` | every `{value, ci90, sigma}`; `bench/reports/calibration.md` | done (tested). Scales fitted per tier; held-out coverage LiDAR 0.95 (two-scan precision), photo 0.90, video not measurable (one room). Refit on laser truth when it exists |
 | One command per capture | `cli.py` | `roomscan run <capture>` | done |
 | JSON to the published schema | `schema.py` | `schema/output.schema.json` | done with our own schema; Round 1 schema not available to us |
 | Rendered plan | `export/render.py` | `plan.png`, `plan.svg` | done |
@@ -38,7 +38,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | Gate: repeatability 1 cm / 0.5 % per wall | `bench/repeatability.py` | `fixloop/after`, `fixloop/round2/after` | partial: failing. Point clouds of the two scans agree to 7 mm, but the scans divide the flat into different rooms (scan B has no upward sweep); fix-loop target, two rounds |
 | Gate: drift accountability + on/off ablation | `geometry/drift.py`, `bench/run_all.py`, `tests/test_drift.py` | drift ablation table | done. Before round 2 the correction was a no-op on scan B; now B moves 0.52 m and walls are sharper with it on |
 | Gate: photo whole-property stitch, no overlaps, ±8 % footprint | `photos.py`, `evaluate.py` | photo rows | partial: no overlaps passes; footprint fails |
-| Photo ±8 %, video ±3 %, calibration at every tier | `evaluate.py` (`calibration` row) | report rows | partial: measured, failing |
+| Photo ±8 %, video ±3 %, calibration at every tier | `evaluate.py` (`calibration` row), `bench/calibrate.py` | report rows, `bench/reports/calibration.md` | partial: accuracy gates fail; intervals now calibrated (held out 0.90 photo) but against our LiDAR, not a laser |
 
 ## Part 3: head-to-head
 

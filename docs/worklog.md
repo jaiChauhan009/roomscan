@@ -13,7 +13,7 @@ For the structure of the finished system see [architecture.md](architecture.md).
 | Photo tier | Runs end to end and stitches rooms without overlaps. Sizes far off on the proxy photo set (footprint +133 %). |
 | Damage, rules, scope | Working. 0-2 small false positives on the undamaged flat; a painted test stain is found in 3 of 5 frames, area underestimated. |
 | Benchmark harness | Working. All numbers regenerate with `python bench/run_all.py`. |
-| Tests | 21 tests on synthetic rooms and a synthetic drifting loop pass. |
+| Tests | 25 tests on synthetic rooms, a synthetic drifting loop and the calibration maths pass. |
 | Not done yet | Head-to-head against a consumer app, real captures with laser ground truth, interval calibration on real truth, clean-machine install timing. All need an iPhone or a second machine. |
 
 Two limits apply to every number below:
@@ -287,6 +287,23 @@ B 44.1 m²: B vs A −10.4 %. The round-2 headline of −0.9 % was mostly double
 Scan A gained about 1 m²: the snapper scores only the 6 heaviest candidate planes, and
 with the far ones excluded a nearer, denser wall now makes the cut.
 
+## Stage 13: calibrated intervals (commit `e858ef1`)
+
+**Problem.** 90 % intervals held the truth 28 % of the time for photos and 77 % for video
+(against the LiDAR reference), and 58 % for LiDAR walls (same wall in the two scans). The
+brief caps the total score for confident garbage on thin input.
+
+**How.** The evaluator records each compared value with its sigma. `bench/calibrate.py`
+fits one scale per tier with split conformal (the (n+1)·0.9 quantile of |error| / sigma),
+reports leave-one-room-out coverage as the honest estimate, and makes sure a thinner tier
+never gets a narrower interval. LiDAR has no ground truth, so it is fitted on the same wall
+in both scans: precision only.
+
+**Result.** LiDAR ×2.6 (held out 0.95), video ×8.3 (one room, cannot be validated), photo
+×6.6 (held out 0.90). A 3 m wall now reads ±6 cm (LiDAR), ±0.93 m (video), ±1.72 m (photo).
+The photo set does not follow the protocol, so real protocol photos may be tighter than
+these intervals; that errs on the safe side until real captures refit them.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,
@@ -298,6 +315,6 @@ with the far ones excluded a nearer, denser wall now makes the cut.
    twice per protocol (upward sweep included) and a furnished room with staged damage in
    two classes. Needs an iPhone.
 2. Head-to-head against a consumer scanning app on two rooms. Needs an iPhone.
-3. Refit `calibration.yaml` on real ground truth so intervals are calibrated.
+3. Refit `calibration.yaml` on real ground truth (`run_all.py --eval-only`, then `calibrate.py --write`).
 4. The Round 1 document, for the real schema and gates. `bench/gates.yaml` marks the
    values that are assumed in its absence.
