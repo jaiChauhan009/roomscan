@@ -38,6 +38,19 @@ def test_without_the_ceiling_in_view_the_furniture_front_stays():
     assert min(w.length for w in room.walls) > 0.5  # a notch, but no zero-length steps
 
 
+@pytest.mark.parametrize("gap", [(1.5, 2.5, 0.6, 1.9), (1.4, 2.6, 0.7, 2.1)])  # wall mirror; low-sill window
+def test_a_wall_seen_below_and_above_a_gap_still_closes_the_room(gap):
+    # wall seen up to 0.6-0.7 m and above the gap, nothing between: not enough low wall for
+    # a wall cell, too much for a doorway; the room used to leak round its walls (+27 %)
+    x0, x1, v0, v1 = gap
+    c = furnished_room([])
+    p = c.points
+    hide = (np.abs(p[:, 2]) < 0.05) & (p[:, 0] > x0) & (p[:, 0] < x1) & (p[:, 1] > -1.4 + v0) & (p[:, 1] < -1.4 + v1)
+    room = _one_room(Cloud(p[~hide], c.normals[~hide], c.weight[~hide]))
+    assert Polygon(room.polygon).area == pytest.approx(12.0, abs=0.05)
+    assert all(w.coverage > 0.8 for w in room.walls)
+
+
 def _seg(orient, coord, c0=None, coverage=0.9):
     return {"orient": orient, "coord": coord, "_c0": coord if c0 is None else c0, "len": 1.0, "p": np.zeros(2),
             "q": np.zeros(2), "sigma": 0.005, "support": 100, "coverage": coverage, "spread": 0.003}

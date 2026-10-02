@@ -452,7 +452,10 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
     # (window walls: sill below, wall above)
     need = max(5, int(np.ceil(WALL_BAND_FRAC * nbins[0]))) if adaptive_band else 8
     wall = (low_cov >= need) | ((low_cov >= 5) & (high_cov >= 2))
-    lintel = (high_cov >= 2) & (low_cov <= 2)
+    # wall above door-head height and not a full wall below: a doorway, or a low window or
+    # wall mirror (wall seen up to ~0.6 m and above, nothing between). Either way a barrier;
+    # with `low_cov <= 2` the window case was neither, and the room leaked round its walls
+    lintel = (high_cov >= 2) & ~wall
     # lintel underside: narrow downward strips between door-head height and the ceiling.
     # Wide downward areas at that height are dropped ceilings, not door heads.
     hgt = sub.points[:, 1] - floor.value
