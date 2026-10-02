@@ -11,7 +11,7 @@ import time
 import traceback
 from pathlib import Path
 
-from server.capture import content_key, materialise, verify_project
+from server.capture import content_key, given_sizes, materialise, n_retake, room_measurements, verify_project
 from server.store import QUANTITIES, Store, new_id, read_json
 
 OUTPUT_FILES = {"result_json": "result.json", "result_xlsx": "result.xlsx", "plan_png": "plan.png",
@@ -40,18 +40,23 @@ def run_stage_plan(engine_tier: str, damage: bool) -> list[str]:
     return ["load+process", "export"]
 
 
+def stage_name(run: dict, stage: str) -> str:
+    """Stage names carry the run: "Rooms (photos): load+depth", "Whole home (video): fuse"."""
+    return f"{run['title']}: {stage}"
+
+
 def new_job(p: dict, runs: list[dict], damage: bool, force: bool, key: str, engine: str) -> dict:
     multi = len(runs) > 1
     stages = [{"name": "verify", "status": "pending", "seconds": None, "note": None}]
     for r in runs:
         for st in run_stage_plan(r["engine_tier"], damage):
-            stages.append({"name": f"{r['label']}: {st}" if multi else st, "status": "pending",
-                           "seconds": None, "note": None})
+            stages.append({"name": stage_name(r, st), "status": "pending", "seconds": None, "note": None})
     return {"job_id": new_id(), "project_id": p["project_id"], "created": time.time(), "started": None,
             "finished": None, "status": "queued", "stage": None, "stages": stages, "error": None,
             "outputs": {}, "damage": bool(damage), "force": bool(force), "cache_key": key, "engine": engine,
-            "spaces": p["spaces"],
-            "runs": [{"tier": r["tier"], "label": r["label"], "space_ids": r["space_ids"],
+            "spaces": p["spaces"], "capture": p.get("capture"),
+            "runs": [{"tier": r["tier"], "title": r["title"], "label": r["label"], "space_ids": r["space_ids"],
+                      "whole_home": bool(r.get("whole_home")),
                       "folders": r["folders"], "status": "pending", "error": None, "outputs": {},
                       "prefix": f"{r['label']}/" if multi else ""} for r in runs]}
 
@@ -175,13 +180,11 @@ class Worker:
         jdir = st.jdir(jid)
         work, out = jdir / "work", jdir / "out"
         shutil.rmtree(work, ignore_errors=True)
-        multi = len(j["runs"]) > 1
-        sname = (lambda r, s: f"{r['label']}: {s}") if multi else (lambda r, s: s)
         try:
             # ---- verify (on the capture as the engine will see it)
             t = time.time()
             self._stage(j, "verify", "running")
-            p = {"project_id": j["project_id"], "spaces": j["spaces"]}
+            p = {"project_id": j["project_id"], "spaces": j["spaces"], "capture": j.get("capture")}
             runs = materialise(st, p, work)
             try:
                 proj = st.project(j["project_id"])
@@ -192,17 +195,16 @@ class Worker:
                 ver = last["result"]
             else:
                 ver = verify_project(st, p, runs=runs)
-            n_retake = sum(1 for s in ver["spaces"] for f in s["findings"] if f["level"] == "retake") + \
-                sum(1 for f in ver["project_findings"] if f["level"] == "retake")
-            note = f"{n_retake} retake finding(s)" if n_retake else "ok"
-            if n_retake and not j["force"]:
+            n_bad = n_retake(ver)
+            note = f"{n_bad} retake finding(s)" if n_bad else "ok"
+            if n_bad and not j["force"]:
                 self._stage(j, "verify", "failed", time.time() - t, note)
-                self._fail(j, f"capture check found {n_retake} problem(s) that need a retake: run verify for "
+                self._fail(j, f"capture check found {n_bad} problem(s) that need a retake: run verify for "
                               f"details, or run with force")
                 return
-            self._stage(j, "verify", "done", time.time() - t, note + (" (forced)" if n_retake else ""))
+            self._stage(j, "verify", "done", time.time() - t, note + (" (forced)" if n_bad else ""))
 
-            # ---- one engine run per tier / space
+            # ---- the photo walk, then the whole-home capture
             params = inspect.signature(pl.run).parameters
             live = "on_stage" in params  # the engine reports its own stages
             try:
@@ -210,31 +212,30 @@ class Worker:
             except ImportError:
                 StageFailed = pl.InputError
             errors = []
-            spaces = {s["space_id"]: s for s in j["spaces"]}
             for r, jr in zip(runs, j["runs"]):
                 odir = out / jr["prefix"] if jr["prefix"] else out
-                mine = [s for s in j["stages"] if s["name"] != "verify" and (not multi or
-                                                                            s["name"].startswith(r["label"] + ": "))]
+                mine = [s for s in j["stages"] if s["name"].startswith(r["title"] + ": ")]
                 jr["status"] = "running"
                 if r.get("error"):
                     jr["status"], jr["error"] = "failed", r["error"]
                     self._stage(j, mine[0]["name"], "failed", note=r["error"])
-                    errors.append(f"{r['label']}: {r['error']}")
+                    errors.append(f"{r['title']}: {r['error']}")
                     continue
                 t = time.time()
                 kw = dict(tier=r["engine_tier"], damage=j["damage"], progress=False)
                 if live:
                     def on_stage(name, status, seconds=None, note=None, _r=r):
-                        self._stage(j, sname(_r, str(name)), str(status), seconds, note)
+                        self._stage(j, stage_name(_r, str(name)), str(status), seconds, note)
                     kw["on_stage"] = on_stage
                 else:
-                    self._stage(j, sname(r, "load+process"), "running")
-                if "measurements" in params and r["tier"] != "photos":
-                    # photos: measurements.yaml sits in the capture folder; a clip or scan has
-                    # unnamed rooms, matched by the engine on aspect and size
-                    sz = {k: v for k, v in (spaces[r["space_ids"][0]].get("sizes") or {}).items() if v is not None}
-                    if sz:
-                        kw["measurements"] = {"rooms": [sz]}
+                    self._stage(j, stage_name(r, "load+process"), "running")
+                if "measurements" in params and r.get("whole_home"):
+                    # photos: measurements.yaml (by folder name) sits in the capture folder; the
+                    # whole-home clip or scan has rooms room_1.., so every room's sizes go as an
+                    # unnamed list the engine matches on aspect and size (LiDAR: compared only)
+                    meas = room_measurements(j["spaces"])
+                    if meas:
+                        kw["measurements"] = meas
                 try:
                     res = pl.run(Path(r["path"]), odir, **kw)
                 except Exception as e:
@@ -246,13 +247,13 @@ class Worker:
                     if not any(s["status"] == "failed" for s in mine):
                         first = next((s for s in mine if s["status"] != "done"), mine[0])
                         self._stage(j, first["name"], "failed", time.time() - t, msg[:300])
-                    errors.append(f"{r['label']}: {msg}")
+                    errors.append(f"{r['title']}: {msg}")
                     gc.collect()
                     continue
                 if not live:
-                    self._stage(j, sname(r, "load+process"), "done", time.time() - t)
+                    self._stage(j, stage_name(r, "load+process"), "done", time.time() - t)
                     t = time.time()
-                    self._stage(j, sname(r, "export"), "running")
+                    self._stage(j, stage_name(r, "export"), "running")
                 if not isinstance(res, dict):
                     res = read_json(odir / "result.json")
                 write_sheet(res, odir / "result.xlsx")
@@ -262,7 +263,7 @@ class Worker:
                 jr["outputs"] = {k: f"/api/jobs/{jid}/files/{jr['prefix']}{fn}" for k, fn in OUTPUT_FILES.items()
                                  if (odir / fn).is_file()}
                 if not live:
-                    self._stage(j, sname(r, "export"), "done", time.time() - t)
+                    self._stage(j, stage_name(r, "export"), "done", time.time() - t)
                 del res
                 gc.collect()
             done = [jr for jr in j["runs"] if jr["status"] == "done"]
@@ -312,22 +313,70 @@ def _bbox_dims(room: dict):
     return (dx, cx, dy, cy) if dx >= dy else (dy, cy, dx, cx)
 
 
-def _pick_room(rooms: list[dict], sizes: dict, by_id: str | None):
-    if not rooms:
-        return None
-    if by_id is not None:
-        for r in rooms:
-            if r["id"] == by_id or r.get("label") == by_id:
-                return r
-        return None
+def _dims(room: dict) -> dict:
+    """{length, width, height} computed for a result room, each (value, ci90)."""
+    comp: dict = {q: (None, None) for q in QUANTITIES}
+    dims = _bbox_dims(room)
+    if dims:
+        comp["length"] = (round(dims[0], 3), dims[1])
+        comp["width"] = (round(dims[2], 3), dims[3])
+    ch = room.get("ceiling_height") or {}
+    if ch.get("value") is not None:
+        comp["height"] = (round(ch["value"], 3), list(ch["ci90"]) if ch.get("ci90") else None)
+    return comp
+
+
+def match_rooms(rooms: list[dict], spaces: list[dict]) -> dict[str, dict]:
+    """Whole-home run: user room (space_id) -> the engine room its sizes describe, matched as the
+    engine does (roomscan.known_sizes.assign: aspect ratio, then size rank). A room with only a
+    height gets the largest room not matched otherwise; a room without sizes gets none."""
+    from roomscan import known_sizes as KS
+
+    dims, by_name = [], {}
+    for r in rooms:
+        d = _dims(r)
+        if d["length"][0] is None:
+            continue
+        dims.append(KS.RoomDims(r["id"], d["length"][0], d["width"][0], d["height"][0]))
+        by_name[r["id"]] = r
+    known, owner = [], {}
+    for s in spaces:
+        g = given_sizes(s)
+        if g.get("length") is None and g.get("width") is None:
+            continue
+        L, W = g.get("length"), g.get("width")
+        if L is not None and W is not None and W > L:
+            L, W = W, L
+        k = KS.Known(label=f"#{len(known) + 1}", length=L, width=W, height=g.get("height"))
+        known.append(k)
+        owner[id(k)] = s["space_id"]
+    out: dict[str, dict] = {}
+    if known and dims:
+        try:
+            got = KS.assign(KS.KnownSizes(listed=known), dims, [])
+        except Exception:  # scipy missing or odd input: fall back to floor area below
+            got = {}
+        for name, k in got.items():
+            if id(k) in owner:
+                out[owner[id(k)]] = by_name[name]
     area = lambda r: (r.get("floor_area") or {}).get("value") or 0.0  # noqa: E731
-    if sizes.get("length") and sizes.get("width"):
-        target = sizes["length"] * sizes["width"]
-        return min(rooms, key=lambda r: abs(area(r) - target))
-    return max(rooms, key=area)
+    used = {r["id"] for r in out.values()}
+    for s in spaces:
+        g = given_sizes(s)
+        if s["space_id"] in out or not g:
+            continue
+        free = [r for r in rooms if r["id"] not in used] or rooms
+        if g.get("length") and g.get("width"):
+            r = min(free, key=lambda r: abs(area(r) - g["length"] * g["width"]))
+        else:
+            r = max(free, key=area)
+        out[s["space_id"]] = r
+        used.add(r["id"])
+    return out
 
 
 def comparison(store: Store, j: dict) -> dict:
+    """Rows per user room and quantity for every run that produced rooms, with its tier."""
     try:
         current = {s["space_id"]: s for s in store.project(j["project_id"])["spaces"]}
     except KeyError:
@@ -340,27 +389,24 @@ def comparison(store: Store, j: dict) -> dict:
             res = read_json(out_dir / jr["prefix"] / "result.json") if jr["status"] == "done" else None
         except (OSError, ValueError):
             res = None
-        rooms = res.get("rooms", []) if res else []
-        for sid in jr["space_ids"]:
-            s = current.get(sid) or snap.get(sid)
-            if s is None:
-                continue
+        rooms = (res or {}).get("rooms") or []
+        if not rooms:
+            continue
+        spaces = [s for s in (current.get(sid) or snap.get(sid) for sid in jr["space_ids"]) if s is not None]
+        if jr["tier"] == "photos":
+            by_id = {r["id"]: r for r in rooms}
+            match = {s["space_id"]: by_id.get(jr["folders"].get(s["space_id"])) for s in spaces}
+        else:
+            match = match_rooms(rooms, spaces)
+        for s in spaces:
             sizes = s.get("sizes") or {}
-            room = _pick_room(rooms, sizes, jr["folders"].get(sid) if jr["tier"] == "photos" else None)
-            comp: dict = {q: (None, None) for q in QUANTITIES}
-            if room:
-                dims = _bbox_dims(room)
-                if dims:
-                    comp["length"] = (round(dims[0], 3), dims[1])
-                    comp["width"] = (round(dims[2], 3), dims[3])
-                ch = room.get("ceiling_height") or {}
-                if ch.get("value") is not None:
-                    comp["height"] = (round(ch["value"], 3), list(ch["ci90"]) if ch.get("ci90") else None)
+            room = match.get(s["space_id"])
+            comp = _dims(room) if room else {q: (None, None) for q in QUANTITIES}
             for q in QUANTITIES:
                 given, (val, ci) = sizes.get(q), comp[q]
                 diff = round(val - given, 3) if given is not None and val is not None else None
-                rows.append({"space": s["name"], "space_id": sid, "tier": jr["tier"],
-                             "room_id": room["id"] if room else None, "quantity": q, "given": given,
-                             "computed": val, "ci90": ci, "diff": diff,
+                rows.append({"space": s["name"], "space_id": s["space_id"], "tier": jr["tier"],
+                             "run": jr.get("title", jr["label"]), "room_id": room["id"] if room else None,
+                             "quantity": q, "given": given, "computed": val, "ci90": ci, "diff": diff,
                              "diff_pct": round(100 * diff / given, 1) if diff is not None and given else None})
     return {"rows": rows}

@@ -22,9 +22,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from server.capture import cache_key, content_key, plan_runs, verify_project
+from server.capture import VIDEO_EXT, cache_key, content_key, has_input, plan_runs, verify_project
 from server.jobs import OUTPUT_FILES, Worker, comparison, new_job, public_job
-from server.store import Store, engine_version, new_id, safe_relpath
+from server.store import CAPTURE_ID, Store, engine_version, new_id, safe_relpath
 
 
 class Sizes(BaseModel):
@@ -34,9 +34,15 @@ class Sizes(BaseModel):
 
 
 class SpaceIn(BaseModel):
+    """A room: name, optional sizes, optional photos. Video and LiDAR are whole-home captures
+    (PUT /api/projects/{pid}/capture), not rooms."""
     name: str = Field(min_length=1, max_length=120)
-    kind: Literal["photos", "video", "lidar"]
+    kind: str = "photos"
     sizes: Sizes = Sizes()
+
+
+class CaptureIn(BaseModel):
+    kind: Literal["video", "lidar"]
 
 
 class SpacePatch(BaseModel):
@@ -107,9 +113,84 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     def public_space(s: dict) -> dict:
         return {k: s[k] for k in ("space_id", "name", "kind", "sizes", "files")}
 
+    def public_capture(c: dict | None) -> dict | None:
+        return {"kind": c["kind"], "files": c["files"]} if c else None
+
     def public_project(p: dict) -> dict:
         return {"project_id": p["project_id"], "spaces": [public_space(s) for s in p["spaces"]],
-                "last_job_id": p.get("last_job_id")}
+                "capture": public_capture(p.get("capture")), "last_job_id": p.get("last_job_id")}
+
+    def capture_or_404(p: dict) -> dict:
+        if not p.get("capture"):
+            raise HTTPException(404, "the project has no whole-home capture (PUT .../capture with "
+                                     "{\"kind\": \"video\"} or {\"kind\": \"lidar\"} first)")
+        return p["capture"]
+
+    def is_main_file(kind: str, name: str) -> bool:
+        """The one file a whole-home capture holds: the clip, or the zipped LiDAR export."""
+        ext = Path(name).suffix.lower()
+        return ext in VIDEO_EXT if kind == "video" else ext == ".zip"
+
+    def second_file_error(c: dict, name: str, sha: str) -> None:
+        if not is_main_file(c["kind"], name):
+            return
+        other = next((f for f in c["files"] if f["sha256"] != sha and is_main_file(c["kind"], f["name"])), None)
+        if other:
+            what = "video" if c["kind"] == "video" else "LiDAR scan (.zip)"
+            raise HTTPException(409, f"the whole-home capture already has a {what}: {other['name']}. It takes "
+                                     f"exactly one: delete that file first (DELETE .../capture/files/"
+                                     f"{other['sha256']}) to replace it")
+
+    def receive(pid: str, sid: str, file: UploadFile, sha256: str, name: str | None, holder, check=None) -> dict:
+        """Store an upload by content hash (idempotent); `holder(p)` is the space or capture dict
+        whose `files` list gets the record; `check(holder, fname, sha)` may refuse it."""
+        sha = sha256.strip().lower()
+        if len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
+            raise HTTPException(422, "sha256 must be 64 hex characters")
+        fname = safe_relpath(name or file.filename or "file")
+        h0 = holder(project_or_404(pid))
+        existing = next((f for f in h0["files"] if f["sha256"] == sha), None)
+        dest = store().file_path(pid, sid, sha)
+        if existing and dest.is_file():
+            return existing
+        if check:
+            check(h0, fname, sha)
+        limit = int(_env_float("ROOMSCAN_MAX_FILE_MB", 2048) * 1024 * 1024)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        h, size = hashlib.sha256(), 0
+        fd, tmp = tempfile.mkstemp(dir=dest.parent, suffix=".part")
+        try:
+            with os.fdopen(fd, "wb") as out:
+                while chunk := file.file.read(1 << 20):
+                    size += len(chunk)
+                    if size > limit:
+                        raise HTTPException(413, f"{fname} is larger than the {limit // 2**20} MB limit")
+                    h.update(chunk)
+                    out.write(chunk)
+            if h.hexdigest() != sha:
+                raise HTTPException(400, f"{fname}: sha256 mismatch (received {h.hexdigest()}): the upload "
+                                         f"was damaged or the hash is wrong; upload it again")
+            os.replace(tmp, dest)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        rec = {"name": fname, "sha256": sha, "size": size}
+        with store().lock:
+            p = project_or_404(pid)
+            hd = holder(p)
+            existing = next((f for f in hd["files"] if f["sha256"] == sha), None)
+            if existing:
+                return existing
+            if check:
+                try:
+                    check(hd, fname, sha)  # a second file may have landed meanwhile
+                except HTTPException:
+                    if not any(f["sha256"] == sha for f in hd["files"]):
+                        dest.unlink(missing_ok=True)
+                    raise
+            hd["files"].append(rec)
+            store().save_project(p)
+        return rec
 
     # ---------------------------------------------------------------- health
     @app.get("/api/health")
@@ -127,9 +208,14 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
 
     @app.post("/api/projects/{pid}/spaces")
     def add_space(pid: str, body: SpaceIn):
+        if body.kind != "photos":
+            raise HTTPException(422, f"a space is a room (kind \"photos\"); {body.kind} is a whole-home capture: "
+                                     f"PUT /api/projects/{{pid}}/capture with {{\"kind\": \"{body.kind}\"}}"
+                                     if body.kind in ("video", "lidar") else
+                                     f"kind must be \"photos\" (got {body.kind!r})")
         with store().lock:
             p = project_or_404(pid)
-            s = {"space_id": new_id(), "name": body.name.strip(), "kind": body.kind,
+            s = {"space_id": new_id(), "name": body.name.strip(), "kind": "photos",
                  "sizes": body.sizes.model_dump(), "files": []}
             p["spaces"].append(s)
             store().save_project(p)
@@ -190,45 +276,58 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     @app.put("/api/projects/{pid}/spaces/{sid}/files")
     def upload(pid: str, sid: str, file: UploadFile = File(...), sha256: str = Form(...),
                name: str = Form(None)):
-        sha = sha256.strip().lower()
-        if len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
-            raise HTTPException(422, "sha256 must be 64 hex characters")
-        p = project_or_404(pid)
-        space_or_404(p, sid)
-        limit = int(_env_float("ROOMSCAN_MAX_FILE_MB", 2048) * 1024 * 1024)
-        fname = safe_relpath(name or file.filename or "file")
-        dest = store().file_path(pid, sid, sha)
-        existing = next((f for f in space_or_404(p, sid)["files"] if f["sha256"] == sha), None)
-        if existing and dest.is_file():
-            return existing
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        h, size = hashlib.sha256(), 0
-        fd, tmp = tempfile.mkstemp(dir=dest.parent, suffix=".part")
-        try:
-            with os.fdopen(fd, "wb") as out:
-                while chunk := file.file.read(1 << 20):
-                    size += len(chunk)
-                    if size > limit:
-                        raise HTTPException(413, f"{fname} is larger than the {limit // 2**20} MB limit")
-                    h.update(chunk)
-                    out.write(chunk)
-            if h.hexdigest() != sha:
-                raise HTTPException(400, f"{fname}: sha256 mismatch (received {h.hexdigest()}): the upload "
-                                         f"was damaged or the hash is wrong; upload it again")
-            os.replace(tmp, dest)
-        finally:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-        rec = {"name": fname, "sha256": sha, "size": size}
+        space_or_404(project_or_404(pid), sid)
+        return receive(pid, sid, file, sha256, name, lambda p: space_or_404(p, sid))
+
+    # ---------------------------------------------------------------- whole-home capture
+    @app.put("/api/projects/{pid}/capture")
+    def put_capture(pid: str, body: CaptureIn):
+        """Create the whole-home capture, or change its kind (which drops its files)."""
         with store().lock:
             p = project_or_404(pid)
-            s = space_or_404(p, sid)
-            existing = next((f for f in s["files"] if f["sha256"] == sha), None)
-            if existing:
-                return existing
-            s["files"].append(rec)
+            c = p.get("capture")
+            if c and c["kind"] == body.kind:
+                return public_capture(c)
+            p["capture"] = {"kind": body.kind, "files": []}
             store().save_project(p)
-        return rec
+            store().delete_space_files(pid, CAPTURE_ID)
+        return public_capture(p["capture"])
+
+    @app.get("/api/projects/{pid}/capture")
+    def get_capture(pid: str):
+        return public_capture(capture_or_404(project_or_404(pid)))
+
+    @app.delete("/api/projects/{pid}/capture")
+    def delete_capture(pid: str):
+        with store().lock:
+            p = project_or_404(pid)
+            capture_or_404(p)
+            p["capture"] = None
+            store().save_project(p)
+            store().delete_space_files(pid, CAPTURE_ID)
+        return {"ok": True}
+
+    @app.get("/api/projects/{pid}/capture/files")
+    def list_capture_files(pid: str):
+        return {"files": capture_or_404(project_or_404(pid))["files"]}
+
+    @app.put("/api/projects/{pid}/capture/files")
+    def upload_capture(pid: str, file: UploadFile = File(...), sha256: str = Form(...), name: str = Form(None)):
+        capture_or_404(project_or_404(pid))
+        return receive(pid, CAPTURE_ID, file, sha256, name, capture_or_404, second_file_error)
+
+    @app.delete("/api/projects/{pid}/capture/files/{sha}")
+    def delete_capture_file(pid: str, sha: str):
+        sha = sha.lower()
+        with store().lock:
+            p = project_or_404(pid)
+            c = capture_or_404(p)
+            if not any(f["sha256"] == sha for f in c["files"]):
+                raise HTTPException(404, f"file {sha} not in the whole-home capture")
+            c["files"] = [f for f in c["files"] if f["sha256"] != sha]
+            store().save_project(p)
+            store().file_path(pid, CAPTURE_ID, sha).unlink(missing_ok=True)
+        return {"ok": True}
 
     # ---------------------------------------------------------------- verify / run
     @app.post("/api/projects/{pid}/verify")
@@ -250,8 +349,9 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
         body = body or RunIn()
         with store().lock:
             p = project_or_404(pid)
-            if not p["spaces"]:
-                raise HTTPException(409, "the project has no spaces")
+            if not has_input(p):
+                raise HTTPException(409, "nothing to compute: add photos to a room, or one whole-home video / "
+                                         "LiDAR scan")
             last = p.get("last_verify")
             fresh = last and last.get("content_key") == content_key(p)
             if fresh and not body.force and not last["result"]["ok"]:
