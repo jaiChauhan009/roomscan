@@ -32,6 +32,9 @@ MIN_ROOM_AREA = 1.0  # m2
 WALL_BAND_FRAC = 0.5  # share of the observed low band a wall must cover (old rule: 0.8 m of 1.6 m)
 STEP_TOL = 0.06  # m: parallel walls this close to one plane after snapping are one wall
 FULL_HEIGHT_GAP = 0.3  # m: a plane reaching this close to the ceiling is a wall, not furniture
+SQUARE_MAX = 0.5  # m: a raster diagonal shorter than this is a cut corner, not a slanted wall
+SLOT_MAX = 0.4  # m: antiparallel walls closer than this, cut into a room, are a slot, not walls
+SLOT_DEPTH = 1.5  # m: deepest such slot that is filled (a longer one may be a thin partition)
 
 
 @dataclass
@@ -207,6 +210,39 @@ def _rectilinear_polygon(mask: np.ndarray, frame: PlanFrame, min_seg: float = 0.
     return segs
 
 
+def _square_corners(segs: list[dict], max_len: float = SQUARE_MAX) -> list[dict]:
+    """Short diagonal segments replaced by the axis-aligned corner their neighbours imply.
+
+    A diagonal of a few decimetres in the raster outline is a corner the contour cut (often
+    furniture in it), not a slanted wall. It is not snapped, so once its neighbours snap
+    onto their planes its line stretches into a long slanted wall, and it keeps
+    `_collapse_steps` from merging the walls either side of a notch. Between a horizontal
+    and a vertical edge it is dropped (their lines meet in the corner); between two parallel
+    edges it becomes the perpendicular step through its middle. Longer diagonals (a real
+    slanted wall) and runs of diagonals stay. The original list when the result is not a
+    simple counter-clockwise polygon.
+    """
+    out = [dict(s) for s in segs]
+    while len(out) > 4:
+        n = len(out)
+        cands = [i for i, s in enumerate(out) if s["orient"] == "D" and s["len"] < max_len
+                 and out[i - 1]["orient"] != "D" and out[(i + 1) % n]["orient"] != "D"]
+        if not cands:
+            break
+        i = min(cands, key=lambda k: out[k]["len"])
+        prev, nxt = out[i - 1], out[(i + 1) % n]
+        if prev["orient"] != nxt["orient"]:
+            out.pop(i)
+        else:  # a step between parallel edges: the perpendicular through the diagonal's middle
+            s = out[i]
+            mid = (s["p"] + s["q"]) / 2
+            orient = "V" if prev["orient"] == "H" else "H"
+            out[i] = {**s, "orient": orient, "coord": float(mid[0] if orient == "V" else mid[1])}
+    if len(out) == len(segs) and all(a["orient"] == b["orient"] for a, b in zip(out, segs)):
+        return segs
+    return out if _outline_ok(out) else segs
+
+
 def _fallback_segments(mask: np.ndarray, frame: PlanFrame) -> list[dict]:
     """Plain simplified contour (no snapping) for shapes the rectilinear pass breaks."""
     cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -244,11 +280,12 @@ def _vertices(segs: list[dict]) -> np.ndarray:
 
 
 def _clearance(others: np.ndarray, frame: PlanFrame, axis: int, coord: float, lo: float, hi: float,
-               outward: float, max_d: float) -> float:
+               outward: float, max_d: float, frac: float = 0.0) -> float:
     """How far a wall line can move outward before it enters another room's cells.
 
     The line is constant in plan coordinate `axis` at `coord` and spans [lo, hi] along the
-    other coordinate; `outward` is +1 or -1 along `axis`.
+    other coordinate; `outward` is +1 or -1 along `axis`. With `frac`, the line stops only
+    where more than that share of its span is in `others`.
     """
     res = frame.res
     k = np.arange(int(np.ceil(max_d / res)) + 1)
@@ -259,17 +296,22 @@ def _clearance(others: np.ndarray, frame: PlanFrame, axis: int, coord: float, lo
     rows_or_cols = others.shape[0] if axis == 1 else others.shape[1]
     ok = (lines >= 0) & (lines < rows_or_cols)
     hit = np.zeros(len(k), bool)
+    if not ok.any() or span.stop <= span.start:
+        return max_d
     if axis == 1:  # line of constant b: scan rows
-        hit[ok] = others[lines[ok], span].any(axis=1)
+        cells = others[lines[ok], span]
+        hit[ok] = cells.mean(axis=1) > frac if frac else cells.any(axis=1)
     else:  # constant a: scan columns
-        hit[ok] = others[span, lines[ok]].any(axis=0)
+        cells = others[span, lines[ok]]
+        hit[ok] = cells.mean(axis=0) > frac if frac else cells.any(axis=0)
     return float(k[np.argmax(hit)] * res) if hit.any() else max_d
 
 
 def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, cloud: Cloud,
                   floor_y: float, poly: Polygon, search_in: float = 0.15,
                   search_out: float = 0.9, others: np.ndarray | None = None,
-                  frame: PlanFrame | None = None, ceiling_h: float | None = None) -> list[dict]:
+                  frame: PlanFrame | None = None, ceiling_h: float | None = None,
+                  own: np.ndarray | None = None) -> list[dict]:
     """Snap each axis-aligned edge onto the real wall plane seen in the 3D points.
 
     An edge searches up to `search_out` outward (the room's mask stops at furniture in front
@@ -300,6 +342,9 @@ def _refine_walls(segs: list[dict], verts: np.ndarray, cloud_ab: np.ndarray, clo
         off = (s["coord"] - cloud_ab[:, axis]) * inward[axis]
         reach = search_out if others is None else _clearance(
             others, frame, axis, s["coord"], lo + shrink, hi - shrink, -inward[axis], search_out)
+        if own is not None:  # nor past the room's own floor (the far side of a slot)
+            reach = min(reach, _clearance(own, frame, axis, s["coord"], lo + shrink, hi - shrink,
+                                          -inward[axis], search_out, frac=0.5))
         cand &= (off > -search_in) & (off < reach)
         nn = s["_nrm"][cand] @ inward
         cand_idx = np.where(cand)[0][nn > 0.8]
@@ -394,6 +439,65 @@ def _collapse_steps(segs: list[dict]) -> list[dict]:
                 continue
         i += 1
     return segs
+
+
+def _fill_slots(segs: list[dict], others: np.ndarray | None = None, frame: PlanFrame | None = None,
+                width: float = SLOT_MAX, depth: float = SLOT_DEPTH) -> list[dict]:
+    """The snapped outline without narrow slots cut into the room.
+
+    A slot is two antiparallel walls less than `width` apart joined by a short end, both of
+    its corners reflex: the outline runs into the room and straight back out. Snapping
+    leaves one where furniture made a notch whose sides then snapped onto the walls either
+    side of it (a radiator or a shelf end between two pieces), and no room has walls a
+    hand's width apart. The slot's three walls become one step at its middle; the walls
+    either side of its mouth merge when they lie on one plane. Kept when the filled slot
+    would reach another room's cells, or the outline would not stay simple.
+    """
+    out = list(segs)
+    i = 0
+    while len(out) > 6 and i < len(out):
+        n = len(out)
+        a, s, b = out[i], out[(i + 1) % n], out[(i + 2) % n]
+        if not (a["orient"] == b["orient"] in ("H", "V") and s["orient"] not in ("D", a["orient"])
+                and abs(a["coord"] - b["coord"]) < width):
+            i += 1
+            continue
+        v = _vertices(out)
+        p0, p1, p2, p3 = v[i], v[(i + 1) % n], v[(i + 2) % n], v[(i + 3) % n]
+        d0, d1, d2 = p1 - p0, p2 - p1, p3 - p2
+        right = (d0[0] * d1[1] - d0[1] * d1[0] < 0) and (d1[0] * d2[1] - d1[1] * d2[0] < 0)
+        if not right or max(np.linalg.norm(d0), np.linalg.norm(d2)) > depth:
+            i += 1
+            continue
+        step = {**a, "coord": (a["coord"] + b["coord"]) / 2, "len": float(np.linalg.norm(p3 - p0)),
+                "sigma": 0.03, "support": 0, "coverage": 0.0, "spread": 0.0}
+        cand = [t for k, t in enumerate(out) if k not in (i, (i + 1) % n, (i + 2) % n)]
+        cand.insert(i if i + 2 < n else 0, step)  # where the slot was (it may wrap the list's end)
+        cand = _collapse_steps(cand)
+        if not _outline_ok(cand) or _overlaps(cand, out, others, frame):
+            i += 1
+            continue
+        out = cand
+        i = 0
+    return out
+
+
+def _overlaps(new: list[dict], old: list[dict], others: np.ndarray | None, frame: PlanFrame | None) -> bool:
+    """Whether the area `new` adds to `old` covers a cell of another room."""
+    if others is None or frame is None or not others.any():
+        return False
+    added = Polygon(_vertices(new)).difference(Polygon(_vertices(old)))
+    if added.is_empty:
+        return False
+    a0, b0, a1, b1 = added.bounds
+    r0, c0 = max(int((b0 - frame.b0) / frame.res) - 1, 0), max(int((a0 - frame.a0) / frame.res) - 1, 0)
+    r1, c1 = int((b1 - frame.b0) / frame.res) + 2, int((a1 - frame.a0) / frame.res) + 2
+    sub = others[r0:r1, c0:c1]
+    if not sub.any():
+        return False
+    rr, cc = np.nonzero(sub)
+    centers = frame.cell_center(rr + r0, cc + c0)
+    return any(added.contains(Point(x, y)) for x, y in centers)
 
 
 def _revert(segs: list[dict], i: int) -> list[dict]:
@@ -519,6 +623,11 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
         segs = _rectilinear_polygon(m, frame)
         if len(segs) < 3:
             continue
+        others = (region > 0) & (region != li)
+        squared = _square_corners(segs)
+        if squared is not segs and not _overlaps(squared, segs, ndi.binary_dilation(others, np.ones((25, 25))),
+                                                 frame):
+            segs = squared  # (not where a restored corner would reach towards a neighbour)
         verts = _vertices(segs)
         poly = Polygon(verts)
         if not poly.is_valid or poly.area < MIN_ROOM_AREA:
@@ -530,10 +639,13 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
         seen = ceil_map[m][np.isfinite(ceil_map[m])]
         room_ceil = float(np.median(seen)) if len(seen) >= 50 else (top_h if ceil_src == "ceiling_plane" else None)
         others = (region > 0) & (region != li)
+        # the room's own cells, 8 cm in from its outline (the raster outline is 4 cm off in places)
+        own = ndi.binary_erosion(m, np.ones((9, 9)))
         segs = _refine_walls(segs, verts, ab, sub, floor.value, poly, others=others, frame=frame,
-                             ceiling_h=room_ceil)
+                             ceiling_h=room_ceil, own=own)
         settled = _settle(segs)
         if settled is not None:
+            settled = _fill_slots(settled, others, frame)
             # each final wall's evidence, measured where it ended up (merged walls span the old step)
             v = _vertices(settled)
             polished = _refine_walls([dict(s) for s in settled], v, ab, sub, floor.value, Polygon(v),
