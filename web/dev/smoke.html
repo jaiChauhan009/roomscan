@@ -36,6 +36,17 @@ f.addEventListener('load', async () => {
     inp.dispatchEvent(new w.Event('change'));
     await until(() => d.querySelector('#upload-summary').textContent.includes('All 2 files uploaded'), 'uploads');
     log('count: ' + d.querySelector('#spaces .count').textContent);
+    await until(() => d.querySelectorAll('#guide .guide-svg svg').length === 5, 'guide svgs inline');
+    const vid = d.querySelector('input[name=capkind][value=video]');
+    vid.checked = true; vid.dispatchEvent(new w.Event('change'));
+    await until(() => d.querySelector('#capture-body input[type=file]'), 'capture picker');
+    const ci = d.querySelector('#capture-body input[type=file]');
+    const dt2 = new w.DataTransfer();
+    dt2.items.add(new w.File([new Uint8Array([0, 0, 0, 24])], 'walk.mov', { type: 'video/quicktime' }));
+    ci.files = dt2.files;
+    ci.dispatchEvent(new w.Event('change'));
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 3 files uploaded'), 'capture upload');
+    log('capture: ' + d.querySelector('#capture-body').textContent);
     const H = d.querySelector('input[id^="H-"]');
     H.value = '2.5';
     H.dispatchEvent(new w.Event('change'));
@@ -58,6 +69,8 @@ f.addEventListener('load', async () => {
     log('comparison: ' + d.querySelector('#comparison-table').textContent);
     log('damage: ' + d.querySelector('#damage').textContent);
     log('downloads: ' + d.querySelectorAll('#downloads a').length);
+    if (d.querySelectorAll('#run-tabs button').length !== 2) throw new Error('expected a tab per run');
+    if (!/Whole home: video/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no tier column');
     const sw = d.documentElement.scrollWidth;
     log('scrollWidth: ' + sw);
     if (sw > 360) throw new Error('horizontal scroll at 360 px: ' + sw);

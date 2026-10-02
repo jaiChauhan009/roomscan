@@ -1,8 +1,10 @@
 """Mock roomscan API for exercising the web UI without the real backend.
 
 Standard library only. In-memory state; restart = fresh. Implements the web contract:
-projects, spaces, files (multipart PUT, idempotent by sha256), verify, run, jobs (a fake
-job that walks through its stages in real time), job files and comparison, health.
+projects, rooms (spaces of kind "photos", photos optional), one optional whole-home capture
+(video or LiDAR, PUT/GET/DELETE /capture, /capture/files), files (multipart PUT, idempotent by
+sha256), verify, run (a photos run and / or a whole-home run), jobs (a fake job that walks
+through its stages in real time), job files and comparison (with a tier column), health.
 
     python web/dev/mock_server.py                 # http://localhost:8000
     python web/dev/mock_server.py --port 8001 --stage-seconds 0.5
@@ -44,12 +46,18 @@ def new_id(prefix: str) -> str:
 
 
 # ---------------------------------------------------------------- verify logic
-def verify_space(sp: dict) -> dict:
+CAPTURE = "_capture"
+TITLES = {"photos": "Rooms (photos)", "video": "Whole home (video)", "lidar": "Whole home (LiDAR)"}
+
+
+def verify_space(sp: dict, has_capture: bool = False) -> dict:
     files = sp["files"]
     names = [f["name"] for f in files]
     findings = []
-    if not files:
-        findings.append({"level": "retake", "check": "files", "message": "No files in this space yet.", "files": []})
+    if not files and has_capture and sp["kind"] == "photos":
+        findings.append({"level": "ok", "check": "photos in room", "message": "No photos: a size reference for the whole-home capture.", "files": []})
+    elif not files:
+        findings.append({"level": "retake", "check": "files", "message": "No files yet: add photos, or a whole-home capture.", "files": []})
     elif sp["kind"] == "photos":
         n = len(files)
         if n > 12:
@@ -81,7 +89,7 @@ def job_view(job: dict) -> dict:
     stage_s = job["stage_seconds"]
     STAGES = job["stages"]
     elapsed = time.time() - job["started"]
-    fail_at = STAGES.index("openings") if job["fail"] else None
+    fail_at = next(i for i, n in enumerate(STAGES) if n.endswith(": openings")) if job["fail"] else None
     stages, status, current, error = [], "running", None, None
     if job["cached"]:
         elapsed = 1e9
@@ -98,10 +106,10 @@ def job_view(job: dict) -> dict:
                 status, error = "failed", "Stage 'openings' failed: no wall evidence in space 'fail'. Retake it or remove it."
             else:
                 note = "cached" if job["cached"] else None
-                if name == "damage" and not job["damage"]:
+                if name.endswith(": damage") and not job["damage"]:
                     stages.append({"name": name, "status": "skipped", "seconds": 0, "note": "not requested"})
                 else:
-                    if name in ("layout", "room_fit") and not note:
+                    if name.endswith((": layout", ": room_fit")) and not note:
                         note = f"{len(job['spaces'])} room(s), {4 * len(job['spaces'])} walls"
                     stages.append({"name": name, "status": "done", "seconds": round(stage_s * (0.8 + 0.1 * i), 2), "note": note})
         elif elapsed >= t0:
@@ -111,10 +119,18 @@ def job_view(job: dict) -> dict:
             stages.append({"name": name, "status": "pending", "seconds": None, "note": None})
     if status != "failed" and all(s["status"] in ("done", "skipped") for s in stages):
         status = "done"
-    outputs = ({"result_json": "result.json", "result_xlsx": "result.xlsx", "plan_png": "plan.png", "plan_svg": "plan.svg"}
-               if status == "done" else {"result_json": None, "result_xlsx": None, "plan_png": None, "plan_svg": None})
+    runs = []
+    for r in job["runs"]:
+        pre = r["prefix"]
+        outs = ({k: f"/api/jobs/{job['job_id']}/files/{pre}{fn}" for k, fn in
+                 (("result_json", "result.json"), ("result_xlsx", "result.xlsx"), ("plan_png", "plan.png"), ("plan_svg", "plan.svg"))}
+                if status == "done" else {})
+        runs.append({"tier": r["tier"], "title": r["title"], "label": r["label"], "prefix": pre,
+                     "status": "done" if status == "done" else ("failed" if status == "failed" else "running"),
+                     "error": None, "outputs": outs})
+    outputs = runs[0]["outputs"] if runs and status == "done" else {"result_json": None, "result_xlsx": None, "plan_png": None, "plan_svg": None}
     return {"job_id": job["job_id"], "status": status, "stage": current, "stages": stages, "error": error,
-            "outputs": outputs, "runs": [{"job_id": j["job_id"], "created": j["started"]} for j in JOBS.values() if j["pid"] == job["pid"]]}
+            "outputs": outputs, "runs": runs}
 
 
 def room_dims(sp: dict, i: int) -> tuple[float, float, float]:
@@ -127,15 +143,22 @@ def measurement(v: float, rel: float = 0.04, unit: str = "m") -> dict:
     return {"value": round(v, 3), "ci90": [round(v * (1 - rel), 3), round(v * (1 + rel), 3)], "sigma": round(sig, 4), "unit": unit}
 
 
-def result_json(job: dict) -> dict:
-    spaces = job["spaces"]
+def run_spaces(job: dict, run: dict | None) -> list[dict]:
+    if run is None:
+        run = job["runs"][0]
+    return [s for s in job["spaces"] if s["space_id"] in run["space_ids"]]
+
+
+def result_json(job: dict, run: dict | None = None) -> dict:
+    run = run or job["runs"][0]
+    spaces = run_spaces(job, run)
     rooms, x = [], 0.0
     for i, sp in enumerate(spaces):
         L, W, H = room_dims(sp, i)
         L, W, H = L * 1.02, W * 0.99, H * 1.01
         rid = f"room_{i + 1}"
         rooms.append({
-            "id": rid, "label": sp["name"], "polygon": [[x, 0], [x + L, 0], [x + L, W], [x, W]],
+            "id": rid, "label": sp["name"] if run["tier"] == "photos" else rid, "polygon": [[x, 0], [x + L, 0], [x + L, W], [x, W]],
             "floor_area": measurement(L * W, 0.06, "m2"), "perimeter": measurement(2 * (L + W)),
             "ceiling_height": measurement(H, 0.03), "ceiling_source": "ceiling_plane",
             "walls": [], "openings": [], "surfaces": [],
@@ -152,34 +175,43 @@ def result_json(job: dict) -> dict:
         "recommendation": "Check the floor above / roof for a leak."}]
     return {
         "schema_version": "1.0.0", "units": "metres; areas in square metres", "interval": "90 % (ci90)",
-        "capture": {"id": job["pid"], "tier": {"photos": "photo"}.get(spaces[0]["kind"], spaces[0]["kind"]) if spaces else "photo",
+        "capture": {"id": job["pid"], "tier": {"photos": "photo"}.get(run["tier"], run["tier"]),
                     "source": "mock", "n_frames_used": sum(len(s["files"]) for s in spaces)},
         "property": {"footprint_area": measurement(fp, 0.05, "m2"), "bbox": measurement(x, 0.03),
                      "room_ids": [r["id"] for r in rooms], "adjacency": [], "stitch_method": "mock", "drift_correction": {}},
         "rooms": rooms, "damage": damage, "concealed_damage_flags": flags, "scope": [],
         "warnings": ["This is a mock result from web/dev/mock_server.py."],
-        "timing_s": {s: round(job["stage_seconds"], 2) for s in job["stages"]},
+        "timing_s": {s.split(": ")[-1]: round(job["stage_seconds"], 2) for s in job["stages"] if s.startswith(run["title"])},
     }
 
 
 def comparison(job: dict) -> dict:
     rows = []
-    for i, sp in enumerate(job["spaces"]):
+    for run in job["runs"]:
+        for i, sp in enumerate(run_spaces(job, run)):
+            rows += comparison_rows(sp, run)
+    return {"rows": rows}
+
+
+def comparison_rows(sp: dict, run: dict) -> list[dict]:
+    rows = []
+    if True:
         s = sp.get("sizes") or {}
         for q, f in (("length", 1.02), ("width", 0.99), ("height", 1.01)):
             g = s.get(q)
             if g is None:
                 continue
             g = float(g)
-            c = g * f * (1.08 if "far" in sp["name"].lower() else 1.0)
-            rows.append({"space": sp["name"], "quantity": q, "given": g, "computed": round(c, 3),
+            c = g * f * (1.08 if "far" in sp["name"].lower() else 1.0) * (1.03 if run["tier"] != "photos" else 1.0)
+            rows.append({"space": sp["name"], "space_id": sp["space_id"], "tier": run["tier"], "run": run["title"],
+                         "quantity": q, "given": g, "computed": round(c, 3),
                          "ci90": [round(c * 0.96, 3), round(c * 1.04, 3)], "diff": round(c - g, 3),
                          "diff_pct": round(100 * (c - g) / g, 2)})
-    return {"rows": rows}
+    return rows
 
 
-def plan_svg(job: dict) -> bytes:
-    res = result_json(job)
+def plan_svg(job: dict, run: dict | None = None) -> bytes:
+    res = result_json(job, run)
     W = max(1.0, sum(r["polygon"][1][0] - r["polygon"][0][0] for r in res["rooms"]))
     Hh = max([r["polygon"][2][1] for r in res["rooms"]] or [1.0])
     s = 80
@@ -193,9 +225,9 @@ def plan_svg(job: dict) -> bytes:
     return "".join(parts).encode()
 
 
-def plan_png(job: dict) -> bytes:
+def plan_png(job: dict, run: dict | None = None) -> bytes:
     """A small solid PNG with one rectangle per room (no PIL needed)."""
-    res = result_json(job)
+    res = result_json(job, run)
     rooms = res["rooms"]
     W = max(1.0, sum(r["polygon"][1][0] - r["polygon"][0][0] for r in rooms))
     Hh = max([r["polygon"][2][1] for r in rooms] or [1.0])
@@ -249,10 +281,37 @@ def get_project(pid: str) -> dict:
 
 
 def get_space(p: dict, sid: str) -> dict:
+    if sid == CAPTURE:
+        if not p.get("capture"):
+            raise ApiErr(404, "the project has no whole-home capture")
+        return p["capture"]
     for sp in p["spaces"]:
         if sp["space_id"] == sid:
             return sp
     raise ApiErr(404, f"space {sid} not found")
+
+
+def cap_out(p: dict):
+    c = p.get("capture")
+    return {"kind": c["kind"], "files": c["files"]} if c else None
+
+
+def has_input(p: dict) -> bool:
+    return any(s["files"] for s in p["spaces"]) or bool(p.get("capture") and p["capture"]["files"])
+
+
+def plan_runs(p: dict) -> list[dict]:
+    """[rooms with photos] + [the whole-home capture]; output prefixes only with two runs."""
+    runs = []
+    photos = [s["space_id"] for s in p["spaces"] if s["files"]]
+    if photos:
+        runs.append({"tier": "photos", "title": TITLES["photos"], "label": "photos", "space_ids": photos})
+    if p.get("capture"):
+        runs.append({"tier": p["capture"]["kind"], "title": TITLES[p["capture"]["kind"]], "label": "whole_home",
+                     "space_ids": [s["space_id"] for s in p["spaces"]]})
+    for r in runs:
+        r["prefix"] = f"{r['label']}/" if len(runs) > 1 else ""
+    return runs
 
 
 def clean_sizes(s) -> dict:
@@ -342,6 +401,12 @@ class Handler(BaseHTTPRequestHandler):
         ("PATCH", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "patch_space"),
         ("PUT", r"/api/projects/(?P<pid>[^/]+)/order", "set_order"),
         ("DELETE", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)", "delete_space"),
+        ("PUT", r"/api/projects/(?P<pid>[^/]+)/capture", "put_capture"),
+        ("GET", r"/api/projects/(?P<pid>[^/]+)/capture", "get_capture"),
+        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/capture", "delete_capture"),
+        ("GET", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files", "list_files"),
+        ("PUT", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files", "put_file"),
+        ("DELETE", r"/api/projects/(?P<pid>[^/]+)/(?P<sid>capture)/files/(?P<sha>[0-9a-fA-F]+)", "delete_file"),
         ("GET", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "list_files"),
         ("PUT", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files", "put_file"),
         ("DELETE", r"/api/projects/(?P<pid>[^/]+)/spaces/(?P<sid>[^/]+)/files/(?P<sha>[0-9a-fA-F]+)", "delete_file"),
@@ -349,7 +414,7 @@ class Handler(BaseHTTPRequestHandler):
         ("POST", r"/api/projects/(?P<pid>[^/]+)/run", "run"),
         ("GET", r"/api/jobs/(?P<jid>[^/]+)", "job"),
         ("GET", r"/api/jobs/(?P<jid>[^/]+)/comparison", "comparison"),
-        ("GET", r"/api/jobs/(?P<jid>[^/]+)/files/(?P<name>[^/]+)", "job_file"),
+        ("GET", r"/api/jobs/(?P<jid>[^/]+)/files/(?P<name>.+)", "job_file"),
     ]
 
     def _dispatch(self):
@@ -375,19 +440,44 @@ class Handler(BaseHTTPRequestHandler):
     def h_create_project(self):
         self._body()
         pid = new_id("p")
-        PROJECTS[pid] = {"project_id": pid, "spaces": [], "last_job_id": None, "verify": None}
+        PROJECTS[pid] = {"project_id": pid, "spaces": [], "capture": None, "last_job_id": None, "verify": None}
         self._json(200, {"project_id": pid})
 
     def h_project(self, pid):
         p = get_project(pid)
-        self._json(200, {"project_id": pid, "spaces": [space_out(s) for s in p["spaces"]], "last_job_id": p["last_job_id"]})
+        self._json(200, {"project_id": pid, "spaces": [space_out(s) for s in p["spaces"]], "capture": cap_out(p),
+                         "last_job_id": p["last_job_id"]})
+
+    def h_put_capture(self, pid):
+        p = get_project(pid)
+        kind = self._jbody().get("kind")
+        if kind not in ("video", "lidar"):
+            raise ApiErr(422, "kind must be video or lidar")
+        if not p["capture"] or p["capture"]["kind"] != kind:
+            p["capture"] = {"space_id": CAPTURE, "name": "whole home", "kind": kind, "sizes": {}, "files": []}
+            p["verify"] = None
+        self._json(200, cap_out(p))
+
+    def h_get_capture(self, pid):
+        p = get_project(pid)
+        get_space(p, CAPTURE)
+        self._json(200, cap_out(p))
+
+    def h_delete_capture(self, pid):
+        p = get_project(pid)
+        get_space(p, CAPTURE)
+        p["capture"] = None
+        p["verify"] = None
+        self._json(200, {"ok": True})
 
     def h_create_space(self, pid):
         p = get_project(pid)
         b = self._jbody()
-        kind = b.get("kind")
-        if kind not in ("photos", "video", "lidar"):
-            raise ApiErr(422, "kind must be photos, video or lidar")
+        kind = b.get("kind") or "photos"
+        if kind in ("video", "lidar"):
+            raise ApiErr(422, f"{kind} is a whole-home capture: PUT /api/projects/{pid}/capture")
+        if kind != "photos":
+            raise ApiErr(422, "kind must be photos")
         name = (b.get("name") or f"Room {len(p['spaces']) + 1}").strip()
         sp = {"space_id": new_id("s"), "name": name, "kind": kind, "sizes": clean_sizes(b.get("sizes")), "files": []}
         p["spaces"].append(sp)
@@ -422,10 +512,12 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"ok": True})
 
     def h_list_files(self, pid, sid):
+        sid = CAPTURE if sid == "capture" else sid
         sp = get_space(get_project(pid), sid)
         self._json(200, {"files": sp["files"]})
 
     def h_put_file(self, pid, sid):
+        sid = CAPTURE if sid == "capture" else sid
         p = get_project(pid)
         sp = get_space(p, sid)
         ctype = self.headers.get("Content-Type", "")
@@ -443,12 +535,19 @@ class Handler(BaseHTTPRequestHandler):
         for f in sp["files"]:
             if f["sha256"] == sha:
                 return self._json(200, f)
+        if sid == CAPTURE:
+            main = (lambda n: n.lower().endswith((".mp4", ".mov", ".m4v"))) if sp["kind"] == "video" else (lambda n: n.lower().endswith(".zip"))
+            other = next((f for f in sp["files"] if main(f["name"])), None)
+            if main(name) and other:
+                raise ApiErr(409, f"the whole-home capture already has a {'video' if sp['kind'] == 'video' else 'LiDAR scan (.zip)'}: "
+                                  f"{other['name']}. Delete it first to replace it")
         rec = {"name": name, "sha256": sha, "size": len(data)}
         sp["files"].append(rec)
         p["verify"] = None
         self._json(200, rec)
 
     def h_delete_file(self, pid, sid, sha):
+        sid = CAPTURE if sid == "capture" else sid
         p = get_project(pid)
         sp = get_space(p, sid)
         n = len(sp["files"])
@@ -461,16 +560,21 @@ class Handler(BaseHTTPRequestHandler):
     def h_verify(self, pid):
         p = get_project(pid)
         self._body()
-        spaces = [verify_space(s) for s in p["spaces"]]
+        cap = p["capture"]
+        spaces = [verify_space(s, bool(cap)) for s in p["spaces"]]
+        capture = None
+        if cap:
+            capture = verify_space(cap)
+            capture = {"name": f"whole home: {'video' if cap['kind'] == 'video' else 'LiDAR'}", "kind": cap["kind"],
+                       "status": capture["status"], "findings": capture["findings"],
+                       "advice": None if capture["status"] == "ok" else "Capture the whole home again: walk slowly through every room, tilt up to the ceiling once per room."}
         pf = []
-        if not p["spaces"]:
-            pf.append({"level": "retake", "check": "spaces", "message": "No spaces in this project.", "files": []})
-        kinds = {s["kind"] for s in p["spaces"]}
-        if len(kinds) > 1:
-            pf.append({"level": "warn", "check": "mixed tiers", "message": "Spaces use different capture kinds; each is processed on its own tier.", "files": []})
-        ok = not any(s["status"] == "retake" for s in spaces) and not any(f["level"] == "retake" for f in pf)
+        if not has_input(p):
+            pf.append({"level": "retake", "check": "nothing to compute", "message": "Add photos to a room, or a whole-home video / LiDAR scan.", "files": []})
+        ok = (not any(s["status"] == "retake" for s in spaces) and not any(f["level"] == "retake" for f in pf)
+              and not (capture and capture["status"] == "retake"))
         p["verify"] = {"ok": ok}
-        self._json(200, {"ok": ok, "spaces": spaces, "project_findings": pf})
+        self._json(200, {"ok": ok, "spaces": spaces, "capture": capture, "project_findings": pf})
 
     def h_run(self, pid):
         p = get_project(pid)
@@ -478,10 +582,11 @@ class Handler(BaseHTTPRequestHandler):
         force = bool(b.get("force"))
         if p["verify"] is not None and not p["verify"]["ok"] and not force:
             raise ApiErr(409, "verify found a space that needs a retake; fix it or pass force=true")
-        if not p["spaces"]:
-            raise ApiErr(409, "no spaces to compute")
+        if not has_input(p):
+            raise ApiErr(409, "nothing to compute: add photos to a room, or one whole-home video / LiDAR scan")
+        allsp = p["spaces"] + ([p["capture"]] if p["capture"] else [])
         key = hashlib.sha256(json.dumps([[s["name"], s["kind"], s["sizes"], sorted(f["sha256"] for f in s["files"])]
-                                         for s in p["spaces"]], sort_keys=True).encode()).hexdigest()
+                                         for s in allsp], sort_keys=True).encode()).hexdigest()
         for j in JOBS.values():
             if j["pid"] == pid and j["key"] == key and job_view(j)["status"] == "done":
                 p["last_job_id"] = j["job_id"]
@@ -491,7 +596,9 @@ class Handler(BaseHTTPRequestHandler):
                      "damage": bool(b.get("damage", True)), "stage_seconds": self.server.stage_seconds,
                      "fail": any("fail" in s["name"].lower() for s in p["spaces"]),
                      "spaces": json.loads(json.dumps(p["spaces"])),
-                     "stages": STAGES_PHOTO if all(s["kind"] == "photos" for s in p["spaces"]) else STAGES_3D}
+                     "runs": plan_runs(p)}
+        JOBS[jid]["stages"] = [f"{r['title']}: {st}" for r in JOBS[jid]["runs"]
+                               for st in (STAGES_PHOTO if r["tier"] == "photos" else STAGES_3D)]
         p["last_job_id"] = jid
         self._json(200, {"job_id": jid, "cached": False})
 
@@ -511,11 +618,13 @@ class Handler(BaseHTTPRequestHandler):
         j = self._job(jid)
         if job_view(j)["status"] != "done":
             raise ApiErr(409, "job not finished")
+        run = next((r for r in j["runs"] if r["prefix"] and name.startswith(r["prefix"])), j["runs"][0])
+        name = name[len(run["prefix"]):] if run["prefix"] and name.startswith(run["prefix"]) else name
         makers = {
-            "result.json": (lambda: json.dumps(result_json(j), indent=1).encode(), "application/json"),
+            "result.json": (lambda: json.dumps(result_json(j, run), indent=1).encode(), "application/json"),
             "result.xlsx": (lambda: result_xlsx(j), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-            "plan.png": (lambda: plan_png(j), "image/png"),
-            "plan.svg": (lambda: plan_svg(j), "image/svg+xml"),
+            "plan.png": (lambda: plan_png(j, run), "image/png"),
+            "plan.svg": (lambda: plan_svg(j, run), "image/svg+xml"),
         }
         if name not in makers:
             raise ApiErr(404, f"no file {name}")

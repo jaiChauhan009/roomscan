@@ -56,6 +56,9 @@ const STAGE_LABEL = {
 
 function prettyStage(n) {
   if (!n) return "";
+  // "Rooms (photos): load+depth" -> "Rooms (photos) · Reading photos & depth"
+  const i = String(n).indexOf(": ");
+  if (i > 0) return `${String(n).slice(0, i)} · ${prettyStage(String(n).slice(i + 2))}`;
   if (STAGE_LABEL[n]) return STAGE_LABEL[n];
   const s = String(n).replace(/[_-]+/g, " ");
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -78,7 +81,27 @@ function cell(meas, d = 2, unit = "") {
 export async function renderResults(job, jid) {
   const sec = $("#results");
   sec.hidden = false;
-  const o = job.outputs || {};
+  // one tab per run that finished: the rooms' photos, the whole-home video / LiDAR scan
+  const runs = (job.runs || []).filter((r) => r.status === "done" && r.outputs && Object.keys(r.outputs).length);
+  const tabs = $("#run-tabs");
+  const show = (r) => {
+    tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.label === (r && r.label))));
+    renderRun(r ? r.outputs : (job.outputs || {}), jid);
+  };
+  tabs.replaceChildren(...(runs.length > 1 ? runs.map((r) => h("button", { type: "button", class: "btn small", "data-label": r.label, onclick: () => show(r) }, r.title || r.label)) : []));
+  tabs.hidden = runs.length < 2;
+  const failed = (job.runs || []).filter((r) => r.status === "failed");
+  if (failed.length) tabs.append(h("p", { class: "small muted" }, failed.map((r) => `${r.title || r.label} failed: ${r.error || "error"}`).join(" · ")));
+  show(runs[0] || null);
+  try {
+    const cmp = await api.comparison(jid);
+    renderComparison(cmp && cmp.rows || []);
+  } catch (e) {
+    $("#comparison-table").replaceChildren(h("p", { class: "small muted" }, "Comparison not available: " + e.message));
+  }
+}
+
+async function renderRun(o, jid) {
   const jsonUrl = outputUrl(jid, o.result_json, "result.json");
   const xlsxUrl = outputUrl(jid, o.result_xlsx, "result.xlsx");
   const pngUrl = outputUrl(jid, o.plan_png, "plan.png");
@@ -102,13 +125,6 @@ export async function renderResults(job, jid) {
     $("#summary").replaceChildren(h("div", {}, h("dt", {}, "Result"), h("dd", {}, "Could not load result.json (" + e.message + ")")));
   }
   if (res) renderResultJson(res);
-
-  try {
-    const cmp = await api.comparison(jid);
-    renderComparison(cmp && cmp.rows || []);
-  } catch (e) {
-    $("#comparison-table").replaceChildren(h("p", { class: "small muted" }, "Comparison not available: " + e.message));
-  }
 }
 
 function renderResultJson(res) {
@@ -153,14 +169,15 @@ function renderResultJson(res) {
 
 function renderComparison(rows) {
   const wrap = $("#comparison-table");
+  rows = rows.filter((r) => r.given != null);
   if (!rows.length) {
-    wrap.replaceChildren(h("p", { class: "small muted" }, "You did not type in any sizes, so there is nothing to compare. Add L / B / H to a space to see how close we are."));
+    wrap.replaceChildren(h("p", { class: "small muted" }, "You did not type in any sizes, so there is nothing to compare. Add L / B / H to a room to see how close we are."));
     return;
   }
   wrap.replaceChildren(h("table", {},
     h("caption", { class: "visually-hidden" }, "Sizes you typed in against the computed sizes"),
-    h("thead", {}, h("tr", {}, ...["Space", "Size", "Yours m", "Ours m", "Ours 90 % range", "Difference", "Inside range?"]
-      .map((t, i) => h("th", { scope: "col", class: i >= 2 && i <= 5 ? "num" : null }, t)))),
+    h("thead", {}, h("tr", {}, ...["Room", "Tier", "Size", "Yours m", "Ours m", "Ours 90 % range", "Difference", "Inside range?"]
+      .map((t, i) => h("th", { scope: "col", class: i >= 3 && i <= 6 ? "num" : null }, t)))),
     h("tbody", {}, rows.map((r) => {
       const ci = Array.isArray(r.ci90) ? r.ci90 : null;
       const inside = ci && r.given != null ? r.given >= ci[0] && r.given <= ci[1] : null;
@@ -168,6 +185,7 @@ function renderComparison(rows) {
       const pct = r.diff_pct != null ? ` (${r.diff_pct > 0 ? "+" : ""}${fmtNum(r.diff_pct, 1)} %)` : "";
       return h("tr", {},
         h("th", { scope: "row" }, r.space ?? ""),
+        h("td", {}, TIER[r.tier] || r.tier || "–"),
         h("td", {}, QTY[r.quantity] || r.quantity || ""),
         h("td", { class: "num" }, fmtNum(r.given)),
         h("td", { class: "num" }, fmtNum(r.computed)),
@@ -177,4 +195,5 @@ function renderComparison(rows) {
     }))));
 }
 
+const TIER = { photos: "Photos", video: "Whole home: video", lidar: "Whole home: LiDAR" };
 const QTY = { length: "Length (L)", width: "Breadth (B)", height: "Height (H)" };

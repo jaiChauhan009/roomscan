@@ -149,3 +149,17 @@ on. Each check says OK, WARN (usable, retake if it is easy) or RETAKE, with what
 
 The overlap between neighbouring photos is printed for information only: on bare walls the
 feature matcher misses real overlap, so it never asks for a retake.
+
+## Using the web app
+
+The page has two parts. **Whole-home capture (optional)** at the top: choose Video or LiDAR
+scan and add one file, the clip of the whole home (Video tier above: walk every room slowly,
+tilt up to the ceiling once per room) or the Stray Scanner `.zip` (LiDAR tier above: Files app
+> Stray Scanner > press and hold the newest folder > Compress). It takes exactly one file;
+"Replace" swaps it. **Rooms** below: + Add room for each room in walk order, with its name,
+the L / B / H you measured (one length or width is enough; a height alone is only compared)
+and, for the photo tier, its photos. With a whole-home capture, photos are optional: a room
+with only sizes is a size reference for the video or scan. Then **Check captures** (per room,
+plus one block for the whole-home capture with retake advice) and **Start computing**: the
+photos and the whole-home capture are computed separately, each with its own plan, and "Your
+sizes vs ours" compares your sizes with each (tier column).

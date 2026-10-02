@@ -40,7 +40,7 @@ def _free_port() -> int:
 
 # ---------------------------------------------------------------- static files
 def _refs(html: str) -> list[str]:
-    out = re.findall(r'(?:src|href)="([^"#]+)"', html)
+    out = re.findall(r'(?:src|href|data-svg)="([^"#]+)"', html)
     return [r for r in out if not re.match(r"^(https?:|mailto:|data:)", r)]
 
 
@@ -50,6 +50,24 @@ def test_index_references_exist():
     assert "styles.css" in refs and "js/app.js" in refs
     for r in refs:
         assert (WEB / r).is_file(), f"index.html references missing file {r}"
+    # the capture guide's five diagrams, inlined by app.js (they follow the theme)
+    guide = {r for r in refs if r.startswith("img/guide/")}
+    assert guide == {f"img/guide/{n}.svg" for n in ("photos-doorway", "photos-lookback", "video-walk",
+                                                    "tilt-ceiling", "marker-and-tape")}
+    for r in guide:
+        svg = (WEB / r).read_text(encoding="utf-8")
+        assert svg.lstrip().startswith("<svg") and "currentColor" in svg
+    assert "--guide-bg" in (WEB / "styles.css").read_text(encoding="utf-8")
+    assert "data-svg" in (WEB / "js" / "app.js").read_text(encoding="utf-8") or "dataset.svg" in \
+        (WEB / "js" / "app.js").read_text(encoding="utf-8")
+
+
+def test_two_part_page():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    assert html.index('id="capture-card"') < html.index('id="spaces"')
+    assert 'name="capkind" value="video"' in html and 'name="capkind" value="lidar"' in html
+    assert 'name="kind"' not in html  # rooms have no kind any more
+    assert html.index('id="guide"') < html.index('id="spaces"')  # visible, not behind a click
 
 
 def test_js_imports_resolve():
@@ -196,7 +214,7 @@ def test_mock_contract_flow(mock_api):
     assert st == 200 and png[:8] == b"\x89PNG\r\n\x1a\n"
     st, cmp_ = call(b, "GET", f"/api/jobs/{jid}/comparison")
     assert st == 200 and {r["quantity"] for r in cmp_["rows"]} == {"length", "height"}
-    assert set(cmp_["rows"][0]) >= {"space", "quantity", "given", "computed", "ci90", "diff", "diff_pct"}
+    assert set(cmp_["rows"][0]) >= {"space", "tier", "quantity", "given", "computed", "ci90", "diff", "diff_pct"}
 
     st, r2 = call(b, "POST", f"/api/projects/{pid}/run", {"damage": True})
     assert st == 200 and r2["cached"] is True and r2["job_id"] == jid
@@ -207,6 +225,35 @@ def test_mock_contract_flow(mock_api):
     assert st == 200
     st, _ = call(b, "GET", f"/api/projects/{pid}/spaces/{sid}/files")
     assert st == 404
+
+
+def test_mock_whole_home_capture(mock_api):
+    b = mock_api
+    pid = call(b, "POST", "/api/projects", {})[1]["project_id"]
+    assert call(b, "GET", f"/api/projects/{pid}")[1]["capture"] is None
+    st, err = call(b, "POST", f"/api/projects/{pid}/spaces", {"name": "x", "kind": "video", "sizes": {}})
+    assert st == 422 and "capture" in err["detail"]
+    room = call(b, "POST", f"/api/projects/{pid}/spaces", {"name": "Lounge", "sizes": {"length": 5.0}})[1]
+    assert room["kind"] == "photos"
+    st, cap = call(b, "PUT", f"/api/projects/{pid}/capture", {"kind": "video"})
+    assert st == 200 and cap == {"kind": "video", "files": []}
+    raw, ct = multipart({"sha256": hashlib.sha256(b"clip").hexdigest(), "name": "walk.mov"}, "walk.mov", b"clip")
+    assert call(b, "PUT", f"/api/projects/{pid}/capture/files", raw=raw, ctype=ct)[0] == 200
+    raw, ct = multipart({"sha256": hashlib.sha256(b"clip2").hexdigest(), "name": "two.mov"}, "two.mov", b"clip2")
+    st, err = call(b, "PUT", f"/api/projects/{pid}/capture/files", raw=raw, ctype=ct)
+    assert st == 409 and "already has a video" in err["detail"]
+    st, v = call(b, "POST", f"/api/projects/{pid}/verify", {})
+    assert v["ok"] is True and v["capture"]["name"] == "whole home: video" and v["spaces"][0]["status"] == "ok"
+    jid = call(b, "POST", f"/api/projects/{pid}/run", {"damage": True})[1]["job_id"]
+    deadline = time.time() + 10
+    while (job := call(b, "GET", f"/api/jobs/{jid}")[1])["status"] != "done" and time.time() < deadline:
+        time.sleep(0.05)
+    assert job["status"] == "done" and [r["title"] for r in job["runs"]] == ["Whole home (video)"]
+    assert all(s["name"].startswith("Whole home (video): ") for s in job["stages"])
+    rows = call(b, "GET", f"/api/jobs/{jid}/comparison")[1]["rows"]
+    assert {r["tier"] for r in rows} == {"video"} and rows[0]["space"] == "Lounge"
+    assert call(b, "DELETE", f"/api/projects/{pid}/capture")[0] == 200
+    assert call(b, "GET", f"/api/projects/{pid}/capture")[0] == 404
 
 
 def test_mock_retake_gives_409(mock_api):
