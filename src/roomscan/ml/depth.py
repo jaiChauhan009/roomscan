@@ -49,7 +49,7 @@ def predict_depth(images: list[np.ndarray], batch: int = 4, progress: bool = Fal
     batches = [idx[k:k + batch] for idx in groups.values() for k in range(0, len(idx), batch)]
     out: list = [None] * len(images)
     for sel in tqdm(batches, desc="depth", disable=not progress):
-        with torch.no_grad():
+        with torch.inference_mode():
             inp = proc(images=[images[j] for j in sel], return_tensors="pt")
             pd = model(**inp).predicted_depth
         for j, d in zip(sel, pd):
