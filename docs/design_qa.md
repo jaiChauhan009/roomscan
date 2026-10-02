@@ -9,13 +9,13 @@ fix-loop bundles in `fixloop/` and `bench/reports/calibration.md` unless stated.
 | What | Value |
 |---|---|
 | Synthetic room, known size | every wall to < 1 mm, ceiling to < 5 mm; furnished (wardrobes, bookcase) exact to 1 cm |
-| LiDAR on 4 unseen rooms, laser truth | footprint within 8 % in all four; ceilings 1-5 cm (low); walls 3 and 10 cm median in two rooms, fragmented by furniture in two |
+| LiDAR on 4 unseen rooms, laser truth | footprint within 8 % in all four; ceilings 1-5 cm (low); median wall error 3, 10, 13 cm in three rooms, the fourth split in two by furniture |
 | Two LiDAR scans of one flat, as point clouds | 97 % of wall points within 15 cm, median 7 mm apart |
 | Same, as plans | footprint 55.3 vs 46.0 m² (A finds walls behind furniture that B cannot see), 9 vs 7 rooms, 1 paired |
 | Drift correction on scan B | moves it up to 0.52 m; wall crispness 10.02 off → 12.26 on |
 | ARKit odometry error, measured | p90 3.0-3.7 cm and 0.37-0.47° (rms) per 3 s |
-| 90 % interval on a 3 m wall | LiDAR ±6 cm, video ±0.72 m, photo ±1.72 m |
-| Held-out interval coverage | LiDAR 0.95 (two-scan precision; laser rooms 10 of 20), video 0.75, photo 0.90 |
+| 90 % interval on a 3 m wall | LiDAR ±12 cm where its ends rest on planes (wider where they rest on furniture), video ±0.77 m, photo ±1.36 m |
+| Held-out interval coverage | LiDAR 0.85 (laser truth, 4 rooms), video 0.93, photo 0.92 |
 | Video tier on the sample flat | 2 of 7 rooms, footprint −71 % vs the LiDAR reference |
 | Photo tier on the proxy set | 7 rooms, footprint +111 % vs the LiDAR reference |
 | Real iPhone 16 Pro scan (Stray Scanner) | through the whole chain to a plan in 24 s; tape truth pending |
@@ -167,12 +167,14 @@ region; each pixel's footprint on the surface plane is summed. When colour gives
 finer CLIP tiles outline it, with a wider interval.
 
 **Does it find damage?**
-On the undamaged sample flat it reports nothing, so no false positives. Real staged damage
-needs the iPhone session. As a proxy, `bench/synth_damage.py` paints a 0.52 m water stain
-and a 0.7 m crack onto two bare walls of a real scan, consistently in every frame. Both
-were missed. Each was in view in only 2-4 of the frames examined, because the 64 frames
-are spread over the whole flat, so each wall patch gets one or two looks, often at an
-angle. More, closer looks per patch is the next step.
+On the undamaged sample flat it reports nothing, so no false positives. As a proxy for
+staged damage, `bench/synth_damage.py` paints a 0.52 m water stain and a 0.7 m crack onto
+two bare walls of a real scan, consistently in every frame.
+- **The stain** is found as one region, sized to within 13 %. Before, its outline used the
+  tile's own median colour, missed the faint body, and split the stain in two. Colour is
+  now measured against the surrounding wall, growing from the strong tide mark inwards.
+- **The 6 mm crack** is missed: CLIP never scores it above about 0.6.
+- **On our own iPhone scans**, ceiling lights come out as a "hole".
 
 **Concealed damage?**
 Ten rules in `damage/rules.yaml`, e.g. CD-01 "water stain on a ceiling means water entered
@@ -189,17 +191,18 @@ abs/rel/inflate as per-tier priors, scale fitted per tier by split conformal on 
 benchmark: the (n+1)·0.9 quantile of |error| / sigma.
 
 **Calibrated against what?**
-Video and photo: against the LiDAR output of the same capture (labelled as a reference, not
-truth). LiDAR: against the same wall measured in two scans of the flat, which is precision
-only, since a bias both scans share is invisible. The honest number is leave-one-room-out
-coverage (fit on the other rooms, score the room left out): 0.95, 0.75, 0.90. In-sample
-coverage is 90 %+ by construction and is not evidence.
+- **LiDAR:** against laser truth on four unseen rooms.
+- **Video and photo:** against the LiDAR output of the same capture, on the sample flat and
+  on ours (labelled as a reference, not truth).
 
-On the four laser rooms, the LiDAR intervals hold the truth for 10 of 20 values: all of
-them where the outline is right, 1 of 5 where furniture fragments it. Fitting on those
-rooms would give ±2.3 m on every wall, because the misses are outline errors, not noise. So
-LiDAR keeps its precision fit until the wall sigma grows with how little of a wall's
-position rests on a real plane.
+The honest number is leave-one-room-out coverage (fit on the other rooms, score the room
+left out): 0.85, 0.93, 0.92. In-sample coverage is 90 %+ by construction and is not
+evidence.
+
+A LiDAR wall's sigma grows when one of the walls that end it was placed on furniture or a
+raster edge rather than a measured plane. Without that, fitting on the laser rooms gave ±2.3
+m on every wall, because the misses were outline errors, not sensor noise. With it, the fit
+is ±12 cm for a wall between two measured planes, and wide only where the evidence is thin.
 
 **Why are photo intervals so wide?**
 Because photo errors on our data are that large; a narrow interval would be confident

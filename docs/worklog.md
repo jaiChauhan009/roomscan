@@ -436,6 +436,30 @@ so the phone can go back early.
 Tape measurements of the flat are still to come; until then video and photos are scored
 against the iPhone LiDAR plan.
 
+## Stage 18: three workers in parallel (commits `aa554d3`, `4fbad54`, `b1747a0`)
+
+- **Room outlines** (`layout.py`):
+  - Short raster diagonals become square corners, and slots under 0.4 m wide are filled.
+  - An edge's snap stops where the room's own floor resumes.
+  - Laser room 47332890: 13 → 6 walls, wall median 1.33 → 0.13 m. 44358446: footprint
+    −5.7 → −2.5 %.
+  - No room count changed, and no overlap appeared.
+  - Tried and dropped: merging neck-split parts under a common ceiling. It fixed
+    42446532 but merged two of scan A's rooms.
+- **Evidence-aware LiDAR intervals** (`export/build.py`):
+  - A wall's length sigma grows where an end wall rests on no plane: +0.5 m × the
+    coverage deficit, capped at 0.2 m per end. Doorways count as evidence, and short
+    steps between covered walls add nothing.
+  - Laser walls inside the interval at the old scale: 8/16 → 12/16.
+  - A refit to laser truth needs scale 3.46, against 99 without the term.
+  - Well-evidenced walls stay at about ±5-7 cm.
+- **Damage outline** (`damage/detect.py`): colour is measured against the wall around each
+  pixel, and the region grows from strong pixels into weaker connected ones.
+  - Painted stain: found whole, extents −12 / −13 %; before, it was split into two
+    regions, +108 % wide.
+  - Clean scan A false positives 2 → 0.
+  - The crack is still missed: CLIP scores it at most about 0.6.
+
 ## Documentation added
 
 `docs/architecture.md`, this worklog, `docs/device_matrix.md`,

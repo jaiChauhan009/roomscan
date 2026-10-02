@@ -3162,42 +3162,42 @@
       "damage_class": "water_stain",
       "score": 0.675,
       "area": {
-        "value": 0.0456,
+        "value": 0.0377,
         "ci90": [
           0.0,
-          0.1095
+          0.0973
         ],
-        "sigma": 0.03885,
+        "sigma": 0.03627,
         "unit": "m2",
         "lower_bound": null,
         "note": null
       },
       "extent_u": {
-        "value": 0.0715,
+        "value": 0.1153,
         "ci90": [
-          -0.0675,
-          0.2104
+          -0.0394,
+          0.2701
         ],
-        "sigma": 0.08447,
+        "sigma": 0.09409,
         "unit": "m",
         "lower_bound": null,
         "note": null
       },
       "extent_v": {
-        "value": 0.4808,
+        "value": 0.4835,
         "ci90": [
-          0.1024,
-          0.8591
+          0.103,
+          0.8639
         ],
-        "sigma": 0.23001,
+        "sigma": 0.23129,
         "unit": "m",
         "lower_bound": null,
         "note": null
       },
       "center": [
-        9.081,
-        6.749,
-        2.414
+        9.065,
+        6.726,
+        2.298
       ],
       "evidence_frames": [
         14
@@ -3210,90 +3210,42 @@
       "damage_class": "mold",
       "score": 0.655,
       "area": {
-        "value": 0.2953,
+        "value": 0.1909,
         "ci90": [
-          0.028,
-          0.5626
+          0.014,
+          0.3677
         ],
-        "sigma": 0.16249,
+        "sigma": 0.10749,
         "unit": "m2",
         "lower_bound": null,
         "note": null
       },
       "extent_u": {
-        "value": 0.2026,
+        "value": 0.2822,
         "ci90": [
-          -0.1764,
-          0.5815
+          -0.119,
+          0.6835
         ],
-        "sigma": 0.23039,
+        "sigma": 0.24393,
         "unit": "m",
         "lower_bound": null,
         "note": null
       },
       "extent_v": {
-        "value": 1.3963,
+        "value": 1.3739,
         "ci90": [
-          0.3057,
-          2.487
+          0.3008,
+          2.447
         ],
-        "sigma": 0.66303,
+        "sigma": 0.65239,
         "unit": "m",
         "lower_bound": null,
         "note": null
       },
       "center": [
-        6.385,
-        5.246,
-        1.816
-      ],
-      "evidence_frames": [
-        15
-      ]
-    },
-    {
-      "id": "dmg_3",
-      "surface_id": "07_room_9_w1",
-      "room_id": "07_room_9",
-      "damage_class": "mold",
-      "score": 0.655,
-      "area": {
-        "value": 0.0764,
-        "ci90": [
-          0.0,
-          0.1604
-        ],
-        "sigma": 0.05105,
-        "unit": "m2",
-        "lower_bound": null,
-        "note": null
-      },
-      "extent_u": {
-        "value": 0.0949,
-        "ci90": [
-          -0.1997,
-          0.3895
-        ],
-        "sigma": 0.17911,
-        "unit": "m",
-        "lower_bound": null,
-        "note": null
-      },
-      "extent_v": {
-        "value": 1.1422,
-        "ci90": [
-          0.2496,
-          2.0348
-        ],
-        "sigma": 0.54264,
-        "unit": "m",
-        "lower_bound": null,
-        "note": null
-      },
-      "center": [
-        6.429,
+        6.42,
         4.01,
-        1.653
+        1.908
       ],
       "evidence_frames": [
         15
@@ -3320,8 +3272,7 @@
       "rule_id": "CD-05",
       "rule": "Visible mold implies a sustained moisture source and growth on the hidden side of the material.",
       "triggered_by": [
-        "dmg_2",
-        "dmg_3"
+        "dmg_2"
       ],
       "risk": "medium",
       "recommendation": "Find and stop the moisture source; inspect the back of the affected board before any cosmetic repair."
@@ -3333,8 +3284,7 @@
       "rule_id": "CD-07",
       "rule": "Moisture damage within 50 cm of a window suggests failed flashing or seal, with wet framing around the opening.",
       "triggered_by": [
-        "dmg_2",
-        "dmg_3"
+        "dmg_2"
       ],
       "risk": "medium",
       "recommendation": "Inspect window flashing and sill; probe the framing below the sill for rot."
@@ -3350,10 +3300,10 @@
       "quantity": {
         "value": 0.4,
         "ci90": [
-          0.0979,
-          0.7021
+          0.0985,
+          0.7015
         ],
-        "sigma": 0.18363,
+        "sigma": 0.18327,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3370,10 +3320,10 @@
       "quantity": {
         "value": 1.0,
         "ci90": [
-          0.2568,
-          1.7432
+          0.2572,
+          1.7428
         ],
-        "sigma": 0.45183,
+        "sigma": 0.45157,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3410,10 +3360,10 @@
       "quantity": {
         "value": 1.0,
         "ci90": [
-          0.203,
-          1.797
+          0.2346,
+          1.7654
         ],
-        "sigma": 0.48455,
+        "sigma": 0.46531,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3428,12 +3378,12 @@
       "code": "DRY-RPL",
       "description": "Remove and replace mold-affected wallboard",
       "quantity": {
-        "value": 0.4429,
+        "value": 0.4,
         "ci90": [
-          0.0458,
-          0.84
+          0.0683,
+          0.7317
         ],
-        "sigma": 0.24141,
+        "sigma": 0.20168,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3463,46 +3413,6 @@
     },
     {
       "id": "scope_7",
-      "surface_id": "07_room_9_w1",
-      "room_id": "07_room_9",
-      "code": "MLD-TRT",
-      "description": "Antimicrobial treatment of affected area",
-      "quantity": {
-        "value": 1.0,
-        "ci90": [
-          0.2543,
-          1.7457
-        ],
-        "sigma": 0.45332,
-        "unit": "m2",
-        "lower_bound": null,
-        "note": null
-      },
-      "unit": "m2",
-      "source": "dmg_3"
-    },
-    {
-      "id": "scope_8",
-      "surface_id": "07_room_9_w1",
-      "room_id": "07_room_9",
-      "code": "DRY-RPL",
-      "description": "Remove and replace mold-affected wallboard",
-      "quantity": {
-        "value": 0.4,
-        "ci90": [
-          0.0946,
-          0.7054
-        ],
-        "sigma": 0.18569,
-        "unit": "m2",
-        "lower_bound": null,
-        "note": null
-      },
-      "unit": "m2",
-      "source": "dmg_3"
-    },
-    {
-      "id": "scope_9",
       "surface_id": "07_room_9_w4",
       "room_id": "07_room_9",
       "code": "INV-MOIST",
@@ -3522,7 +3432,7 @@
       "source": "flag_1"
     },
     {
-      "id": "scope_10",
+      "id": "scope_8",
       "surface_id": "07_room_9_w4",
       "room_id": "07_room_9",
       "code": "INV-OPEN",
@@ -3542,7 +3452,7 @@
       "source": "flag_1"
     },
     {
-      "id": "scope_11",
+      "id": "scope_9",
       "surface_id": "07_room_9_w1",
       "room_id": "07_room_9",
       "code": "INV-MOIST",
@@ -3572,10 +3482,10 @@
     "02_room_8 / 05_room_6: fitted rooms overlapped by 2.28 m; 02_room_8 moved, relative position unreliable"
   ],
   "timing_s": {
-    "load+depth": 2.44,
-    "room_fit": 3.4,
-    "stitch": 187.51,
-    "openings": 2.92,
-    "damage": 49.54
+    "load+depth": 2.06,
+    "room_fit": 2.76,
+    "stitch": 185.09,
+    "openings": 2.34,
+    "damage": 46.67
   }
 }

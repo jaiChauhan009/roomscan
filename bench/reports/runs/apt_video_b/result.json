@@ -28,23 +28,23 @@
   },
   "property": {
     "footprint_area": {
-      "value": 13.2791,
+      "value": 13.8668,
       "ci90": [
-        3.3449,
-        23.2132
+        5.182,
+        22.5516
       ],
-      "sigma": 6.03936,
+      "sigma": 5.27984,
       "unit": "m2",
       "lower_bound": null,
       "note": null
     },
     "bbox": {
-      "value": 11.1584,
+      "value": 11.0299,
       "ci90": [
-        8.7425,
-        13.5743
+        8.6405,
+        13.4193
       ],
-      "sigma": 1.46872,
+      "sigma": 1.45261,
       "unit": "m",
       "lower_bound": null,
       "note": null
@@ -74,224 +74,144 @@
       "label": "room",
       "polygon": [
         [
-          7.7875,
+          6.7,
+          0.117
+        ],
+        [
+          6.7,
           0.0
         ],
         [
-          7.7875,
-          0.3633
+          7.7195,
+          0.0
         ],
         [
-          7.55,
-          0.6008
+          7.7195,
+          0.6012
         ],
         [
-          7.11,
-          0.6008
+          7.3758,
+          0.6012
         ],
         [
-          7.11,
-          0.8613
-        ],
-        [
-          7.3899,
-          0.8613
-        ],
-        [
-          7.3899,
-          1.0408
+          7.3758,
+          1.0412
         ],
         [
           6.4428,
-          1.0408
+          1.0412
         ],
         [
           6.4428,
-          3.3508
-        ],
-        [
-          6.14,
-          3.3508
-        ],
-        [
-          6.14,
-          3.6308
-        ],
-        [
-          7.05,
-          3.6308
-        ],
-        [
-          7.05,
-          3.3208
-        ],
-        [
-          7.7933,
-          3.3208
+          3.4395
         ],
         [
           7.87,
-          3.3783
+          3.4395
         ],
         [
           7.87,
-          3.4908
+          3.6311
         ],
         [
-          8.25,
-          3.4908
+          8.2372,
+          3.6311
         ],
         [
-          8.25,
-          4.093
-        ],
-        [
-          7.67,
-          4.093
-        ],
-        [
-          7.67,
-          4.0108
-        ],
-        [
-          7.45,
-          4.0108
-        ],
-        [
-          7.45,
-          4.2208
-        ],
-        [
-          7.65,
-          4.2208
-        ],
-        [
-          7.65,
-          4.3039
-        ],
-        [
-          7.9945,
-          4.5408
-        ],
-        [
-          8.11,
-          4.5408
-        ],
-        [
-          8.33,
-          4.7608
+          8.2372,
+          4.7612
         ],
         [
           8.6642,
-          4.7608
+          4.7612
         ],
         [
           8.6642,
-          3.6108
+          3.6112
         ],
         [
-          9.04,
-          3.6108
+          9.1554,
+          3.6112
         ],
         [
-          9.3101,
-          3.8809
-        ],
-        [
-          9.3101,
-          6.0924
-        ],
-        [
-          9.24,
-          6.1508
+          9.1554,
+          6.1512
         ],
         [
           8.81,
-          6.1508
+          6.1512
         ],
         [
           8.81,
-          5.7269
+          5.5312
         ],
         [
-          8.4457,
-          5.5308
+          7.94,
+          5.5312
         ],
         [
-          8.1422,
-          5.5308
-        ],
-        [
-          7.3644,
-          5.0308
+          7.94,
+          5.0312
         ],
         [
           6.364,
-          5.0308
+          5.0312
         ],
         [
           5.74,
-          4.5508
+          4.5512
         ],
         [
           5.04,
-          4.2508
+          4.2512
         ],
         [
           4.99,
-          4.1675
+          4.1679
         ],
         [
           4.99,
-          3.5608
+          3.6719
         ],
         [
-          5.9296,
-          3.5608
+          5.9293,
+          3.6719
         ],
         [
-          5.9296,
-          1.4985
+          5.9293,
+          1.4997
         ],
         [
-          6.1238,
-          0.9808
-        ],
-        [
-          6.2,
-          0.9808
-        ],
-        [
-          6.2,
-          0.7508
+          6.18,
+          0.8312
         ],
         [
           5.98,
-          0.5968
+          0.8312
         ],
         [
           5.98,
-          0.0
+          0.117
         ]
       ],
       "floor_area": {
-        "value": 8.8744,
+        "value": 8.6167,
         "ci90": [
-          0.0,
-          17.8654
+          1.2262,
+          16.0073
         ],
-        "sigma": 5.46595,
+        "sigma": 4.49301,
         "unit": "m2",
         "lower_bound": null,
         "note": null
       },
       "perimeter": {
-        "value": 27.9003,
+        "value": 25.09,
         "ci90": [
-          20.6249,
-          35.1757
+          18.97,
+          31.21
         ],
-        "sigma": 4.42303,
+        "sigma": 3.72059,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -309,20 +229,20 @@
         {
           "id": "room_1_w1",
           "start": [
-            7.7875,
+            6.7,
+            0.117
+          ],
+          "end": [
+            6.7,
             0.0
           ],
-          "end": [
-            7.7875,
-            0.3633
-          ],
           "length": {
-            "value": 0.3633,
+            "value": 0.117,
             "ci90": [
               0.0,
-              1.0773
+              0.4405
             ],
-            "sigma": 0.43408,
+            "sigma": 0.19663,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -336,56 +256,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.8771,
+            "value": 0.2825,
             "ci90": [
               0.0,
-              3.6955
+              1.9191
             ],
-            "sigma": 1.71344,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.698,
-          "plane_spread": 0.0159
-        },
-        {
-          "id": "room_1_w2",
-          "start": [
-            7.7875,
-            0.3633
-          ],
-          "end": [
-            7.55,
-            0.6008
-          ],
-          "length": {
-            "value": 0.3359,
-            "ci90": [
-              0.0,
-              1.0493
-            ],
-            "sigma": 0.43372,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.8111,
-            "ci90": [
-              0.0,
-              3.579
-            ],
-            "sigma": 1.68272,
+            "sigma": 0.99492,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -395,14 +271,146 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w3",
+          "id": "room_1_w2",
           "start": [
-            7.55,
-            0.6008
+            6.7,
+            0.0
           ],
           "end": [
-            7.11,
-            0.6008
+            7.7195,
+            0.0
+          ],
+          "length": {
+            "value": 1.0195,
+            "ci90": [
+              0.2776,
+              1.7613
+            ],
+            "sigma": 0.45099,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 2.4616,
+            "ci90": [
+              0.0,
+              6.6078
+            ],
+            "sigma": 2.52066,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
+          "evidence_coverage": 0.834,
+          "plane_spread": 0.0164
+        },
+        {
+          "id": "room_1_w3",
+          "start": [
+            7.7195,
+            0.0
+          ],
+          "end": [
+            7.7195,
+            0.6012
+          ],
+          "length": {
+            "value": 0.6012,
+            "ci90": [
+              0.0,
+              1.3224
+            ],
+            "sigma": 0.43842,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 1.4517,
+            "ci90": [
+              0.0,
+              4.7303
+            ],
+            "sigma": 1.9932,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
+          "evidence_coverage": 0.744,
+          "plane_spread": 0.0142
+        },
+        {
+          "id": "room_1_w4",
+          "start": [
+            7.7195,
+            0.6012
+          ],
+          "end": [
+            7.3758,
+            0.6012
+          ],
+          "length": {
+            "value": 0.3436,
+            "ci90": [
+              0.0124,
+              0.6749
+            ],
+            "sigma": 0.20138,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 0.8297,
+            "ci90": [
+              0.0,
+              2.6755
+            ],
+            "sigma": 1.1221,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
+          "evidence_coverage": 0.0,
+          "plane_spread": 0.0
+        },
+        {
+          "id": "room_1_w5",
+          "start": [
+            7.3758,
+            0.6012
+          ],
+          "end": [
+            7.3758,
+            1.0412
           ],
           "length": {
             "value": 0.44,
@@ -435,158 +443,26 @@
             "note": null
           },
           "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w4",
-          "start": [
-            7.11,
-            0.6008
-          ],
-          "end": [
-            7.11,
-            0.8613
-          ],
-          "length": {
-            "value": 0.2605,
-            "ci90": [
-              0.0,
-              0.9725
-            ],
-            "sigma": 0.43286,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.6289,
-            "ci90": [
-              0.0,
-              3.2603
-            ],
-            "sigma": 1.59977,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w5",
-          "start": [
-            7.11,
-            0.8613
-          ],
-          "end": [
-            7.3899,
-            0.8613
-          ],
-          "length": {
-            "value": 0.2799,
-            "ci90": [
-              0.0,
-              0.9922
-            ],
-            "sigma": 0.43306,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.6757,
-            "ci90": [
-              0.0,
-              3.3418
-            ],
-            "sigma": 1.62081,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.717,
-          "plane_spread": 0.0169
+          "evidence_coverage": 0.682,
+          "plane_spread": 0.0155
         },
         {
           "id": "room_1_w6",
           "start": [
-            7.3899,
-            0.8613
-          ],
-          "end": [
-            7.3899,
-            1.0408
-          ],
-          "length": {
-            "value": 0.1795,
-            "ci90": [
-              0.0,
-              0.8904
-            ],
-            "sigma": 0.43218,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.4335,
-            "ci90": [
-              0.0,
-              2.9243
-            ],
-            "sigma": 1.51425,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.833,
-          "plane_spread": 0.0112
-        },
-        {
-          "id": "room_1_w7",
-          "start": [
-            7.3899,
-            1.0408
+            7.3758,
+            1.0412
           ],
           "end": [
             6.4428,
-            1.0408
+            1.0412
           ],
           "length": {
-            "value": 0.9471,
+            "value": 0.9331,
             "ci90": [
-              0.2095,
-              1.6846
+              0.196,
+              1.6701
             ],
-            "sigma": 0.44838,
+            "sigma": 0.44809,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -600,12 +476,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 2.2867,
+            "value": 2.2529,
             "ci90": [
               0.0,
-              6.2789
+              6.2162
             ],
-            "sigma": 2.42704,
+            "sigma": 2.40949,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -615,22 +491,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w8",
+          "id": "room_1_w7",
           "start": [
             6.4428,
-            1.0408
+            1.0412
           ],
           "end": [
             6.4428,
-            3.3508
+            3.4395
           ],
           "length": {
-            "value": 2.31,
+            "value": 2.3983,
             "ci90": [
-              1.2413,
-              3.3787
+              1.321,
+              3.4756
             ],
-            "sigma": 0.64968,
+            "sigma": 0.65494,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -644,12 +520,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 3.3301,
+            "value": 3.4083,
             "ci90": [
               0.0,
-              10.6866
+              10.9499
             ],
-            "sigma": 4.47229,
+            "sigma": 4.58481,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -662,22 +538,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w9",
+          "id": "room_1_w8",
           "start": [
             6.4428,
-            3.3508
+            3.4395
           ],
           "end": [
-            6.14,
-            3.3508
+            7.87,
+            3.4395
           ],
           "length": {
-            "value": 0.3028,
+            "value": 1.4272,
             "ci90": [
-              0.0,
-              1.2557
+              0.4298,
+              2.4246
             ],
-            "sigma": 0.57929,
+            "sigma": 0.60635,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -691,12 +567,58 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.7311,
+            "value": 1.1153,
             "ci90": [
               0.0,
-              3.9666
+              6.5523
             ],
-            "sigma": 1.96697,
+            "sigma": 3.30534,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [
+            "op_3"
+          ],
+          "evidence_coverage": 0.0,
+          "plane_spread": 0.0065
+        },
+        {
+          "id": "room_1_w9",
+          "start": [
+            7.87,
+            3.4395
+          ],
+          "end": [
+            7.87,
+            3.6311
+          ],
+          "length": {
+            "value": 0.1916,
+            "ci90": [
+              0.0,
+              0.9048
+            ],
+            "sigma": 0.43358,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 0.4626,
+            "ci90": [
+              0.0,
+              2.9785
+            ],
+            "sigma": 1.52949,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -708,20 +630,20 @@
         {
           "id": "room_1_w10",
           "start": [
-            6.14,
-            3.3508
+            7.87,
+            3.6311
           ],
           "end": [
-            6.14,
-            3.6308
+            8.2372,
+            3.6311
           ],
           "length": {
-            "value": 0.28,
+            "value": 0.3672,
             "ci90": [
               0.0,
-              1.2326
+              1.3211
             ],
-            "sigma": 0.5791,
+            "sigma": 0.5799,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -735,37 +657,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.6761,
+            "value": 0.8866,
             "ci90": [
               0.0,
-              3.8677
+              4.2473
             ],
-            "sigma": 1.94034,
+            "sigma": 2.04314,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "evidence_coverage": 0.545,
+          "plane_spread": 0.0172
         },
         {
           "id": "room_1_w11",
           "start": [
-            6.14,
-            3.6308
+            8.2372,
+            3.6311
           ],
           "end": [
-            7.05,
-            3.6308
+            8.2372,
+            4.7612
           ],
           "length": {
-            "value": 0.91,
+            "value": 1.1301,
             "ci90": [
-              0.0,
-              1.88
+              0.3791,
+              1.8811
             ],
-            "sigma": 0.58968,
+            "sigma": 0.45657,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -779,18 +701,18 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.7798,
+            "value": 1.0482,
             "ci90": [
               0.0,
-              5.1754
+              5.3061
             ],
-            "sigma": 2.67227,
+            "sigma": 2.58855,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [
-            "op_3"
+            "op_4"
           ],
           "evidence_coverage": 0.0,
           "plane_spread": 0.0
@@ -798,20 +720,20 @@
         {
           "id": "room_1_w12",
           "start": [
-            7.05,
-            3.6308
+            8.2372,
+            4.7612
           ],
           "end": [
-            7.05,
-            3.3208
+            8.6642,
+            4.7612
           ],
           "length": {
-            "value": 0.31,
+            "value": 0.427,
             "ci90": [
               0.0,
-              1.263
+              1.382
             ],
-            "sigma": 0.57935,
+            "sigma": 0.58058,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -825,12 +747,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.7485,
+            "value": 1.031,
             "ci90": [
               0.0,
-              3.9979
+              4.5099
             ],
-            "sigma": 1.97543,
+            "sigma": 2.11498,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -842,672 +764,12 @@
         {
           "id": "room_1_w13",
           "start": [
-            7.05,
-            3.3208
-          ],
-          "end": [
-            7.7933,
-            3.3208
-          ],
-          "length": {
-            "value": 0.7433,
-            "ci90": [
-              0.0,
-              1.7069
-            ],
-            "sigma": 0.58581,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.7948,
-            "ci90": [
-              0.0,
-              5.922
-            ],
-            "sigma": 2.50909,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w14",
-          "start": [
-            7.7933,
-            3.3208
-          ],
-          "end": [
-            7.87,
-            3.3783
-          ],
-          "length": {
-            "value": 0.0958,
-            "ci90": [
-              0.0,
-              1.0468
-            ],
-            "sigma": 0.57811,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.2314,
-            "ci90": [
-              0.0,
-              3.0812
-            ],
-            "sigma": 1.73253,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w15",
-          "start": [
-            7.87,
-            3.3783
-          ],
-          "end": [
-            7.87,
-            3.4908
-          ],
-          "length": {
-            "value": 0.1125,
-            "ci90": [
-              0.0,
-              1.0635
-            ],
-            "sigma": 0.57816,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.2716,
-            "ci90": [
-              0.0,
-              3.1514
-            ],
-            "sigma": 1.75073,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w16",
-          "start": [
-            7.87,
-            3.4908
-          ],
-          "end": [
-            8.25,
-            3.4908
-          ],
-          "length": {
-            "value": 0.38,
-            "ci90": [
-              0.0,
-              1.3341
-            ],
-            "sigma": 0.58004,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.9175,
-            "ci90": [
-              0.0,
-              4.3034
-            ],
-            "sigma": 2.05844,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w17",
-          "start": [
-            8.25,
-            3.4908
-          ],
-          "end": [
-            8.25,
-            4.093
-          ],
-          "length": {
-            "value": 0.6022,
-            "ci90": [
-              0.0,
-              1.5614
-            ],
-            "sigma": 0.58313,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.4541,
-            "ci90": [
-              0.0,
-              5.2879
-            ],
-            "sigma": 2.33073,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w18",
-          "start": [
-            8.25,
-            4.093
-          ],
-          "end": [
-            7.67,
-            4.093
-          ],
-          "length": {
-            "value": 0.58,
-            "ci90": [
-              0.0,
-              1.5386
-            ],
-            "sigma": 0.58276,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.4004,
-            "ci90": [
-              0.0,
-              5.1886
-            ],
-            "sigma": 2.30299,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w19",
-          "start": [
-            7.67,
-            4.093
-          ],
-          "end": [
-            7.67,
-            4.0108
-          ],
-          "length": {
-            "value": 0.0822,
-            "ci90": [
-              0.0,
-              1.0331
-            ],
-            "sigma": 0.57808,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.1985,
-            "ci90": [
-              0.0,
-              3.0241
-            ],
-            "sigma": 1.71777,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w20",
-          "start": [
-            7.67,
-            4.0108
-          ],
-          "end": [
-            7.45,
-            4.0108
-          ],
-          "length": {
-            "value": 0.22,
-            "ci90": [
-              0.0,
-              1.1719
-            ],
-            "sigma": 0.57867,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.5312,
-            "ci90": [
-              0.0,
-              3.609
-            ],
-            "sigma": 1.87112,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w21",
-          "start": [
-            7.45,
-            4.0108
-          ],
-          "end": [
-            7.45,
-            4.2208
-          ],
-          "length": {
-            "value": 0.21,
-            "ci90": [
-              0.0,
-              1.1618
-            ],
-            "sigma": 0.57861,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.507,
-            "ci90": [
-              0.0,
-              3.5661
-            ],
-            "sigma": 1.85972,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w22",
-          "start": [
-            7.45,
-            4.2208
-          ],
-          "end": [
-            7.65,
-            4.2208
-          ],
-          "length": {
-            "value": 0.2,
-            "ci90": [
-              0.0,
-              1.1517
-            ],
-            "sigma": 0.57855,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.4829,
-            "ci90": [
-              0.0,
-              3.5233
-            ],
-            "sigma": 1.84836,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w23",
-          "start": [
-            7.65,
-            4.2208
-          ],
-          "end": [
-            7.65,
-            4.3039
-          ],
-          "length": {
-            "value": 0.0831,
-            "ci90": [
-              0.0,
-              1.034
-            ],
-            "sigma": 0.57808,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.2007,
-            "ci90": [
-              0.0,
-              3.0279
-            ],
-            "sigma": 1.71874,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w24",
-          "start": [
-            7.65,
-            4.3039
-          ],
-          "end": [
-            7.9945,
-            4.5408
-          ],
-          "length": {
-            "value": 0.4181,
-            "ci90": [
-              0.0,
-              1.3729
-            ],
-            "sigma": 0.58047,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.0095,
-            "ci90": [
-              0.0,
-              4.4708
-            ],
-            "sigma": 2.10426,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w25",
-          "start": [
-            7.9945,
-            4.5408
-          ],
-          "end": [
-            8.11,
-            4.5408
-          ],
-          "length": {
-            "value": 0.1155,
-            "ci90": [
-              0.0,
-              1.0665
-            ],
-            "sigma": 0.57817,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.2788,
-            "ci90": [
-              0.0,
-              3.1639
-            ],
-            "sigma": 1.75397,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w26",
-          "start": [
-            8.11,
-            4.5408
-          ],
-          "end": [
-            8.33,
-            4.7608
-          ],
-          "length": {
-            "value": 0.3111,
-            "ci90": [
-              0.0,
-              1.2641
-            ],
-            "sigma": 0.57936,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.7512,
-            "ci90": [
-              0.0,
-              4.0028
-            ],
-            "sigma": 1.97676,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w27",
-          "start": [
-            8.33,
-            4.7608
+            8.6642,
+            4.7612
           ],
           "end": [
             8.6642,
-            4.7608
-          ],
-          "length": {
-            "value": 0.3342,
-            "ci90": [
-              0.0,
-              1.2875
-            ],
-            "sigma": 0.57957,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.8069,
-            "ci90": [
-              0.0,
-              4.1031
-            ],
-            "sigma": 2.00393,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w28",
-          "start": [
-            8.6642,
-            4.7608
-          ],
-          "end": [
-            8.6642,
-            3.6108
+            3.6112
           ],
           "length": {
             "value": 1.15,
@@ -1544,22 +806,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w29",
+          "id": "room_1_w14",
           "start": [
             8.6642,
-            3.6108
+            3.6112
           ],
           "end": [
-            9.04,
-            3.6108
+            9.1554,
+            3.6112
           ],
           "length": {
-            "value": 0.3758,
+            "value": 0.4912,
             "ci90": [
               0.0,
-              1.3299
+              1.2086
             ],
-            "sigma": 0.57999,
+            "sigma": 0.43615,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1573,12 +835,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.9074,
+            "value": 1.186,
             "ci90": [
               0.0,
-              4.2851
+              4.2477
             ],
-            "sigma": 2.05345,
+            "sigma": 1.86136,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1588,22 +850,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w30",
+          "id": "room_1_w15",
           "start": [
-            9.04,
-            3.6108
+            9.1554,
+            3.6112
           ],
           "end": [
-            9.3101,
-            3.8809
+            9.1554,
+            6.1512
           ],
           "length": {
-            "value": 0.382,
+            "value": 2.54,
             "ci90": [
-              0.0,
-              1.3361
+              1.4483,
+              3.6317
             ],
-            "sigma": 0.58006,
+            "sigma": 0.6637,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1617,125 +879,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.9223,
+            "value": 6.1328,
             "ci90": [
               0.0,
-              4.312
+              14.2529
             ],
-            "sigma": 2.06079,
+            "sigma": 4.93651,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "evidence_coverage": 0.531,
+          "plane_spread": 0.014
         },
         {
-          "id": "room_1_w31",
+          "id": "room_1_w16",
           "start": [
-            9.3101,
-            3.8809
-          ],
-          "end": [
-            9.3101,
-            6.0924
-          ],
-          "length": {
-            "value": 2.2115,
-            "ci90": [
-              1.1522,
-              3.2708
-            ],
-            "sigma": 0.64401,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 5.3397,
-            "ci90": [
-              0.0,
-              12.7112
-            ],
-            "sigma": 4.48146,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w32",
-          "start": [
-            9.3101,
-            6.0924
-          ],
-          "end": [
-            9.24,
-            6.1508
-          ],
-          "length": {
-            "value": 0.0912,
-            "ci90": [
-              0.0,
-              1.0422
-            ],
-            "sigma": 0.5781,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.2203,
-            "ci90": [
-              0.0,
-              3.0619
-            ],
-            "sigma": 1.72753,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w33",
-          "start": [
-            9.24,
-            6.1508
+            9.1554,
+            6.1512
           ],
           "end": [
             8.81,
-            6.1508
+            6.1512
           ],
           "length": {
-            "value": 0.43,
+            "value": 0.3454,
             "ci90": [
               0.0,
-              1.385
+              1.059
             ],
-            "sigma": 0.58061,
+            "sigma": 0.43384,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1749,12 +923,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.0382,
+            "value": 0.8339,
             "ci90": [
               0.0,
-              4.5232
+              3.6191
             ],
-            "sigma": 2.11863,
+            "sigma": 1.69328,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1764,22 +938,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w34",
+          "id": "room_1_w17",
           "start": [
             8.81,
-            6.1508
+            6.1512
           ],
           "end": [
             8.81,
-            5.7269
+            5.5312
           ],
           "length": {
-            "value": 0.4238,
+            "value": 0.62,
             "ci90": [
               0.0,
-              1.3788
+              1.5797
             ],
-            "sigma": 0.58054,
+            "sigma": 0.58344,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1793,12 +967,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.0234,
+            "value": 1.497,
             "ci90": [
               0.0,
-              4.4961
+              5.3674
             ],
-            "sigma": 2.11118,
+            "sigma": 2.353,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1808,22 +982,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w35",
+          "id": "room_1_w18",
           "start": [
             8.81,
-            5.7269
+            5.5312
           ],
           "end": [
-            8.4457,
-            5.5308
+            7.94,
+            5.5312
           ],
           "length": {
-            "value": 0.4137,
+            "value": 0.87,
             "ci90": [
               0.0,
-              1.3685
+              1.8383
             ],
-            "sigma": 0.58042,
+            "sigma": 0.58868,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1837,12 +1011,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.999,
+            "value": 2.1006,
             "ci90": [
               0.0,
-              4.4516
+              6.4957
             ],
-            "sigma": 2.09898,
+            "sigma": 2.67197,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1852,22 +1026,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w36",
+          "id": "room_1_w19",
           "start": [
-            8.4457,
-            5.5308
+            7.94,
+            5.5312
           ],
           "end": [
-            8.1422,
-            5.5308
+            7.94,
+            5.0312
           ],
           "length": {
-            "value": 0.3035,
+            "value": 0.5,
             "ci90": [
               0.0,
-              1.2564
+              1.4566
             ],
-            "sigma": 0.57929,
+            "sigma": 0.58154,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1881,12 +1055,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.7328,
+            "value": 1.2073,
             "ci90": [
               0.0,
-              3.9696
+              4.8326
             ],
-            "sigma": 1.96779,
+            "sigma": 2.204,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1896,66 +1070,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w37",
+          "id": "room_1_w20",
           "start": [
-            8.1422,
-            5.5308
-          ],
-          "end": [
-            7.3644,
-            5.0308
-          ],
-          "length": {
-            "value": 0.9246,
-            "ci90": [
-              0.0,
-              1.8952
-            ],
-            "sigma": 0.59005,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 2.2325,
-            "ci90": [
-              0.0,
-              6.7443
-            ],
-            "sigma": 2.7429,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w38",
-          "start": [
-            7.3644,
-            5.0308
+            7.94,
+            5.0312
           ],
           "end": [
             6.364,
-            5.0308
+            5.0312
           ],
           "length": {
-            "value": 1.0004,
+            "value": 1.576,
             "ci90": [
-              0.0265,
-              1.9744
+              0.5687,
+              2.5833
             ],
-            "sigma": 0.59209,
+            "sigma": 0.6124,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1969,12 +1099,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 2.4156,
+            "value": 3.8053,
             "ci90": [
               0.0,
-              7.0903
+              9.7449
             ],
-            "sigma": 2.84195,
+            "sigma": 3.61092,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1984,14 +1114,14 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w39",
+          "id": "room_1_w21",
           "start": [
             6.364,
-            5.0308
+            5.0312
           ],
           "end": [
             5.74,
-            4.5508
+            4.5512
           ],
           "length": {
             "value": 0.7873,
@@ -2028,14 +1158,14 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w40",
+          "id": "room_1_w22",
           "start": [
             5.74,
-            4.5508
+            4.5512
           ],
           "end": [
             5.04,
-            4.2508
+            4.2512
           ],
           "length": {
             "value": 0.7616,
@@ -2072,14 +1202,14 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w41",
+          "id": "room_1_w23",
           "start": [
             5.04,
-            4.2508
+            4.2512
           ],
           "end": [
             4.99,
-            4.1675
+            4.1679
           ],
           "length": {
             "value": 0.0972,
@@ -2116,22 +1246,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w42",
+          "id": "room_1_w24",
           "start": [
             4.99,
-            4.1675
+            4.1679
           ],
           "end": [
             4.99,
-            3.5608
+            3.6719
           ],
           "length": {
-            "value": 0.6067,
+            "value": 0.496,
             "ci90": [
               0.0,
-              1.566
+              1.4525
             ],
-            "sigma": 0.58321,
+            "sigma": 0.58148,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2145,12 +1275,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.4648,
+            "value": 1.1975,
             "ci90": [
               0.0,
-              5.3078
+              4.8148
             ],
-            "sigma": 2.3363,
+            "sigma": 2.19906,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2160,22 +1290,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w43",
+          "id": "room_1_w25",
           "start": [
             4.99,
-            3.5608
+            3.6719
           ],
           "end": [
-            5.9296,
-            3.5608
+            5.9293,
+            3.6719
           ],
           "length": {
-            "value": 0.9396,
+            "value": 0.9393,
             "ci90": [
-              0.2025,
-              1.6767
+              0.2022,
+              1.6764
             ],
-            "sigma": 0.44812,
+            "sigma": 0.44811,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2189,12 +1319,100 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 2.2687,
+            "value": 2.268,
             "ci90": [
               0.0,
-              6.2452
+              6.2438
             ],
-            "sigma": 2.41746,
+            "sigma": 2.41707,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
+          "evidence_coverage": 0.0,
+          "plane_spread": 0.0168
+        },
+        {
+          "id": "room_1_w26",
+          "start": [
+            5.9293,
+            3.6719
+          ],
+          "end": [
+            5.9293,
+            1.4997
+          ],
+          "length": {
+            "value": 2.1722,
+            "ci90": [
+              1.1165,
+              3.2279
+            ],
+            "sigma": 0.64179,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 5.2448,
+            "ci90": [
+              0.0,
+              12.527
+            ],
+            "sigma": 4.42719,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
+          "evidence_coverage": 0.928,
+          "plane_spread": 0.0183
+        },
+        {
+          "id": "room_1_w27",
+          "start": [
+            5.9293,
+            1.4997
+          ],
+          "end": [
+            6.18,
+            0.8312
+          ],
+          "length": {
+            "value": 0.714,
+            "ci90": [
+              0.0,
+              1.4397
+            ],
+            "sigma": 0.4412,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 2.4145,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 1.7238,
+            "ci90": [
+              0.0,
+              5.2304
+            ],
+            "sigma": 2.13177,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2204,198 +1422,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w44",
+          "id": "room_1_w28",
           "start": [
-            5.9296,
-            3.5608
-          ],
-          "end": [
-            5.9296,
-            1.4985
-          ],
-          "length": {
-            "value": 2.0623,
-            "ci90": [
-              1.0165,
-              3.1081
-            ],
-            "sigma": 0.63579,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 4.9795,
-            "ci90": [
-              0.0,
-              12.0127
-            ],
-            "sigma": 4.27576,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.929,
-          "plane_spread": 0.018
-        },
-        {
-          "id": "room_1_w45",
-          "start": [
-            5.9296,
-            1.4985
-          ],
-          "end": [
-            6.1238,
-            0.9808
-          ],
-          "length": {
-            "value": 0.5529,
-            "ci90": [
-              0.0,
-              1.2723
-            ],
-            "sigma": 0.43737,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.3349,
-            "ci90": [
-              0.0,
-              4.5175
-            ],
-            "sigma": 1.93482,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w46",
-          "start": [
-            6.1238,
-            0.9808
-          ],
-          "end": [
-            6.2,
-            0.9808
-          ],
-          "length": {
-            "value": 0.0762,
-            "ci90": [
-              0.0,
-              1.0271
-            ],
-            "sigma": 0.57806,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.1841,
-            "ci90": [
-              0.0,
-              2.9991
-            ],
-            "sigma": 1.71132,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w47",
-          "start": [
-            6.2,
-            0.9808
-          ],
-          "end": [
-            6.2,
-            0.7508
-          ],
-          "length": {
-            "value": 0.23,
-            "ci90": [
-              0.0,
-              1.182
-            ],
-            "sigma": 0.57873,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 2.4145,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.5553,
-            "ci90": [
-              0.0,
-              3.652
-            ],
-            "sigma": 1.88257,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_1_w48",
-          "start": [
-            6.2,
-            0.7508
+            6.18,
+            0.8312
           ],
           "end": [
             5.98,
-            0.5968
+            0.8312
           ],
           "length": {
-            "value": 0.2685,
+            "value": 0.2,
             "ci90": [
               0.0,
-              1.221
+              1.1517
             ],
-            "sigma": 0.57901,
+            "sigma": 0.57855,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2409,12 +1451,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.6484,
+            "value": 0.4829,
             "ci90": [
               0.0,
-              3.8182
+              3.5233
             ],
-            "sigma": 1.92703,
+            "sigma": 1.84836,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2424,22 +1466,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w49",
+          "id": "room_1_w29",
           "start": [
             5.98,
-            0.5968
+            0.8312
           ],
           "end": [
             5.98,
-            0.0
+            0.117
           ],
           "length": {
-            "value": 0.5968,
+            "value": 0.7142,
             "ci90": [
               0.0,
-              1.3178
+              1.44
             ],
-            "sigma": 0.43832,
+            "sigma": 0.44121,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2453,12 +1495,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.4409,
+            "value": 1.7245,
             "ci90": [
               0.0,
-              4.7107
+              5.2315
             ],
-            "sigma": 1.9878,
+            "sigma": 2.13209,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2468,22 +1510,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_1_w50",
+          "id": "room_1_w30",
           "start": [
             5.98,
-            0.0
+            0.117
           ],
           "end": [
-            7.7875,
-            0.0
+            6.7,
+            0.117
           ],
           "length": {
-            "value": 1.8075,
+            "value": 0.72,
             "ci90": [
-              1.0015,
-              2.6136
+              0.0,
+              1.6828
             ],
-            "sigma": 0.49005,
+            "sigma": 0.58533,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2497,35 +1539,35 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 4.3643,
+            "value": 1.7384,
             "ci90": [
               0.0,
-              10.2432
+              5.8167
             ],
-            "sigma": 3.57402,
+            "sigma": 2.47936,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
-          "evidence_coverage": 0.688,
-          "plane_spread": 0.0169
+          "evidence_coverage": 0.278,
+          "plane_spread": 0.0057
         }
       ],
       "openings": [
         {
           "id": "op_1",
           "type": "window",
-          "wall_id": "room_1_w8",
+          "wall_id": "room_1_w7",
           "room_id": "room_1",
           "connects_to": null,
           "width": {
-            "value": 1.325,
+            "value": 1.415,
             "ci90": [
-              0.7353,
-              1.9147
+              0.8055,
+              2.0245
             ],
-            "sigma": 0.35852,
+            "sigma": 0.37054,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2557,7 +1599,7 @@
         {
           "id": "op_2",
           "type": "window",
-          "wall_id": "room_1_w8",
+          "wall_id": "room_1_w7",
           "room_id": "room_1",
           "connects_to": null,
           "width": {
@@ -2598,43 +1640,84 @@
         {
           "id": "op_3",
           "type": "window",
-          "wall_id": "room_1_w11",
+          "wall_id": "room_1_w8",
           "room_id": "room_1",
           "connects_to": null,
           "width": {
-            "value": 0.9144,
+            "value": 1.371,
             "ci90": [
-              0.4123,
-              1.4166
+              0.7697,
+              1.9723
             ],
-            "sigma": 0.30528,
+            "sigma": 0.36557,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "height": {
-            "value": 1.55,
+            "value": 1.7,
             "ci90": [
-              0.6862,
-              2.4138
+              0.8083,
+              2.5917
             ],
-            "sigma": 0.52516,
+            "sigma": 0.54212,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "sill_height": {
-            "value": 0.85,
+            "value": 0.75,
             "ci90": [
-              0.0901,
-              1.6099
+              0.0007,
+              1.4993
             ],
-            "sigma": 0.46199,
+            "sigma": 0.45552,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "offset_along_wall": 0.0
+        },
+        {
+          "id": "op_4",
+          "type": "window",
+          "wall_id": "room_1_w11",
+          "room_id": "room_1",
+          "connects_to": null,
+          "width": {
+            "value": 0.9336,
+            "ci90": [
+              0.4164,
+              1.4508
+            ],
+            "sigma": 0.31443,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": 1.8,
+            "ci90": [
+              0.8888,
+              2.7112
+            ],
+            "sigma": 0.55397,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "sill_height": {
+            "value": 0.3,
+            "ci90": [
+              0.0,
+              1.0169
+            ],
+            "sigma": 0.43585,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "offset_along_wall": 0.205
         }
       ],
       "surfaces": [
@@ -2643,12 +1726,12 @@
           "type": "wall",
           "ref": "room_1_w1",
           "area": {
-            "value": 0.8771,
+            "value": 0.2825,
             "ci90": [
               0.0,
-              3.6955
+              1.9191
             ],
-            "sigma": 1.71344,
+            "sigma": 0.99492,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2659,12 +1742,12 @@
           "type": "wall",
           "ref": "room_1_w2",
           "area": {
-            "value": 0.8111,
+            "value": 2.4616,
             "ci90": [
               0.0,
-              3.579
+              6.6078
             ],
-            "sigma": 1.68272,
+            "sigma": 2.52066,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2674,6 +1757,38 @@
           "id": "room_1_w3",
           "type": "wall",
           "ref": "room_1_w3",
+          "area": {
+            "value": 1.4517,
+            "ci90": [
+              0.0,
+              4.7303
+            ],
+            "sigma": 1.9932,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          }
+        },
+        {
+          "id": "room_1_w4",
+          "type": "wall",
+          "ref": "room_1_w4",
+          "area": {
+            "value": 0.8297,
+            "ci90": [
+              0.0,
+              2.6755
+            ],
+            "sigma": 1.1221,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          }
+        },
+        {
+          "id": "room_1_w5",
+          "type": "wall",
+          "ref": "room_1_w5",
           "area": {
             "value": 1.0624,
             "ci90": [
@@ -2687,48 +1802,16 @@
           }
         },
         {
-          "id": "room_1_w4",
-          "type": "wall",
-          "ref": "room_1_w4",
-          "area": {
-            "value": 0.6289,
-            "ci90": [
-              0.0,
-              3.2603
-            ],
-            "sigma": 1.59977,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w5",
-          "type": "wall",
-          "ref": "room_1_w5",
-          "area": {
-            "value": 0.6757,
-            "ci90": [
-              0.0,
-              3.3418
-            ],
-            "sigma": 1.62081,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
           "id": "room_1_w6",
           "type": "wall",
           "ref": "room_1_w6",
           "area": {
-            "value": 0.4335,
+            "value": 2.2529,
             "ci90": [
               0.0,
-              2.9243
+              6.2162
             ],
-            "sigma": 1.51425,
+            "sigma": 2.40949,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2739,12 +1822,12 @@
           "type": "wall",
           "ref": "room_1_w7",
           "area": {
-            "value": 2.2867,
+            "value": 3.4083,
             "ci90": [
               0.0,
-              6.2789
+              10.9499
             ],
-            "sigma": 2.42704,
+            "sigma": 4.58481,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2755,12 +1838,12 @@
           "type": "wall",
           "ref": "room_1_w8",
           "area": {
-            "value": 3.3301,
+            "value": 1.1153,
             "ci90": [
               0.0,
-              10.6866
+              6.5523
             ],
-            "sigma": 4.47229,
+            "sigma": 3.30534,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2771,12 +1854,12 @@
           "type": "wall",
           "ref": "room_1_w9",
           "area": {
-            "value": 0.7311,
+            "value": 0.4626,
             "ci90": [
               0.0,
-              3.9666
+              2.9785
             ],
-            "sigma": 1.96697,
+            "sigma": 1.52949,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2787,12 +1870,12 @@
           "type": "wall",
           "ref": "room_1_w10",
           "area": {
-            "value": 0.6761,
+            "value": 0.8866,
             "ci90": [
               0.0,
-              3.8677
+              4.2473
             ],
-            "sigma": 1.94034,
+            "sigma": 2.04314,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2803,12 +1886,12 @@
           "type": "wall",
           "ref": "room_1_w11",
           "area": {
-            "value": 0.7798,
+            "value": 1.0482,
             "ci90": [
               0.0,
-              5.1754
+              5.3061
             ],
-            "sigma": 2.67227,
+            "sigma": 2.58855,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2819,12 +1902,12 @@
           "type": "wall",
           "ref": "room_1_w12",
           "area": {
-            "value": 0.7485,
+            "value": 1.031,
             "ci90": [
               0.0,
-              3.9979
+              4.5099
             ],
-            "sigma": 1.97543,
+            "sigma": 2.11498,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2834,246 +1917,6 @@
           "id": "room_1_w13",
           "type": "wall",
           "ref": "room_1_w13",
-          "area": {
-            "value": 1.7948,
-            "ci90": [
-              0.0,
-              5.922
-            ],
-            "sigma": 2.50909,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w14",
-          "type": "wall",
-          "ref": "room_1_w14",
-          "area": {
-            "value": 0.2314,
-            "ci90": [
-              0.0,
-              3.0812
-            ],
-            "sigma": 1.73253,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w15",
-          "type": "wall",
-          "ref": "room_1_w15",
-          "area": {
-            "value": 0.2716,
-            "ci90": [
-              0.0,
-              3.1514
-            ],
-            "sigma": 1.75073,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w16",
-          "type": "wall",
-          "ref": "room_1_w16",
-          "area": {
-            "value": 0.9175,
-            "ci90": [
-              0.0,
-              4.3034
-            ],
-            "sigma": 2.05844,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w17",
-          "type": "wall",
-          "ref": "room_1_w17",
-          "area": {
-            "value": 1.4541,
-            "ci90": [
-              0.0,
-              5.2879
-            ],
-            "sigma": 2.33073,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w18",
-          "type": "wall",
-          "ref": "room_1_w18",
-          "area": {
-            "value": 1.4004,
-            "ci90": [
-              0.0,
-              5.1886
-            ],
-            "sigma": 2.30299,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w19",
-          "type": "wall",
-          "ref": "room_1_w19",
-          "area": {
-            "value": 0.1985,
-            "ci90": [
-              0.0,
-              3.0241
-            ],
-            "sigma": 1.71777,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w20",
-          "type": "wall",
-          "ref": "room_1_w20",
-          "area": {
-            "value": 0.5312,
-            "ci90": [
-              0.0,
-              3.609
-            ],
-            "sigma": 1.87112,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w21",
-          "type": "wall",
-          "ref": "room_1_w21",
-          "area": {
-            "value": 0.507,
-            "ci90": [
-              0.0,
-              3.5661
-            ],
-            "sigma": 1.85972,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w22",
-          "type": "wall",
-          "ref": "room_1_w22",
-          "area": {
-            "value": 0.4829,
-            "ci90": [
-              0.0,
-              3.5233
-            ],
-            "sigma": 1.84836,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w23",
-          "type": "wall",
-          "ref": "room_1_w23",
-          "area": {
-            "value": 0.2007,
-            "ci90": [
-              0.0,
-              3.0279
-            ],
-            "sigma": 1.71874,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w24",
-          "type": "wall",
-          "ref": "room_1_w24",
-          "area": {
-            "value": 1.0095,
-            "ci90": [
-              0.0,
-              4.4708
-            ],
-            "sigma": 2.10426,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w25",
-          "type": "wall",
-          "ref": "room_1_w25",
-          "area": {
-            "value": 0.2788,
-            "ci90": [
-              0.0,
-              3.1639
-            ],
-            "sigma": 1.75397,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w26",
-          "type": "wall",
-          "ref": "room_1_w26",
-          "area": {
-            "value": 0.7512,
-            "ci90": [
-              0.0,
-              4.0028
-            ],
-            "sigma": 1.97676,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w27",
-          "type": "wall",
-          "ref": "room_1_w27",
-          "area": {
-            "value": 0.8069,
-            "ci90": [
-              0.0,
-              4.1031
-            ],
-            "sigma": 2.00393,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w28",
-          "type": "wall",
-          "ref": "room_1_w28",
           "area": {
             "value": 2.7767,
             "ci90": [
@@ -3087,169 +1930,121 @@
           }
         },
         {
-          "id": "room_1_w29",
+          "id": "room_1_w14",
           "type": "wall",
-          "ref": "room_1_w29",
+          "ref": "room_1_w14",
           "area": {
-            "value": 0.9074,
+            "value": 1.186,
             "ci90": [
               0.0,
-              4.2851
+              4.2477
             ],
-            "sigma": 2.05345,
+            "sigma": 1.86136,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w30",
+          "id": "room_1_w15",
           "type": "wall",
-          "ref": "room_1_w30",
+          "ref": "room_1_w15",
           "area": {
-            "value": 0.9223,
+            "value": 6.1328,
             "ci90": [
               0.0,
-              4.312
+              14.2529
             ],
-            "sigma": 2.06079,
+            "sigma": 4.93651,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w31",
+          "id": "room_1_w16",
           "type": "wall",
-          "ref": "room_1_w31",
+          "ref": "room_1_w16",
           "area": {
-            "value": 5.3397,
+            "value": 0.8339,
             "ci90": [
               0.0,
-              12.7112
+              3.6191
             ],
-            "sigma": 4.48146,
+            "sigma": 1.69328,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w32",
+          "id": "room_1_w17",
           "type": "wall",
-          "ref": "room_1_w32",
+          "ref": "room_1_w17",
           "area": {
-            "value": 0.2203,
+            "value": 1.497,
             "ci90": [
               0.0,
-              3.0619
+              5.3674
             ],
-            "sigma": 1.72753,
+            "sigma": 2.353,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w33",
+          "id": "room_1_w18",
           "type": "wall",
-          "ref": "room_1_w33",
+          "ref": "room_1_w18",
           "area": {
-            "value": 1.0382,
+            "value": 2.1006,
             "ci90": [
               0.0,
-              4.5232
+              6.4957
             ],
-            "sigma": 2.11863,
+            "sigma": 2.67197,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w34",
+          "id": "room_1_w19",
           "type": "wall",
-          "ref": "room_1_w34",
+          "ref": "room_1_w19",
           "area": {
-            "value": 1.0234,
+            "value": 1.2073,
             "ci90": [
               0.0,
-              4.4961
+              4.8326
             ],
-            "sigma": 2.11118,
+            "sigma": 2.204,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w35",
+          "id": "room_1_w20",
           "type": "wall",
-          "ref": "room_1_w35",
+          "ref": "room_1_w20",
           "area": {
-            "value": 0.999,
+            "value": 3.8053,
             "ci90": [
               0.0,
-              4.4516
+              9.7449
             ],
-            "sigma": 2.09898,
+            "sigma": 3.61092,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w36",
+          "id": "room_1_w21",
           "type": "wall",
-          "ref": "room_1_w36",
-          "area": {
-            "value": 0.7328,
-            "ci90": [
-              0.0,
-              3.9696
-            ],
-            "sigma": 1.96779,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w37",
-          "type": "wall",
-          "ref": "room_1_w37",
-          "area": {
-            "value": 2.2325,
-            "ci90": [
-              0.0,
-              6.7443
-            ],
-            "sigma": 2.7429,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w38",
-          "type": "wall",
-          "ref": "room_1_w38",
-          "area": {
-            "value": 2.4156,
-            "ci90": [
-              0.0,
-              7.0903
-            ],
-            "sigma": 2.84195,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w39",
-          "type": "wall",
-          "ref": "room_1_w39",
+          "ref": "room_1_w21",
           "area": {
             "value": 1.9008,
             "ci90": [
@@ -3263,9 +2058,9 @@
           }
         },
         {
-          "id": "room_1_w40",
+          "id": "room_1_w22",
           "type": "wall",
-          "ref": "room_1_w40",
+          "ref": "room_1_w22",
           "area": {
             "value": 1.8388,
             "ci90": [
@@ -3279,9 +2074,9 @@
           }
         },
         {
-          "id": "room_1_w41",
+          "id": "room_1_w23",
           "type": "wall",
-          "ref": "room_1_w41",
+          "ref": "room_1_w23",
           "area": {
             "value": 0.2346,
             "ci90": [
@@ -3295,144 +2090,112 @@
           }
         },
         {
-          "id": "room_1_w42",
+          "id": "room_1_w24",
           "type": "wall",
-          "ref": "room_1_w42",
+          "ref": "room_1_w24",
           "area": {
-            "value": 1.4648,
+            "value": 1.1975,
             "ci90": [
               0.0,
-              5.3078
+              4.8148
             ],
-            "sigma": 2.3363,
+            "sigma": 2.19906,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w43",
+          "id": "room_1_w25",
           "type": "wall",
-          "ref": "room_1_w43",
+          "ref": "room_1_w25",
           "area": {
-            "value": 2.2687,
+            "value": 2.268,
             "ci90": [
               0.0,
-              6.2452
+              6.2438
             ],
-            "sigma": 2.41746,
+            "sigma": 2.41707,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w44",
+          "id": "room_1_w26",
           "type": "wall",
-          "ref": "room_1_w44",
+          "ref": "room_1_w26",
           "area": {
-            "value": 4.9795,
+            "value": 5.2448,
             "ci90": [
               0.0,
-              12.0127
+              12.527
             ],
-            "sigma": 4.27576,
+            "sigma": 4.42719,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w45",
+          "id": "room_1_w27",
           "type": "wall",
-          "ref": "room_1_w45",
+          "ref": "room_1_w27",
           "area": {
-            "value": 1.3349,
+            "value": 1.7238,
             "ci90": [
               0.0,
-              4.5175
+              5.2304
             ],
-            "sigma": 1.93482,
+            "sigma": 2.13177,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w46",
+          "id": "room_1_w28",
           "type": "wall",
-          "ref": "room_1_w46",
+          "ref": "room_1_w28",
           "area": {
-            "value": 0.1841,
+            "value": 0.4829,
             "ci90": [
               0.0,
-              2.9991
+              3.5233
             ],
-            "sigma": 1.71132,
+            "sigma": 1.84836,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w47",
+          "id": "room_1_w29",
           "type": "wall",
-          "ref": "room_1_w47",
+          "ref": "room_1_w29",
           "area": {
-            "value": 0.5553,
+            "value": 1.7245,
             "ci90": [
               0.0,
-              3.652
+              5.2315
             ],
-            "sigma": 1.88257,
+            "sigma": 2.13209,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           }
         },
         {
-          "id": "room_1_w48",
+          "id": "room_1_w30",
           "type": "wall",
-          "ref": "room_1_w48",
+          "ref": "room_1_w30",
           "area": {
-            "value": 0.6484,
+            "value": 1.7384,
             "ci90": [
               0.0,
-              3.8182
+              5.8167
             ],
-            "sigma": 1.92703,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w49",
-          "type": "wall",
-          "ref": "room_1_w49",
-          "area": {
-            "value": 1.4409,
-            "ci90": [
-              0.0,
-              4.7107
-            ],
-            "sigma": 1.9878,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_1_w50",
-          "type": "wall",
-          "ref": "room_1_w50",
-          "area": {
-            "value": 4.3643,
-            "ci90": [
-              0.0,
-              10.2432
-            ],
-            "sigma": 3.57402,
+            "sigma": 2.47936,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3443,12 +2206,12 @@
           "type": "floor",
           "ref": "room_1",
           "area": {
-            "value": 8.8744,
+            "value": 8.6167,
             "ci90": [
-              0.0,
-              17.8654
+              1.2262,
+              16.0073
             ],
-            "sigma": 5.46595,
+            "sigma": 4.49301,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3459,12 +2222,12 @@
           "type": "ceiling",
           "ref": "room_1",
           "area": {
-            "value": 8.8744,
+            "value": 8.6167,
             "ci90": [
-              0.0,
-              17.8654
+              1.2262,
+              16.0073
             ],
-            "sigma": 5.46595,
+            "sigma": 4.49301,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3478,139 +2241,119 @@
       "polygon": [
         [
           3.1,
-          3.9608
+          3.9612
         ],
         [
           2.92,
-          3.9608
+          3.9612
         ],
         [
           2.92,
-          4.0908
+          4.1912
         ],
         [
           2.7,
-          4.2908
+          4.1912
         ],
         [
           2.7,
-          4.4408
+          4.4412
         ],
         [
           2.48,
-          4.4408
+          4.4412
         ],
         [
           2.48,
-          4.8508
+          5.1715
         ],
         [
-          2.2583,
-          5.171
+          1.73,
+          5.1715
         ],
         [
-          1.8672,
-          5.171
+          1.73,
+          5.3512
         ],
         [
-          1.62,
-          5.3508
+          1.03,
+          5.3512
         ],
         [
-          1.18,
-          5.3508
-        ],
-        [
-          0.88,
-          5.1908
+          1.03,
+          5.1912
         ],
         [
           0.31,
-          5.1908
+          5.1912
         ],
         [
           0.31,
-          4.7065
+          4.6812
         ],
         [
-          0.48,
-          4.6336
+          0.635,
+          4.6812
         ],
         [
-          0.48,
-          3.7208
-        ],
-        [
-          0.0,
-          3.7208
+          0.635,
+          3.7212
         ],
         [
           0.0,
-          3.5408
+          3.7212
         ],
         [
-          0.69,
-          3.5408
+          0.0,
+          3.5412
         ],
         [
-          0.69,
-          3.8808
+          0.8288,
+          3.5412
         ],
         [
-          0.8889,
-          3.8808
+          0.8288,
+          2.8668
         ],
         [
-          1.04,
-          3.7108
+          1.0027,
+          2.8668
         ],
         [
-          1.59,
-          3.7108
+          1.0027,
+          2.9491
         ],
         [
-          1.59,
-          3.4726
+          3.4471,
+          2.9491
         ],
         [
-          1.84,
-          3.2908
-        ],
-        [
-          1.84,
-          2.9475
-        ],
-        [
-          2.84,
-          2.9475
-        ],
-        [
-          2.84,
-          3.4808
+          3.4471,
+          3.1014
         ],
         [
           3.1,
-          3.4808
+          3.1014
         ]
       ],
       "floor_area": {
-        "value": 4.4046,
+        "value": 5.2501,
         "ci90": [
-          0.1797,
-          8.6296
+          0.6888,
+          9.8114
         ],
-        "sigma": 2.56852,
+        "sigma": 2.77301,
         "unit": "m2",
         "lower_bound": null,
         "note": null
       },
       "perimeter": {
-        "value": 11.2358,
+        "value": 12.5129,
         "ci90": [
-          7.1145,
-          15.3572
+          8.5216,
+          16.5043
         ],
-        "sigma": 2.50552,
+        "sigma": 2.42648,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -3629,11 +2372,11 @@
           "id": "room_2_w1",
           "start": [
             3.1,
-            3.9608
+            3.9612
           ],
           "end": [
             2.92,
-            3.9608
+            3.9612
           ],
           "length": {
             "value": 0.18,
@@ -3673,19 +2416,19 @@
           "id": "room_2_w2",
           "start": [
             2.92,
-            3.9608
+            3.9612
           ],
           "end": [
             2.92,
-            4.0908
+            4.1912
           ],
           "length": {
-            "value": 0.13,
+            "value": 0.23,
             "ci90": [
               0.0,
-              1.0811
+              1.182
             ],
-            "sigma": 0.57822,
+            "sigma": 0.57873,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3699,12 +2442,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.2131,
+            "value": 0.3771,
             "ci90": [
               0.0,
-              2.5713
+              2.899
             ],
-            "sigma": 1.43365,
+            "sigma": 1.53318,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3717,19 +2460,19 @@
           "id": "room_2_w3",
           "start": [
             2.92,
-            4.0908
+            4.1912
           ],
           "end": [
             2.7,
-            4.2908
+            4.1912
           ],
           "length": {
-            "value": 0.2973,
+            "value": 0.22,
             "ci90": [
               0.0,
-              1.2501
+              1.1719
             ],
-            "sigma": 0.57924,
+            "sigma": 0.57867,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3743,12 +2486,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.4875,
+            "value": 0.3607,
             "ci90": [
               0.0,
-              3.1244
+              2.8658
             ],
-            "sigma": 1.60312,
+            "sigma": 1.52298,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3761,19 +2504,19 @@
           "id": "room_2_w4",
           "start": [
             2.7,
-            4.2908
+            4.1912
           ],
           "end": [
             2.7,
-            4.4408
+            4.4412
           ],
           "length": {
-            "value": 0.15,
+            "value": 0.25,
             "ci90": [
               0.0,
-              1.1012
+              1.2022
             ],
-            "sigma": 0.5783,
+            "sigma": 0.57887,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3787,12 +2530,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.2459,
+            "value": 0.4099,
             "ci90": [
               0.0,
-              2.6361
+              2.9656
             ],
-            "sigma": 1.45309,
+            "sigma": 1.55373,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3805,11 +2548,11 @@
           "id": "room_2_w5",
           "start": [
             2.7,
-            4.4408
+            4.4412
           ],
           "end": [
             2.48,
-            4.4408
+            4.4412
           ],
           "length": {
             "value": 0.22,
@@ -3849,19 +2592,19 @@
           "id": "room_2_w6",
           "start": [
             2.48,
-            4.4408
+            4.4412
           ],
           "end": [
             2.48,
-            4.8508
+            5.1715
           ],
           "length": {
-            "value": 0.41,
+            "value": 0.7302,
             "ci90": [
               0.0,
-              1.3647
+              1.6934
             ],
-            "sigma": 0.58037,
+            "sigma": 0.58554,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3875,17 +2618,19 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.6722,
+            "value": 0.3092,
             "ci90": [
               0.0,
-              3.509
+              3.7155
             ],
-            "sigma": 1.72459,
+            "sigma": 2.07077,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
-          "opening_ids": [],
+          "opening_ids": [
+            "op_5"
+          ],
           "evidence_coverage": 0.0,
           "plane_spread": 0.0
         },
@@ -3893,19 +2638,19 @@
           "id": "room_2_w7",
           "start": [
             2.48,
-            4.8508
+            5.1715
           ],
           "end": [
-            2.2583,
-            5.171
+            1.73,
+            5.1715
           ],
           "length": {
-            "value": 0.3895,
+            "value": 0.75,
             "ci90": [
               0.0,
-              1.3438
+              1.7138
             ],
-            "sigma": 0.58014,
+            "sigma": 0.58595,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3919,12 +2664,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.6386,
+            "value": 1.2296,
             "ci90": [
               0.0,
-              3.4384
+              4.7093
             ],
-            "sigma": 1.70213,
+            "sigma": 2.11544,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3936,20 +2681,20 @@
         {
           "id": "room_2_w8",
           "start": [
-            2.2583,
-            5.171
+            1.73,
+            5.1715
           ],
           "end": [
-            1.8672,
-            5.171
+            1.73,
+            5.3512
           ],
           "length": {
-            "value": 0.3911,
+            "value": 0.1798,
             "ci90": [
               0.0,
-              1.3454
+              1.1312
             ],
-            "sigma": 0.58016,
+            "sigma": 0.57844,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3963,12 +2708,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.6413,
+            "value": 0.2947,
             "ci90": [
               0.0,
-              3.444
+              2.7332
             ],
-            "sigma": 1.7039,
+            "sigma": 1.48246,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3980,20 +2725,20 @@
         {
           "id": "room_2_w9",
           "start": [
-            1.8672,
-            5.171
+            1.73,
+            5.3512
           ],
           "end": [
-            1.62,
-            5.3508
+            1.03,
+            5.3512
           ],
           "length": {
-            "value": 0.3056,
+            "value": 0.7,
             "ci90": [
               0.0,
-              1.2585
+              1.6622
             ],
-            "sigma": 0.57931,
+            "sigma": 0.58493,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4007,12 +2752,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.501,
+            "value": 1.1477,
             "ci90": [
               0.0,
-              3.1524
+              4.5299
             ],
-            "sigma": 1.61187,
+            "sigma": 2.05618,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4024,20 +2769,20 @@
         {
           "id": "room_2_w10",
           "start": [
-            1.62,
-            5.3508
+            1.03,
+            5.3512
           ],
           "end": [
-            1.18,
-            5.3508
+            1.03,
+            5.1912
           ],
           "length": {
-            "value": 0.44,
+            "value": 0.16,
             "ci90": [
               0.0,
-              1.3953
+              1.1113
             ],
-            "sigma": 0.58074,
+            "sigma": 0.57835,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4051,12 +2796,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.7214,
+            "value": 0.2623,
             "ci90": [
               0.0,
-              3.6127
+              2.6687
             ],
-            "sigma": 1.75774,
+            "sigma": 1.46291,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4068,20 +2813,20 @@
         {
           "id": "room_2_w11",
           "start": [
-            1.18,
-            5.3508
+            1.03,
+            5.1912
           ],
           "end": [
-            0.88,
-            5.1908
+            0.31,
+            5.1912
           ],
           "length": {
-            "value": 0.34,
+            "value": 0.72,
             "ci90": [
               0.0,
-              1.2934
+              1.6828
             ],
-            "sigma": 0.57963,
+            "sigma": 0.58533,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4095,12 +2840,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.5574,
+            "value": 1.1804,
             "ci90": [
               0.0,
-              3.2691
+              4.6016
             ],
-            "sigma": 1.64852,
+            "sigma": 2.07983,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4112,20 +2857,20 @@
         {
           "id": "room_2_w12",
           "start": [
-            0.88,
-            5.1908
+            0.31,
+            5.1912
           ],
           "end": [
             0.31,
-            5.1908
+            4.6812
           ],
           "length": {
-            "value": 0.57,
+            "value": 0.51,
             "ci90": [
               0.0,
-              1.5283
+              1.4668
             ],
-            "sigma": 0.5826,
+            "sigma": 0.58168,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4139,12 +2884,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.9345,
+            "value": 0.8361,
             "ci90": [
               0.0,
-              4.0676
+              3.8566
             ],
-            "sigma": 1.9047,
+            "sigma": 1.83625,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4157,19 +2902,19 @@
           "id": "room_2_w13",
           "start": [
             0.31,
-            5.1908
+            4.6812
           ],
           "end": [
-            0.31,
-            4.7065
+            0.635,
+            4.6812
           ],
           "length": {
-            "value": 0.4843,
+            "value": 0.325,
             "ci90": [
               0.0,
-              1.4405
+              1.0382
             ],
-            "sigma": 0.58132,
+            "sigma": 0.43358,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4183,12 +2928,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.794,
+            "value": 0.5328,
             "ci90": [
               0.0,
-              3.7667
+              2.8882
             ],
-            "sigma": 1.80723,
+            "sigma": 1.4319,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4200,20 +2945,20 @@
         {
           "id": "room_2_w14",
           "start": [
-            0.31,
-            4.7065
+            0.635,
+            4.6812
           ],
           "end": [
-            0.48,
-            4.6336
+            0.635,
+            3.7212
           ],
           "length": {
-            "value": 0.185,
+            "value": 0.96,
             "ci90": [
               0.0,
-              1.1365
+              1.9321
             ],
-            "sigma": 0.57847,
+            "sigma": 0.59099,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4227,37 +2972,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.3032,
+            "value": 1.5739,
             "ci90": [
               0.0,
-              2.7503
+              5.471
             ],
-            "sigma": 1.48765,
+            "sigma": 2.36921,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "evidence_coverage": 0.313,
+          "plane_spread": 0.0126
         },
         {
           "id": "room_2_w15",
           "start": [
-            0.48,
-            4.6336
+            0.635,
+            3.7212
           ],
           "end": [
-            0.48,
-            3.7208
+            0.0,
+            3.7212
           ],
           "length": {
-            "value": 0.9129,
+            "value": 0.635,
             "ci90": [
               0.0,
-              1.8829
+              1.3574
             ],
-            "sigma": 0.58975,
+            "sigma": 0.4392,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4271,12 +3016,12 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.4966,
+            "value": 1.0411,
             "ci90": [
               0.0,
-              5.299
+              3.9364
             ],
-            "sigma": 2.31163,
+            "sigma": 1.76019,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4288,56 +3033,12 @@
         {
           "id": "room_2_w16",
           "start": [
-            0.48,
-            3.7208
+            0.0,
+            3.7212
           ],
           "end": [
             0.0,
-            3.7208
-          ],
-          "length": {
-            "value": 0.48,
-            "ci90": [
-              0.0,
-              1.4361
-            ],
-            "sigma": 0.58126,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.787,
-            "ci90": [
-              0.0,
-              3.7517
-            ],
-            "sigma": 1.80241,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w17",
-          "start": [
-            0.0,
-            3.7208
-          ],
-          "end": [
-            0.0,
-            3.5408
+            3.5412
           ],
           "length": {
             "value": 0.18,
@@ -4374,22 +3075,22 @@
           "plane_spread": 0.0
         },
         {
-          "id": "room_2_w18",
+          "id": "room_2_w17",
           "start": [
             0.0,
-            3.5408
+            3.5412
           ],
           "end": [
-            0.69,
-            3.5408
+            0.8288,
+            3.5412
           ],
           "length": {
-            "value": 0.69,
+            "value": 0.8288,
             "ci90": [
               0.0,
-              1.6518
+              1.7955
             ],
-            "sigma": 0.58474,
+            "sigma": 0.5877,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4403,37 +3104,83 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 1.1313,
+            "value": 1.3589,
             "ci90": [
               0.0,
-              4.4941
+              4.9939
             ],
-            "sigma": 2.04439,
+            "sigma": 2.20985,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
+          "evidence_coverage": 0.0,
+          "plane_spread": 0.0
+        },
+        {
+          "id": "room_2_w18",
+          "start": [
+            0.8288,
+            3.5412
+          ],
+          "end": [
+            0.8288,
+            2.8668
+          ],
+          "length": {
+            "value": 0.6744,
+            "ci90": [
+              0.0,
+              1.6358
+            ],
+            "sigma": 0.58444,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 1.6395,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 0.4807,
+            "ci90": [
+              0.0,
+              3.7868
+            ],
+            "sigma": 2.00987,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [
+            "op_6"
+          ],
           "evidence_coverage": 0.0,
           "plane_spread": 0.0
         },
         {
           "id": "room_2_w19",
           "start": [
-            0.69,
-            3.5408
+            0.8288,
+            2.8668
           ],
           "end": [
-            0.69,
-            3.8808
+            1.0027,
+            2.8668
           ],
           "length": {
-            "value": 0.34,
+            "value": 0.1739,
             "ci90": [
               0.0,
-              1.2934
+              1.1253
             ],
-            "sigma": 0.57963,
+            "sigma": 0.57841,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4447,37 +3194,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.5574,
+            "value": 0.2851,
             "ci90": [
               0.0,
-              3.2691
+              2.7141
             ],
-            "sigma": 1.64852,
+            "sigma": 1.47665,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
           "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "plane_spread": 0.019
         },
         {
           "id": "room_2_w20",
           "start": [
-            0.69,
-            3.8808
+            1.0027,
+            2.8668
           ],
           "end": [
-            0.8889,
-            3.8808
+            1.0027,
+            2.9491
           ],
           "length": {
-            "value": 0.1989,
+            "value": 0.0823,
             "ci90": [
               0.0,
-              1.1505
+              0.7924
             ],
-            "sigma": 0.57854,
+            "sigma": 0.4317,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4491,37 +3238,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.3261,
+            "value": 0.1349,
             "ci90": [
               0.0,
-              2.7961
+              2.1327
             ],
-            "sigma": 1.50161,
+            "sigma": 1.21451,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
           "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "plane_spread": 0.0162
         },
         {
           "id": "room_2_w21",
           "start": [
-            0.8889,
-            3.8808
+            1.0027,
+            2.9491
           ],
           "end": [
-            1.04,
-            3.7108
+            3.4471,
+            2.9491
           ],
           "length": {
-            "value": 0.2275,
+            "value": 2.4443,
             "ci90": [
-              0.0,
-              1.1794
+              1.3624,
+              3.5262
             ],
-            "sigma": 0.57872,
+            "sigma": 0.65774,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4535,83 +3282,83 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.3729,
+            "value": 2.4795,
             "ci90": [
               0.0,
-              2.8905
+              9.3798
             ],
-            "sigma": 1.53057,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w22",
-          "start": [
-            1.04,
-            3.7108
-          ],
-          "end": [
-            1.59,
-            3.7108
-          ],
-          "length": {
-            "value": 0.55,
-            "ci90": [
-              0.0,
-              1.5078
-            ],
-            "sigma": 0.58228,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.1177,
-            "ci90": [
-              0.0,
-              3.1899
-            ],
-            "sigma": 1.86771,
+            "sigma": 4.19498,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [
-            "op_4"
+            "op_7"
           ],
+          "evidence_coverage": 0.9,
+          "plane_spread": 0.0175
+        },
+        {
+          "id": "room_2_w22",
+          "start": [
+            3.4471,
+            2.9491
+          ],
+          "end": [
+            3.4471,
+            3.1014
+          ],
+          "length": {
+            "value": 0.1523,
+            "ci90": [
+              0.0,
+              0.8629
+            ],
+            "sigma": 0.43201,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": null,
+            "ci90": null,
+            "sigma": null,
+            "unit": "m",
+            "lower_bound": 1.6395,
+            "note": "ceiling not captured; lower bound = top of observed walls"
+          },
+          "area": {
+            "value": 0.2496,
+            "ci90": [
+              0.0,
+              2.3425
+            ],
+            "sigma": 1.27233,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          },
+          "opening_ids": [],
           "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "plane_spread": 0.0135
         },
         {
           "id": "room_2_w23",
           "start": [
-            1.59,
-            3.7108
+            3.4471,
+            3.1014
           ],
           "end": [
-            1.59,
-            3.4726
+            3.1,
+            3.1014
           ],
           "length": {
-            "value": 0.2382,
+            "value": 0.3471,
             "ci90": [
               0.0,
-              1.1902
+              1.3006
             ],
-            "sigma": 0.57879,
+            "sigma": 0.5797,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4625,213 +3372,37 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.3905,
+            "value": 0.569,
             "ci90": [
               0.0,
-              2.9262
+              3.2931
             ],
-            "sigma": 1.54156,
+            "sigma": 1.6561,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
           "opening_ids": [],
           "evidence_coverage": 0.0,
-          "plane_spread": 0.0
+          "plane_spread": 0.0155
         },
         {
           "id": "room_2_w24",
           "start": [
-            1.59,
-            3.4726
-          ],
-          "end": [
-            1.84,
-            3.2908
-          ],
-          "length": {
-            "value": 0.3091,
-            "ci90": [
-              0.0,
-              1.2621
-            ],
-            "sigma": 0.57934,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.5068,
-            "ci90": [
-              0.0,
-              3.1643
-            ],
-            "sigma": 1.6156,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w25",
-          "start": [
-            1.84,
-            3.2908
-          ],
-          "end": [
-            1.84,
-            2.9475
-          ],
-          "length": {
-            "value": 0.3433,
-            "ci90": [
-              0.0,
-              1.0568
-            ],
-            "sigma": 0.43381,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.5628,
-            "ci90": [
-              0.0,
-              2.9478
-            ],
-            "sigma": 1.44996,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w26",
-          "start": [
-            1.84,
-            2.9475
-          ],
-          "end": [
-            2.84,
-            2.9475
-          ],
-          "length": {
-            "value": 1.0,
-            "ci90": [
-              0.0261,
-              1.9739
-            ],
-            "sigma": 0.59208,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 1.6395,
-            "ci90": [
-              0.0,
-              5.6174
-            ],
-            "sigma": 2.41831,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.85,
-          "plane_spread": 0.0174
-        },
-        {
-          "id": "room_2_w27",
-          "start": [
-            2.84,
-            2.9475
-          ],
-          "end": [
-            2.84,
-            3.4808
-          ],
-          "length": {
-            "value": 0.5333,
-            "ci90": [
-              0.0,
-              1.252
-            ],
-            "sigma": 0.43697,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.8743,
-            "ci90": [
-              0.0,
-              3.585
-            ],
-            "sigma": 1.64794,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w28",
-          "start": [
-            2.84,
-            3.4808
+            3.1,
+            3.1014
           ],
           "end": [
             3.1,
-            3.4808
+            3.9612
           ],
           "length": {
-            "value": 0.26,
+            "value": 0.8599,
             "ci90": [
               0.0,
-              1.2123
+              1.8278
             ],
-            "sigma": 0.57894,
+            "sigma": 0.58844,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -4845,106 +3416,187 @@
             "note": "ceiling not captured; lower bound = top of observed walls"
           },
           "area": {
-            "value": 0.4263,
+            "value": 1.0191,
             "ci90": [
               0.0,
-              2.999
+              4.6927
             ],
-            "sigma": 1.56408,
+            "sigma": 2.23334,
             "unit": "m2",
             "lower_bound": null,
             "note": null
           },
-          "opening_ids": [],
-          "evidence_coverage": 0.0,
-          "plane_spread": 0.0
-        },
-        {
-          "id": "room_2_w29",
-          "start": [
-            3.1,
-            3.4808
+          "opening_ids": [
+            "op_8"
           ],
-          "end": [
-            3.1,
-            3.9608
-          ],
-          "length": {
-            "value": 0.48,
-            "ci90": [
-              0.0,
-              1.4361
-            ],
-            "sigma": 0.58126,
-            "unit": "m",
-            "lower_bound": null,
-            "note": null
-          },
-          "height": {
-            "value": null,
-            "ci90": null,
-            "sigma": null,
-            "unit": "m",
-            "lower_bound": 1.6395,
-            "note": "ceiling not captured; lower bound = top of observed walls"
-          },
-          "area": {
-            "value": 0.787,
-            "ci90": [
-              0.0,
-              3.7517
-            ],
-            "sigma": 1.80241,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          },
-          "opening_ids": [],
           "evidence_coverage": 0.0,
           "plane_spread": 0.0
         }
       ],
       "openings": [
         {
-          "id": "op_4",
-          "type": "window",
-          "wall_id": "room_2_w22",
+          "id": "op_5",
+          "type": "opening",
+          "wall_id": "room_2_w6",
           "room_id": "room_2",
           "connects_to": null,
           "width": {
-            "value": 0.56,
+            "value": 0.74,
             "ci90": [
-              0.1102,
-              1.0098
+              0.269,
+              1.211
             ],
-            "sigma": 0.27343,
+            "sigma": 0.28637,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "height": {
-            "value": 1.4,
+            "value": 1.2,
             "ci90": [
-              0.5623,
-              2.2377
+              0.394,
+              2.006
             ],
-            "sigma": 0.50929,
+            "sigma": 0.48997,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "sill_height": {
-            "value": 0.25,
+            "value": 0.05,
             "ci90": [
               0.0,
-              0.965
+              0.7608
             ],
-            "sigma": 0.43467,
+            "sigma": 0.4321,
             "unit": "m",
             "lower_bound": null,
             "note": null
           },
           "offset_along_wall": 0.0
+        },
+        {
+          "id": "op_6",
+          "type": "window",
+          "wall_id": "room_2_w18",
+          "room_id": "room_2",
+          "connects_to": null,
+          "width": {
+            "value": 0.625,
+            "ci90": [
+              0.1613,
+              1.0887
+            ],
+            "sigma": 0.28189,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": 1.0,
+            "ci90": [
+              0.2219,
+              1.7781
+            ],
+            "sigma": 0.47301,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "sill_height": {
+            "value": 0.65,
+            "ci90": [
+              0.0,
+              1.3898
+            ],
+            "sigma": 0.44978,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "offset_along_wall": 0.065
+        },
+        {
+          "id": "op_7",
+          "type": "door",
+          "wall_id": "room_2_w21",
+          "room_id": "room_2",
+          "connects_to": null,
+          "width": {
+            "value": 0.955,
+            "ci90": [
+              0.442,
+              1.468
+            ],
+            "sigma": 0.31186,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": 1.6,
+            "ci90": [
+              0.7271,
+              2.4729
+            ],
+            "sigma": 0.5307,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "sill_height": {
+            "value": 0.05,
+            "ci90": [
+              0.0,
+              0.7608
+            ],
+            "sigma": 0.4321,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "offset_along_wall": 0.0
+        },
+        {
+          "id": "op_8",
+          "type": "window",
+          "wall_id": "room_2_w24",
+          "room_id": "room_2",
+          "connects_to": null,
+          "width": {
+            "value": 0.3721,
+            "ci90": [
+              0.0,
+              0.8501
+            ],
+            "sigma": 0.29061,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "height": {
+            "value": 1.05,
+            "ci90": [
+              0.2654,
+              1.8346
+            ],
+            "sigma": 0.47701,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "sill_height": {
+            "value": 0.45,
+            "ci90": [
+              0.0,
+              1.1748
+            ],
+            "sigma": 0.44061,
+            "unit": "m",
+            "lower_bound": null,
+            "note": null
+          },
+          "offset_along_wall": 0.0812
         }
       ],
       "surfaces": [
@@ -4969,12 +3621,12 @@
           "type": "wall",
           "ref": "room_2_w2",
           "area": {
-            "value": 0.2131,
+            "value": 0.3771,
             "ci90": [
               0.0,
-              2.5713
+              2.899
             ],
-            "sigma": 1.43365,
+            "sigma": 1.53318,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -4985,12 +3637,12 @@
           "type": "wall",
           "ref": "room_2_w3",
           "area": {
-            "value": 0.4875,
+            "value": 0.3607,
             "ci90": [
               0.0,
-              3.1244
+              2.8658
             ],
-            "sigma": 1.60312,
+            "sigma": 1.52298,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5001,12 +3653,12 @@
           "type": "wall",
           "ref": "room_2_w4",
           "area": {
-            "value": 0.2459,
+            "value": 0.4099,
             "ci90": [
               0.0,
-              2.6361
+              2.9656
             ],
-            "sigma": 1.45309,
+            "sigma": 1.55373,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5033,12 +3685,12 @@
           "type": "wall",
           "ref": "room_2_w6",
           "area": {
-            "value": 0.6722,
+            "value": 0.3092,
             "ci90": [
               0.0,
-              3.509
+              3.7155
             ],
-            "sigma": 1.72459,
+            "sigma": 2.07077,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5049,12 +3701,12 @@
           "type": "wall",
           "ref": "room_2_w7",
           "area": {
-            "value": 0.6386,
+            "value": 1.2296,
             "ci90": [
               0.0,
-              3.4384
+              4.7093
             ],
-            "sigma": 1.70213,
+            "sigma": 2.11544,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5065,12 +3717,12 @@
           "type": "wall",
           "ref": "room_2_w8",
           "area": {
-            "value": 0.6413,
+            "value": 0.2947,
             "ci90": [
               0.0,
-              3.444
+              2.7332
             ],
-            "sigma": 1.7039,
+            "sigma": 1.48246,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5081,12 +3733,12 @@
           "type": "wall",
           "ref": "room_2_w9",
           "area": {
-            "value": 0.501,
+            "value": 1.1477,
             "ci90": [
               0.0,
-              3.1524
+              4.5299
             ],
-            "sigma": 1.61187,
+            "sigma": 2.05618,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5097,12 +3749,12 @@
           "type": "wall",
           "ref": "room_2_w10",
           "area": {
-            "value": 0.7214,
+            "value": 0.2623,
             "ci90": [
               0.0,
-              3.6127
+              2.6687
             ],
-            "sigma": 1.75774,
+            "sigma": 1.46291,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5113,12 +3765,12 @@
           "type": "wall",
           "ref": "room_2_w11",
           "area": {
-            "value": 0.5574,
+            "value": 1.1804,
             "ci90": [
               0.0,
-              3.2691
+              4.6016
             ],
-            "sigma": 1.64852,
+            "sigma": 2.07983,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5129,12 +3781,12 @@
           "type": "wall",
           "ref": "room_2_w12",
           "area": {
-            "value": 0.9345,
+            "value": 0.8361,
             "ci90": [
               0.0,
-              4.0676
+              3.8566
             ],
-            "sigma": 1.9047,
+            "sigma": 1.83625,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5145,12 +3797,12 @@
           "type": "wall",
           "ref": "room_2_w13",
           "area": {
-            "value": 0.794,
+            "value": 0.5328,
             "ci90": [
               0.0,
-              3.7667
+              2.8882
             ],
-            "sigma": 1.80723,
+            "sigma": 1.4319,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5161,12 +3813,12 @@
           "type": "wall",
           "ref": "room_2_w14",
           "area": {
-            "value": 0.3032,
+            "value": 1.5739,
             "ci90": [
               0.0,
-              2.7503
+              5.471
             ],
-            "sigma": 1.48765,
+            "sigma": 2.36921,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5177,12 +3829,12 @@
           "type": "wall",
           "ref": "room_2_w15",
           "area": {
-            "value": 1.4966,
+            "value": 1.0411,
             "ci90": [
               0.0,
-              5.299
+              3.9364
             ],
-            "sigma": 2.31163,
+            "sigma": 1.76019,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5192,22 +3844,6 @@
           "id": "room_2_w16",
           "type": "wall",
           "ref": "room_2_w16",
-          "area": {
-            "value": 0.787,
-            "ci90": [
-              0.0,
-              3.7517
-            ],
-            "sigma": 1.80241,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w17",
-          "type": "wall",
-          "ref": "room_2_w17",
           "area": {
             "value": 0.2951,
             "ci90": [
@@ -5221,16 +3857,32 @@
           }
         },
         {
+          "id": "room_2_w17",
+          "type": "wall",
+          "ref": "room_2_w17",
+          "area": {
+            "value": 1.3589,
+            "ci90": [
+              0.0,
+              4.9939
+            ],
+            "sigma": 2.20985,
+            "unit": "m2",
+            "lower_bound": null,
+            "note": null
+          }
+        },
+        {
           "id": "room_2_w18",
           "type": "wall",
           "ref": "room_2_w18",
           "area": {
-            "value": 1.1313,
+            "value": 0.4807,
             "ci90": [
               0.0,
-              4.4941
+              3.7868
             ],
-            "sigma": 2.04439,
+            "sigma": 2.00987,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5241,12 +3893,12 @@
           "type": "wall",
           "ref": "room_2_w19",
           "area": {
-            "value": 0.5574,
+            "value": 0.2851,
             "ci90": [
               0.0,
-              3.2691
+              2.7141
             ],
-            "sigma": 1.64852,
+            "sigma": 1.47665,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5257,12 +3909,12 @@
           "type": "wall",
           "ref": "room_2_w20",
           "area": {
-            "value": 0.3261,
+            "value": 0.1349,
             "ci90": [
               0.0,
-              2.7961
+              2.1327
             ],
-            "sigma": 1.50161,
+            "sigma": 1.21451,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5273,12 +3925,12 @@
           "type": "wall",
           "ref": "room_2_w21",
           "area": {
-            "value": 0.3729,
+            "value": 2.4795,
             "ci90": [
               0.0,
-              2.8905
+              9.3798
             ],
-            "sigma": 1.53057,
+            "sigma": 4.19498,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5289,12 +3941,12 @@
           "type": "wall",
           "ref": "room_2_w22",
           "area": {
-            "value": 0.1177,
+            "value": 0.2496,
             "ci90": [
               0.0,
-              3.1899
+              2.3425
             ],
-            "sigma": 1.86771,
+            "sigma": 1.27233,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5305,12 +3957,12 @@
           "type": "wall",
           "ref": "room_2_w23",
           "area": {
-            "value": 0.3905,
+            "value": 0.569,
             "ci90": [
               0.0,
-              2.9262
+              3.2931
             ],
-            "sigma": 1.54156,
+            "sigma": 1.6561,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5321,92 +3973,12 @@
           "type": "wall",
           "ref": "room_2_w24",
           "area": {
-            "value": 0.5068,
+            "value": 1.0191,
             "ci90": [
               0.0,
-              3.1643
+              4.6927
             ],
-            "sigma": 1.6156,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w25",
-          "type": "wall",
-          "ref": "room_2_w25",
-          "area": {
-            "value": 0.5628,
-            "ci90": [
-              0.0,
-              2.9478
-            ],
-            "sigma": 1.44996,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w26",
-          "type": "wall",
-          "ref": "room_2_w26",
-          "area": {
-            "value": 1.6395,
-            "ci90": [
-              0.0,
-              5.6174
-            ],
-            "sigma": 2.41831,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w27",
-          "type": "wall",
-          "ref": "room_2_w27",
-          "area": {
-            "value": 0.8743,
-            "ci90": [
-              0.0,
-              3.585
-            ],
-            "sigma": 1.64794,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w28",
-          "type": "wall",
-          "ref": "room_2_w28",
-          "area": {
-            "value": 0.4263,
-            "ci90": [
-              0.0,
-              2.999
-            ],
-            "sigma": 1.56408,
-            "unit": "m2",
-            "lower_bound": null,
-            "note": null
-          }
-        },
-        {
-          "id": "room_2_w29",
-          "type": "wall",
-          "ref": "room_2_w29",
-          "area": {
-            "value": 0.787,
-            "ci90": [
-              0.0,
-              3.7517
-            ],
-            "sigma": 1.80241,
+            "sigma": 2.23334,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5417,12 +3989,12 @@
           "type": "floor",
           "ref": "room_2",
           "area": {
-            "value": 4.4046,
+            "value": 5.2501,
             "ci90": [
-              0.1797,
-              8.6296
+              0.6888,
+              9.8114
             ],
-            "sigma": 2.56852,
+            "sigma": 2.77301,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5433,12 +4005,12 @@
           "type": "ceiling",
           "ref": "room_2",
           "area": {
-            "value": 4.4046,
+            "value": 5.2501,
             "ci90": [
-              0.1797,
-              8.6296
+              0.6888,
+              9.8114
             ],
-            "sigma": 2.56852,
+            "sigma": 2.77301,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -5455,12 +4027,12 @@
     "room_2: ceiling not observed, height reported as lower bound only"
   ],
   "timing_s": {
-    "load": 161.09,
-    "drift": 1.33,
-    "fuse": 0.15,
-    "layout": 2.73,
-    "openings": 0.29,
-    "damage": 20.98,
-    "export": 0.06
+    "load": 180.23,
+    "drift": 1.39,
+    "fuse": 0.14,
+    "layout": 2.59,
+    "openings": 0.43,
+    "damage": 15.04,
+    "export": 0.02
   }
 }

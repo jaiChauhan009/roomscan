@@ -10,10 +10,15 @@ One command turns a LiDAR scan, a video or per-room photo folders into a JSON pl
 rendered plan, with a 90 % interval on every number. All three tiers run end to end on a
 CPU-only laptop. The LiDAR geometry is precise on synthetic rooms (under 1 mm, furnished
 ones included). On four unseen rooms with laser truth (ARKitScenes, Faro scans):
-- footprint within 8 % in all four (−7.6, −5.7, +0.2, −2.0 %);
+- footprint within 8 % in all four (−7.6, −2.5, +0.6, −2.0 %);
 - ceilings within 1-5 cm, read low;
-- walls within 3-10 cm in two rooms, but in the other two furniture fragments the outline
-  or splits the room, and the wall gates fail.
+- median wall error 3, 10 and 13 cm in three rooms; the fourth is split in two by a gap
+  between furniture, and its walls are 1.5 m off. Wall gates (1 cm) still fail.
+
+On our own captures, an iPhone 16 Pro with Stray Scanner gave a 4-room plan of our flat in
+2.5 minutes. A second scan of one room agrees with it to 1.7 cm on the walls both see. The
+video and photo tiers on the same flat are far off (one room found from video, footprint
++32 % and +79 % from photos), with intervals that say so.
 
 Two scans of the sample flat agree as point clouds to a median 7 mm but divide the flat
 into different rooms, so the repeatability gate fails. The video and photo tiers are far
@@ -23,8 +28,7 @@ than captured per protocol.
 **The main limitation of this report: little ground truth.** Laser truth exists for four
 public rooms (LiDAR tier only). The sample flat has none, so its numbers are
 self-consistency (repeatability, drift) or comparisons against our own LiDAR output,
-labelled as such. A real iPhone 16 Pro scan was taken through the whole chain (Stray
-Scanner → laptop → plan in 24 s); its tape measurements are pending.
+labelled as such, and so are our own captures until the flat is taped.
 
 ## 2. Architecture
 
@@ -146,32 +150,44 @@ conformal: the (n+1)·0.9 quantile of |error| / sigma). With the priors alone, 9
 intervals held the truth 28 % of the time for photos, 77 % for video and, by the agreement
 of the two scans, 58 % for LiDAR walls: confident garbage on thin input.
 
-| Tier | Truth used | Samples | Scale | Held-out coverage | 3 m wall, 90 % |
+| Tier | Truth used | Samples | Scale | Held-out coverage | 3 m wall with a plane, 90 % |
 |---|---|---|---|---|---|
-| LiDAR | same wall in both scans of the flat (run `80bce56`) | 19 walls, 8 rooms | 2.61 | 0.95 | ±6 cm |
-| video | LiDAR reference, refitted after fix-loop round 3 | 28 lengths, 2 rooms | 6.42 | 0.75 | ±0.72 m |
-| photo | LiDAR reference | 40 lengths, 7 rooms | 6.62 | 0.90 | ±1.72 m |
+| LiDAR | laser (4 ARKitScenes rooms) | 16 walls + 4 ceilings | 5.07 | 0.85 | ±12 cm |
+| video | LiDAR reference (sample flat, our flat) | 40 lengths, 4 rooms | 6.93 | 0.93 | ±0.77 m |
+| photo | LiDAR reference (sample flat, our flat ×2) | 83 lengths, 15 rooms | 5.23 | 0.92 | ±1.36 m |
 
-**LiDAR is the open question.** Its scale is still the two-scan fit, for three reasons:
-- Fitting on the laser rooms gives 99, ±2.3 m on every 3 m wall. Every laser room's outline
-  has more walls than the truth, so each truth wall is paired with a fragment. That is a
-  segmentation error, not measurement noise.
-- The two-scan fit after round 3 gives 17.8 (±0.41 m). Scan A now finds walls behind
-  furniture that scan B cannot see, so the scans disagree about which plane is the wall.
-- On the laser rooms the shipped LiDAR intervals hold the truth for 10 of 20 values (four
-  walls and the ceiling per room): 5 of 5 where the outline is right, 1 of 5 where it is
-  fragmented.
+**LiDAR intervals now know where a wall rests on nothing.** A wall's length is the
+distance between the two walls that end it. When an end wall was placed on a furniture
+front or a raster edge, rather than on a measured plane, its position is uncertain by tens
+of centimetres, not millimetres:
+- The end's sigma gets 0.5 m × its coverage deficit, capped at 0.2 m.
+- Doorways count as evidence, and short steps between well-covered walls add nothing.
+- k and the cap were chosen where well-evidenced and poorly-evidenced walls get the same
+  error-to-sigma ratio on laser truth (3.3 each). Before, it was 3.3 against 22.
 
-So LiDAR intervals cover measurement noise on walls whose plane was found, not outline
-errors. The fix is a wall sigma that grows when the wall's position rests on furniture or
-on no plane at all, refitted on our own taped room.
+The effect on the laser rooms:
+- Fitting without the term needed scale 99, ±2.3 m on every wall.
+- With it the fit is 5.07, and all 16 walls fall inside their intervals.
+- The scale is pinned by one value: the split room's ceiling, 5 cm off. It could fall to
+  about 3.5 once that room is no longer split.
+
+`bench/reports/benchmark.md` is the complete run made *before* this refit: its `calibration`
+rows show coverage at the previous scales, recorded in `benchmark.json` as
+`calibration_used`. `bench/reports/calibration.md` gives the coverage at the new scales.
+Re-running `bench/run_all.py` regenerates both on the refitted intervals. Geometry is
+unchanged by a refit.
+
+Repeatability cannot calibrate this term: two scans see the same furniture and make the
+same fragment, so it is a bias both share. The fit uses laser truth only.
 
 Held-out coverage is leave-one-room-out: fitted on the other rooms, scored on the room left
 out. In-sample coverage is 90 % or more by construction and is not evidence. Limits, stated
-plainly: LiDAR is calibrated for precision only (a bias both scans share is invisible);
-video rests on two rooms; photo and video are scored against our own LiDAR, not a laser;
-and the photo set does not follow the capture protocol, so protocol photos may well come
-out better than these intervals say. Thinner data never gets a narrower interval than
+plainly:
+- **LiDAR** rests on 16 laser walls in four rooms of one public dataset (an iPad Pro).
+- **Photo and video** are scored against our own LiDAR, not a laser.
+- **None of the photo sets follows the capture protocol** (one is a LiDAR proxy; ours were
+  taken while walking), so protocol photos may well come out better than these intervals
+  say. Thinner data never gets a narrower interval than
 richer data: the script checks a reference measurement per tier and raises the thinner
 tier where needed. With laser ground truth the same script refits on it
 (`run_all.py --eval-only`, then `calibrate.py --write`). Missing quantities are reported as
@@ -237,9 +253,12 @@ wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
   between two pieces can cut a room in two (ARKitScenes 42446532). Each laser wall is then
   paired with a fragment, so wall gates fail while areas and ceilings are close. Next step:
   outlines from the wall planes that reach the ceiling.
-- **Damage recall:** no false positive on the undamaged flat, but a painted 0.5 m stain
-  and a 0.7 m crack were both missed (`bench/reports/synth_damage.md`). Each wall patch is
-  examined in only one or two of the 64 frames, often at an angle.
+- **Damage:**
+  - No false positive on the undamaged flat.
+  - A painted 0.5 m water stain is found as one region, sized to within 13 %
+    (`bench/reports/synth_damage.md`).
+  - A painted 6 mm crack is missed: CLIP scores it at most about 0.6, in any view.
+  - On our own iPhone scans, ceiling lights are reported as a "hole": a false positive.
 - **Closed doors** are measured as wall; the protocol asks for doors open.
 - **Mirrors:** rejected as openings by a reflection test, and a mirror's gap in the wall no
   longer unseals the room. Tested on rendered mirrors, not on a real one.
