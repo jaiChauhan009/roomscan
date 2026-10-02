@@ -9,8 +9,13 @@
 #   openings: clear width between the jambs (doors: frame to frame, door open;
 #             windows: glass opening). List every door, window and open passage.
 #   adjacency: every pair of rooms joined by a door or open passage.
+#   damage:   per staged region: the wall it is on (position in that room's `walls` list,
+#             1 = first), its horizontal and vertical extent (bounding box), the distance
+#             from the wall's left end (as you face the wall) to its left edge, and the height
+#             of its lowest point above the floor.
 capture: my_flat              # name of the capture this file belongs to
 source: laser                 # laser | tape
+instrument: ""                # model and stated accuracy, e.g. "Bosch GLM 50-27, +-1.5 mm"
 measured_by: ""
 date: ""
 footprint: null               # optional: total floor area in m2 if you computed it
@@ -31,4 +36,5 @@ rooms:
 adjacency:
   - [living_room, hall]
 damage:                       # staged damage, for the damage rows of the report
-  - {room: living_room, surface: wall, class: water_stain, width: 0.40, height: 0.30}
+  - {room: living_room, surface: wall, wall: 2, class: water_stain, width: 0.40, height: 0.30, left: 0.60, bottom: 0.10}
+  - {room: living_room, surface: wall, wall: 3, class: crack, width: 0.70, height: 0.75, left: 0.05, bottom: 1.30}
