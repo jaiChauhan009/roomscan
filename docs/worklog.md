@@ -388,6 +388,16 @@ qualify instead of 1,213. Skipping blank wall tiles before CLIP would cut this, 
 the damage stage's weak point already, so it is left for a validation set. Dim frames are brightened before CLIP, with a
 stricter threshold. A rendered mirror is rejected and a doorway kept (`tests/test_speed_lowlight.py`).
 
+**Tried and rejected: furniture necks.** A rule kept two halves of a room together when the
+gap between them was flanked by barrier with no wall above door height (furniture, not a
+doorway's jambs). It did merge ARKitScenes 42446532, but:
+- that room's footprint got worse (−7.6 % → −18.3 %), because the merged outline keeps the
+  furniture notches;
+- scan B fell from 7 rooms to 4. B never looked up, so no real doorway showed wall above
+  door height, and real doorways were merged too.
+
+The rule needs to know where a capture actually looked high up; not shipped.
+
 **Offline models** (`819c547`, `616a211`): weights load from the local cache without asking
 the hub, so the walk-in needs no internet.
 
