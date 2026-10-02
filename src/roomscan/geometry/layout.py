@@ -118,6 +118,17 @@ def observed_band_top(cloud: Cloud, floor_y: float) -> float:
     return float(np.clip(np.percentile(h[m], 90), LOW[0] + 0.6, LOW[1]))
 
 
+def _close_gaps(walls: np.ndarray) -> np.ndarray:
+    """Walls with small unobserved gaps (< 50 cm) closed, so rooms stay sealed."""
+    return ndi.binary_closing(ndi.binary_dilation(walls, np.ones((3, 3))), np.ones((25, 25)))
+
+
+def _enclosed(walls: np.ndarray) -> np.ndarray:
+    """Cells that have a wall somewhere in each of the four axis directions."""
+    return (np.maximum.accumulate(walls, axis=0) & np.maximum.accumulate(walls[::-1], axis=0)[::-1]
+            & np.maximum.accumulate(walls, axis=1) & np.maximum.accumulate(walls[:, ::-1], axis=1)[:, ::-1])
+
+
 def _coverage_grids(cloud: Cloud, ab: np.ndarray, frame: PlanFrame, floor_y: float,
                     top_h: float, band_top: float = LOW[1]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     h = cloud.points[:, 1] - floor_y
@@ -332,8 +343,7 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
     soffit &= ~ndi.binary_dilation(ndi.binary_opening(soffit, np.ones((20, 20))), np.ones((5, 5)))
     lintel |= ndi.binary_opening(soffit, np.ones((2, 2)))
     lintel = ndi.binary_closing(lintel, np.ones((13, 13)))
-    # close small gaps in walls (unobserved patches, < 50 cm) so rooms stay sealed
-    barrier = ndi.binary_closing(ndi.binary_dilation(wall | lintel, np.ones((3, 3))), np.ones((25, 25)))
+    barrier = _close_gaps(wall | lintel)
 
     fl = (sub.normals[:, 1] > UP_T) & (np.abs(sub.points[:, 1] - floor.value) < 0.05)
     r, c = frame.to_cell(ab[fl])
@@ -351,9 +361,7 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
     lab, nlab = ndi.label(~sealed)
     border = set(np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]]).tolist())
     ceil_map = _ceiling_map(sub, ab, frame, floor.value)
-    wb = wall | lintel
-    enclosed = (np.maximum.accumulate(wb, axis=0) & np.maximum.accumulate(wb[::-1], axis=0)[::-1]
-                & np.maximum.accumulate(wb, axis=1) & np.maximum.accumulate(wb[:, ::-1], axis=1)[:, ::-1])
+    enclosed = _enclosed(wall | lintel)
     region = np.zeros(frame.shape, np.int32)
     k = 0
     for li in range(1, nlab + 1):

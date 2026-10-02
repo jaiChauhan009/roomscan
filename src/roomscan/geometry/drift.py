@@ -26,6 +26,10 @@ from roomscan.geometry.pointcloud import frame_points, voxel_fuse
 SUBMAP_S = 3.0  # seconds per submap
 LOOP_RADIUS = 2.0  # m, centroid distance for loop candidates
 MIN_GAP = 4  # submaps; skip near-consecutive pairs
+SUBMAP_VOXEL = 0.04  # m, voxel size of the submap clouds that loop closures are registered on
+ODO_SIGMA_M = 0.01  # error assumed for ARKit's relative pose per submap step: position (m)
+ODO_SIGMA_DEG = float(np.degrees(0.005))  # and rotation (deg)
+PRUNE_DIST = 0.03  # m; a loop closure still off by more than this after optimisation is pruned
 
 
 def _yaw_of(R: np.ndarray) -> float:
@@ -59,7 +63,7 @@ def _submap_cloud(cap: PosedCapture, idx: list[int], T_anchor_inv: np.ndarray):
         ps.append(p); ns.append(n); ws.append(np.ones(len(p), np.float32))
     if not ps:
         return None
-    c = voxel_fuse(np.concatenate(ps), np.concatenate(ns), np.concatenate(ws), 0.04)
+    c = voxel_fuse(np.concatenate(ps), np.concatenate(ns), np.concatenate(ws), SUBMAP_VOXEL)
     pts = c.points @ T_anchor_inv[:3, :3].T + T_anchor_inv[:3, 3]
     nrm = c.normals @ T_anchor_inv[:3, :3].T
     pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts.astype(np.float64)))
@@ -112,19 +116,20 @@ def correct_drift(cap: PosedCapture, use_cache: bool = True, key: tuple = (), pr
 
 
 def _pose_graph(anchors, clouds, centroids):
-    reg = o3d.pipelines.registration
-    pg = reg.PoseGraph()
-    for Ta in anchors:
-        pg.nodes.append(reg.PoseGraphNode(Ta))
-    n = len(anchors)
-    info_odo = np.diag([4e4, 4e4, 4e4, 1e4, 1e4, 1e4])  # ARKit relative pose: very trusted short-term
-    for i in range(n - 1):
-        rel = np.linalg.inv(anchors[i + 1]) @ anchors[i]  # maps i -> i+1 frame
-        pg.edges.append(reg.PoseGraphEdge(i, i + 1, rel, info_odo, uncertain=False))
+    loops = _find_loops(anchors, clouds, centroids)
+    if not loops:
+        return [a.copy() for a in anchors], 0, (0.0, 0.0)
+    new, after = _optimise(anchors, loops)
+    before = [lp["shift"] for lp in loops]
+    return new, len(loops), (round(float(np.median(before)), 4), round(float(np.median(after)) if after else 0.0, 4))
 
-    loops, before, after = 0, [], []
+
+def _find_loops(anchors, clouds, centroids) -> list[dict]:
+    """Loop closures: submaps that revisit the same place, aligned by point-to-plane ICP."""
+    reg = o3d.pipelines.registration
     est = reg.TransformationEstimationPointToPlane()
     crit = reg.ICPConvergenceCriteria(max_iteration=30)
+    n, loops = len(anchors), []
     for i in range(n):
         if clouds[i] is None:
             continue
@@ -143,12 +148,28 @@ def _pose_graph(anchors, clouds, centroids):
             if dt > 0.5 or da > 8:
                 continue
             inf = reg.get_information_matrix_from_point_clouds(src, tgt, 0.03, r2.transformation)
-            pg.edges.append(reg.PoseGraphEdge(i, j, r2.transformation, inf, uncertain=True))
-            before.append(dt)
-            loops += 1
-    if loops == 0:
-        return [a.copy() for a in anchors], 0, (0.0, 0.0)
-    opt = reg.GlobalOptimizationOption(max_correspondence_distance=0.03, edge_prune_threshold=0.25,
+            loops.append({"i": i, "j": j, "T": r2.transformation, "info": inf, "shift": float(dt)})
+    return loops
+
+
+def _optimise(anchors, loops: list[dict]) -> tuple[list[np.ndarray], list[float]]:
+    """Robust pose-graph optimisation: ARKit odometry between consecutive submaps plus loop closures.
+
+    Returns the corrected submap anchors and, for every loop closure that survived pruning,
+    its remaining translation error.
+    """
+    reg = o3d.pipelines.registration
+    pg = reg.PoseGraph()
+    for Ta in anchors:
+        pg.nodes.append(reg.PoseGraphNode(Ta))
+    sr = np.deg2rad(ODO_SIGMA_DEG)
+    info_odo = np.diag([1 / sr ** 2] * 3 + [1 / ODO_SIGMA_M ** 2] * 3)
+    for i in range(len(anchors) - 1):
+        rel = np.linalg.inv(anchors[i + 1]) @ anchors[i]  # maps i -> i+1 frame
+        pg.edges.append(reg.PoseGraphEdge(i, i + 1, rel, info_odo, uncertain=False))
+    for lp in loops:
+        pg.edges.append(reg.PoseGraphEdge(lp["i"], lp["j"], lp["T"], lp["info"], uncertain=True))
+    opt = reg.GlobalOptimizationOption(max_correspondence_distance=PRUNE_DIST, edge_prune_threshold=0.25,
                                        preference_loop_closure=1.0, reference_node=0)
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error)
     reg.global_optimization(pg, reg.GlobalOptimizationLevenbergMarquardt(),
@@ -161,12 +182,13 @@ def _pose_graph(anchors, clouds, centroids):
         yaw = float(np.arctan2(dR[0, 2], dR[2, 2]))
         T[:3, :3] = _rot_y(yaw) @ Ta[:3, :3]
         new.append(T)
+    after = []
     for e in pg.edges:
         if e.uncertain:
             Ti, Tj = new[e.source_node_id], new[e.target_node_id]
             pred = np.linalg.inv(Tj) @ Ti
             after.append(float(np.linalg.norm((np.linalg.inv(pred) @ e.transformation)[:3, 3])))
-    return new, loops, (round(float(np.median(before)), 4), round(float(np.median(after)) if after else 0.0, 4))
+    return new, after
 
 
 def _heading_snap(anchors, clouds, centroids, max_deg: float = 4.0):
