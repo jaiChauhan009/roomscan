@@ -1,4 +1,4 @@
-﻿"""Project -> capture folders the engine reads (materialise), and the pre-run check (verify)
+"""Project -> capture folders the engine reads (materialise), and the pre-run check (verify)
 built on roomscan.capture_quality plus structural checks.
 
 A project has rooms (spaces of kind "photos": a name, optional sizes, optional photos) and up
@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import zipfile
 from pathlib import Path
@@ -142,7 +143,10 @@ def plan_runs(p: dict) -> list[dict]:
     runs: list[dict] = []
     photos = [s for s in p["spaces"] if s["kind"] == "photos" and s["files"]]
     if photos:
-        folders = {s["space_id"]: f"{i:02d}_{safe_name(s['name'])}" for i, s in enumerate(photos, 1)}
+        # walk order as an NN_ prefix; a name that already starts with a number ("02_room_8",
+        # "3 kitchen") keeps only ours, so it does not read "02_02_room_8"
+        folders = {s["space_id"]: f"{i:02d}_{re.sub(r'^[0-9]+[ _.-]*', '', safe_name(s['name'])) or safe_name(s['name'])}"
+                   for i, s in enumerate(photos, 1)}
         runs.append({"tier": "photos", "engine_tier": "photo", "label": "photos", "title": TITLES["photos"],
                      "space_ids": [s["space_id"] for s in photos], "folders": folders})
     for kind, cap in present(p):

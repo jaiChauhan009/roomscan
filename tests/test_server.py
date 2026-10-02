@@ -764,3 +764,12 @@ def test_email_is_optional_and_sent_with_plan_and_sheet_when_given(client, monke
     time.sleep(0.3)
     assert len(sent) == 1
     assert notify.valid_email("a.b@c.co") and not notify.valid_email("a@b")
+
+
+def test_numbered_room_names_are_not_numbered_twice(client, engine):
+    pid = client.post("/api/projects").json()["project_id"]
+    s = space(client, pid, "02_room_8")
+    for i in range(3):
+        upload(client, pid, s["space_id"], f"IMG_{i}.jpg", jpeg(i))
+    j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
+    assert j["status"] == "done" and engine.calls[-1]["folders"] == ["01_room_8"]
