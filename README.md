@@ -68,6 +68,34 @@ uv sync --extra ml                      # .venv with Python 3.11 and all depende
 uv run python scripts/fetch_weights.py  # pretrained models into the Hugging Face cache (0.77 GB)
 ```
 
+**Fastest path** (same files, same results): the two downloads come from different servers
+(PyPI and Hugging Face), so fetch the weights while `uv sync` runs, and only the weights your
+tier needs (`--tier lidar` is CLIP only, 0.61 GB; `video` adds depth, 0.71 GB; `photo` and
+the default `all` add matching, 0.77 GB). The prefetch needs no project environment, only
+`huggingface-hub` (a few MB, pinned to the locked version):
+
+```powershell
+# Windows PowerShell, from the repository folder
+$here = (Get-Location).Path
+$w = Start-Job { Set-Location $using:here; uv run --no-project --with huggingface-hub==1.33.0 python scripts/fetch_weights.py --download-only --tier lidar }
+uv sync --extra ml
+Receive-Job $w -Wait
+uv run python scripts/fetch_weights.py --tier lidar    # finds the files cached, then the offline check
+```
+
+```bash
+# macOS / Linux
+uv run --no-project --with huggingface-hub==1.33.0 python scripts/fetch_weights.py --download-only --tier lidar &
+uv sync --extra ml; wait
+uv run python scripts/fetch_weights.py --tier lidar
+```
+
+Two terminals work too: the first line in one, `uv sync --extra ml` in the other. The last
+step loads each model the way the pipeline does, fetches anything the prefetch missed, and
+checks that the models load offline. In Windows PowerShell 5.1 `Receive-Job` shows the
+download progress bars in red; that is not an error. A tier whose weights are not cached still runs: the
+pipeline downloads the missing model on first use.
+
 Installing uv (once per machine), any one of:
 
 - any OS with Python: `pip install uv` (if `pip` is not found: `python -m pip install uv`,
@@ -142,6 +170,21 @@ minutes here, about 11.5 of them downloading, and to a first video plan about 20
 the 15-minute target depends on the connection: the one-time downloads are 1.2 GB, about 2
 minutes at 10 MB/s (the LiDAR path would then take about 5 minutes; estimate, not measured)
 but 20 minutes at 1 MB/s.
+
+**With the fastest path (estimate, not measured on a clean machine).** The weights then
+download during `uv sync` instead of after it: at the speeds above, 0.61 GB for `--tier
+lidar` takes about 1.5 min against 9 min 15 s for `uv sync`, so it adds nothing to the wall
+time unless the two downloads share a saturated link (here PyPI was the slow side at 0.75 MB/s
+while Hugging Face gave 7 MB/s, so they did not). What stays after `uv sync` is the loading
+and offline check, estimated at 30-60 s (importing torch and loading CLIP twice; not timed
+separately). One-time setup: about 11 min instead of 12.5, and README to a first LiDAR plan
+about 13 min instead of 14.5 (15.5 measured end to end when `fetch_weights.py` still pulled
+the unused 605 MB CLIP copy). The remaining time is almost all
+`uv sync`: it already downloads in parallel (uv's default is 50 concurrent downloads,
+`UV_CONCURRENT_DOWNLOADS`), so raising that does not help a link that delivers 0.75 MB/s in
+total. On Windows and macOS the locked torch wheel from PyPI is already the CPU-only build
+(win_amd64: 124 MB), so the PyTorch CPU index would save nothing there; it would on Linux
+(below), but switching it changes `uv.lock` and is not done here.
 
 Linux downloads much more. The PyPI build of torch for Linux bundles CUDA libraries (cuDNN,
 cuBLAS, NCCL, triton) that this CPU-only pipeline never uses, so `uv sync --extra ml` fetches
