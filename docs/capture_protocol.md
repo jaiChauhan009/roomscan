@@ -83,3 +83,29 @@ video about ten minutes for a two-minute clip. Outputs (`result.json`, `plan.png
 `plan.svg`, `walkin.txt`) go to `runs/walkin_<capture>_<date>_<time>/`.
 `uv run roomscan run <capture>` runs the same pipeline without the table (it needs the
 recording unzipped).
+
+## What the checker will ask you to retake
+
+While the phone is still there, run `uv run python scripts/walkin.py E:\ --check-only`
+(seconds; exit status 3 means retake). The full run prints the same lines first and goes
+on. Each check says OK, WARN (usable, retake if it is easy) or RETAKE, with what to do:
+
+| tier | you will see | because | do this |
+|---|---|---|---|
+| photo | RETAKE photo count | more than 12 photos in a room: taken while walking | stand in the doorway, 5-6 photos turning left to right, then one looking back |
+| photo | WARN photo count | 9-12 photos, or fewer than 2 | 2-8 photos per room |
+| photo | RETAKE originals | photos under 1600 px (WhatsApp sends 1280) | copy the originals (Save to Files / AirDrop), never through a chat app |
+| photo | WARN originals | no focal length in the photo | copy the originals, not edited copies |
+| photo | WARN sharpness | named photos are blurred | retake them holding the phone still |
+| photo | WARN look-back photo | fewer than half the rooms end with a photo of the room before | step 3 of the photo tier |
+| photo | WARN folders | room folders not numbered | `01_hall`, `02_kitchen`, ... |
+| video | RETAKE resolution | under 720p: a chat-app copy | send the original clip |
+| video | WARN / RETAKE motion | the picture moves more than 0.45 / 0.75 image widths per second (a protocol sweep: about 0.3) | slow down: one step every two seconds, no fast pans |
+| video | WARN / RETAKE sharpness, blank frames | blurred frames; frames of a bare wall too close | more light, slower; keep 1.5 m from walls |
+| LiDAR | RETAKE ceiling | the phone never pointed 20 deg or more above horizontal | tilt up to the ceiling once in every room (no ceiling height otherwise) |
+| LiDAR | WARN tracking | the pose jumped more than 0.3 m between frames | slower; 50 cm or more from walls; do not cover the sensor |
+| LiDAR | WARN turn speed | turning faster than 100 deg/s | a quarter turn in about two seconds |
+| LiDAR | WARN colour video | no rgb.mp4 | copy the whole recording (Compress it first) |
+
+The overlap between neighbouring photos is printed for information only: on bare walls the
+feature matcher misses real overlap, so it never asks for a retake.

@@ -24,8 +24,13 @@ Prints the time of every stage, then one block per room: floor area, every wall 
 90 % interval and the side of plan.png it is on, ceiling height (or "not observed"),
 openings with widths. Writes result.json, plan.png, plan.svg and this report (walkin.txt)
 to --out (default runs/walkin_<capture>_<date>_<time>).
+Before the run, the capture's quality is checked (roomscan.capture_quality, seconds): per
+check OK / WARN / RETAKE with one line of advice (too many photos taken while walking,
+chat-app copies, blur, walking too fast, never looking up at the ceiling, ...). The normal
+run prints it and goes on; --check-only prints it and stops.
 Exit status: 0 done; 2 bad input (one-line message); 1 the pipeline failed (one-line
-message, traceback in <out>/walkin_error.txt).
+message, traceback in <out>/walkin_error.txt); 3 (--check-only) the quality check advises
+a retake.
 """
 from __future__ import annotations
 
@@ -290,6 +295,22 @@ def _check_photos(cap: Capture) -> str:
 CHECKS = {"lidar": _check_lidar, "video": _check_video, "photo": _check_photos}
 
 
+def quality(cap: Capture) -> tuple[str, list[str]]:
+    """(worst level, report lines) of the capture-quality check; never stops the run."""
+    from roomscan import capture_quality as cq
+    try:
+        if cap.tier == "photo":
+            from roomscan.frontends.photos import find_rooms
+            found = cq.check_photos(find_rooms(cap.path), name=_orig)
+        elif cap.tier == "video":
+            found = cq.check_video(cap.path)
+        else:
+            found = cq.check_lidar(cap.path)
+    except Exception as e:  # a checker bug must not cost the walk-in run
+        return cq.OK, [f"capture quality: not checked ({type(e).__name__}: {e})"]
+    return cq.worst(found), cq.report_lines(found)
+
+
 # ---------------------------------------------------------------- model weights
 
 def _hub_dir() -> Path:
@@ -460,8 +481,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-damage", action="store_true", help="skip damage detection (geometry only, faster)")
     ap.add_argument("--keep-temp", action="store_true", help="keep the temporary folder (caches, unzipped input)")
     ap.add_argument("--check-only", action="store_true",
-                    help="only find the capture and check it is complete and readable (seconds), then stop: "
-                         "use it while the phone is still there")
+                    help="only find the capture, check it is complete and readable and check its quality "
+                         "(seconds), then stop: use it while the phone is still there; exit 3 = retake advised")
     a = ap.parse_args(argv)
 
     t0 = time.time()
@@ -479,10 +500,11 @@ def main(argv: list[str] | None = None) -> int:
         except InputError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
+        level, qlines = quality(cap)
         if a.check_only:
             print("\n".join([f"ok: {a.capture} -> {TIER_NAME[cap.tier]} tier, {what}"]
-                            + [f"  note: {n}" for n in cap.notes]))
-            return 0
+                            + [f"  note: {n}" for n in cap.notes] + qlines))
+            return 3 if level == "RETAKE" else 0
         out = (a.out or cwd / "runs" / f"walkin_{cap.name}_{datetime.now():%Y%m%d_%H%M%S}").absolute()
         models = _go_offline(_models(cap.tier, not a.no_damage))
         head = ["roomscan walk-in run",
@@ -491,6 +513,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"  cold run  pipeline caches in a fresh temporary folder, deleted afterwards ({work})",
                 f"  models    {models}",
                 f"  started   {datetime.now():%H:%M:%S}"] + [f"  note      {n}" for n in cap.notes]
+        head += [""] + qlines + (["  (going ahead with the run anyway)"] if level != "OK" else [])
         print("\n".join(head) + "\n", flush=True)
 
         os.chdir(work)  # any relative path the pipeline uses lands in the temporary folder
