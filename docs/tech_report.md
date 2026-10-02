@@ -22,18 +22,15 @@ video and photo tiers on the same flat are far off (one room found from video, f
 +32 % and +79 % from photos), with intervals that say so.
 
 Two scans of the sample flat agree as point clouds to a median 7 mm but divide the flat
-into different rooms, so the repeatability gate fails. The video and photo tiers are far
-from their gates on the only data available, which is derived from a LiDAR scan rather
-than captured per protocol.
+into different rooms, so the repeatability gate fails (section 8). The video and photo
+tiers are far from their gates on the only data available, none of it captured per protocol.
 
 **The main limitation of this report: little ground truth.** Laser truth exists for four
-public rooms (LiDAR tier only). The sample flat has none, so its numbers are
-self-consistency (repeatability, drift) or comparisons against our own LiDAR output,
-labelled as such, and so are our own captures until the flat is taped.
+public rooms (LiDAR tier only). Numbers on the sample flat and our own captures are
+self-consistency or comparisons against our own LiDAR output, labelled as such.
 
-Around the engine there is now a product: a capture check with retake advice, optional
-tape sizes per room, a stage queue with a gate after each stage, an Excel output, and a
-web app (section 10).
+Around the engine there is a product: capture check, optional tape sizes, a gated stage
+queue, Excel output and a web app (section 10).
 
 ## 2. Architecture
 
@@ -51,7 +48,7 @@ photos ► per-room fit + stitch ─┘                                       (r
 Rationale: wall, door and damage logic is the hard part; writing it once and tuning it
 on the cleanest data costs less than three pipelines.
 
-## 3. Tier design
+## 3. Tier design and device matrix
 
 **Capture route.** Route 2, stock tools (`docs/capture_protocol.md`): Stray Scanner for
 LiDAR, the Camera app for video and photos. The protocol is shaped to make the hard
@@ -87,7 +84,10 @@ uses no matching:
 - **Stitching:** the look-back photo is located in an earlier room with EfficientLoFTR +
   PnP; otherwise capture order, flagged.
 
-Device matrix: `docs/device_matrix.md`.
+**Device matrix** (full table in [device_matrix.md](device_matrix.md)): LiDAR tier on
+iPhone 15-17 Pro / Pro Max and iPad Pro 2020+; video and photo tiers on any phone. Run on
+an iPhone 16 Pro (LiDAR, video, photos) and a moto g45 (video, photos). Processing: a
+CPU-only Windows 11 laptop (Ryzen 7, 16 GB); a whole-flat LiDAR scan takes 212 s.
 
 ## 4. Geometry back end
 
@@ -177,11 +177,9 @@ The effect on the laser rooms:
   about 3.5 once that room is no longer split. It no longer is (section 9); the refit has
   not been run yet.
 
-`bench/reports/benchmark.md` is the complete run made *before* this refit: its `calibration`
-rows show coverage at the previous scales, recorded in `benchmark.json` as
-`calibration_used`. `bench/reports/calibration.md` gives the coverage at the new scales.
-Re-running `bench/run_all.py` regenerates both on the refitted intervals. Geometry is
-unchanged by a refit.
+`bench/reports/benchmark.md` predates this refit (its scales are in `benchmark.json` as
+`calibration_used`); `bench/reports/calibration.md` has coverage at the new scales.
+Geometry is unchanged by a refit.
 
 Repeatability cannot calibrate this term: two scans see the same furniture and make the
 same fragment, so it is a bias both share. The fit uses laser truth only.
@@ -193,11 +191,13 @@ plainly:
 - **Photo and video** are scored against our own LiDAR, not a laser.
 - **None of the photo sets follows the capture protocol** (one is a LiDAR proxy; ours were
   taken while walking), so protocol photos may well come out better than these intervals
-  say. Thinner data never gets a narrower interval than
-richer data: the script checks a reference measurement per tier and raises the thinner
-tier where needed. With laser ground truth the same script refits on it
-(`run_all.py --eval-only`, then `calibrate.py --write`). Missing quantities are reported as
-missing: an unscanned ceiling is `null` with a lower bound.
+  say.
+
+Thinner data never gets a narrower interval than richer data: the script checks a
+reference measurement per tier and raises the thinner tier where needed. With laser ground
+truth the same script refits on it (`run_all.py --eval-only`, then `calibrate.py --write`).
+Missing quantities are reported as missing: an unscanned ceiling is `null` with a lower
+bound.
 
 ## 8. Fix loop
 
@@ -212,8 +212,7 @@ the low part of walls (`fixloop/README.md`).
 
 **Round 2** (`fixloop/round2/`) tested that and found it wrong: where B puts the bedroom's far
 wall, A has no surface at all. The walls B saw in its first 10 s were 26-33 cm off because
-the drift correction never corrected anything (section 5). The declaration was committed
-before the fix. Fix: odometry weighted by ARKit's measured error, and the unsealed-room
+the drift correction never corrected anything (section 5). Fix: odometry weighted by ARKit's measured error, and the unsealed-room
 fallback reading gap-closed walls. Every declared number came true: B moves 0.52 m,
 bedroom walls within +2 / −7 / −1 cm of A's, footprint gap −18 % → −0.9 %. The gate still
 fails as predicted: B saw no door heads or ceilings, so it divides the flat differently and
@@ -239,28 +238,28 @@ The fix settles the outline after snapping, and a plane reaching the ceiling win
 On the laser rooms that arrived after the round, the same code brought two rooms' median
 wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
 
+**Round 4** (ceiling height, `fixloop/round4/`): in progress; summary to follow.
+<!-- placeholder for the round 4 paragraph (3-4 lines): gate, declaration, fix,
+     declared vs measured, what was not predicted -->
+
 ## 9. Known failure modes
 
 - **Scans without an upward sweep:** no door heads and no ceilings, so rooms merge that a
   full scan keeps apart (fix-loop round 2).
-- **Rooms with no wall between them** (open plan, wide openings): the boundary is where
-  the watershed split put it, and wall snapping cannot move it (it stops at the next
-  room), so that boundary is only as good as the split.
+- **Rooms with no wall between them** (open plan, corridors, wide openings): the boundary
+  is where the watershed split put it, and snapping cannot move it (it stops at the next
+  room); such boundaries differ between captures, and rooms split or merge.
 - **Drift at the very start of a scan:** a submap moves as one piece, so tracking that is
   still settling inside one 3 s submap leaves up to 7 cm.
-- **Open-plan areas and corridors:** room boundaries differ between captures; rooms split
-  or merge.
 - **Video tier:** fast sweeps, motion blur and blank walls break tracking into segments;
   only the longest survives (1 of 6 rooms on the sample clip). Scale is ±10-20 %.
 - **Photo tier:** fails when the floor is out of view (scale from an assumed phone height)
   or the look-back photo cannot be matched (position along the wall is guessed and flagged).
 - **Furnished rooms (LiDAR, laser truth):** furniture taller than about 1.1 m is a barrier
-  in the wall grid. Where no wall is seen above it, the outline keeps the notch. A gap
-  between two pieces used to cut a room in two (ARKitScenes 42446532, walls 1.48 m off).
-  A gap now stays inside the room when the ceiling was seen over it and nothing beside it
-  rises above door height; 42446532 is one room, median wall error 0.047 m. Scans that
-  never looked up keep such splits. Next step: outlines from the wall planes that reach
-  the ceiling.
+  in the wall grid; where no wall is seen above it, the outline keeps the notch. A gap
+  between two pieces stays inside the room only when the ceiling was seen over it
+  (ARKitScenes 42446532: 1.48 m → 0.047 m, section 1); scans that never looked up keep
+  such splits. Next step: outlines from the wall planes that reach the ceiling.
 - **Damage:**
   - No false positive on the undamaged flat.
   - A painted 0.5 m water stain is found as one region, sized to within 13 %
@@ -297,12 +296,11 @@ wall error down to 3 and 10 cm. Before it, their walls were 0.03-1.6 m off.
   180 mm. On real LiDAR frames its scale against LiDAR depth is 1.002 (0.998-1.006, 11
   frames). Not yet used by the photo / video tiers: the depth model's scale varies per
   frame, so one frame's marker does not fix the others.
-- **Stages** (`stages.py`): each stage is timed and checked by a gate (frames read, loop
-  closures, rooms without wall evidence, intervals present). A failed gate stops the run
-  and names the stage; the record is `stages.json`.
-- **Outputs:** `result.xlsx` (every number as value and 90 % bounds) beside `result.json`
-  and the plan.
-- **Web app:** a static front end (`web/`) talks to a FastAPI server (`server/`) that
-  verifies uploads, queues one job at a time and shows the stages live. Given sizes are
-  shown beside ours. Exercised by tests and a mock server; not yet used by a non-engineer.
+- **Stages** (`stages.py`): each stage is timed and gated (frames read, loop closures,
+  rooms without wall evidence, intervals present); a failed gate stops the run and names
+  the stage (`stages.json`). Outputs: `result.json`, the plan, and `result.xlsx` (every
+  number with its 90 % bounds).
+- **Web app:** a static front end (`web/`) and a FastAPI server (`server/`) that verifies
+  uploads, queues one job at a time and shows the stages live. Exercised by tests and a
+  mock server; not yet used by a non-engineer.
 - **HEIC** is optional: where its decoder is blocked, other formats still work.
