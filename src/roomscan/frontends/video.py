@@ -110,7 +110,25 @@ def find_video(path: Path) -> Path:
     return vids[0]
 
 
-def _intrinsics(video: Path, w: int, h: int, hfov_deg: float | None) -> tuple[np.ndarray, str]:
+def _rotate_K(K: np.ndarray, rotation: int, W: int, H: int) -> np.ndarray:
+    """Intrinsics of a stored W x H picture after OpenCV's auto-rotation for the clip's flag.
+
+    OpenCV turns a clip flagged 90 clockwise ((u, v) -> (H - 1 - v, u)), 270 counter-
+    clockwise and 180 upside down (checked in tests/test_inputs.py).
+    """
+    fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
+    if rotation == 90:
+        return np.array([[fy, 0, H - 1 - cy], [0, fx, cx], [0, 0, 1.0]])
+    if rotation == 270:
+        return np.array([[fy, 0, cy], [0, fx, W - 1 - cx], [0, 0, 1.0]])
+    if rotation == 180:
+        return np.array([[fx, 0, W - 1 - cx], [0, fy, H - 1 - cy], [0, 0, 1.0]])
+    return K
+
+
+def _intrinsics(video: Path, w: int, h: int, hfov_deg: float | None, rotation: int = 0) -> tuple[np.ndarray, str]:
+    """K for the upright w x h frames. A calibration file describes the stored picture, so
+    for a rotated clip it is scaled to the stored size and then turned with the frames."""
     for cand in [video.with_name("camera_matrix.csv"), video.with_name("intrinsics.json")]:
         if cand.exists():
             if cand.suffix == ".csv":
@@ -121,8 +139,9 @@ def _intrinsics(video: Path, w: int, h: int, hfov_deg: float | None) -> tuple[np
                 K = np.array(j["K"], float)
                 src_w = float(j.get("width", 2 * K[0, 2]))
             K = K.copy()
-            K[:2] *= w / src_w
-            return K, f"file:{cand.name}"
+            W, H = (h, w) if rotation in (90, 270) else (w, h)  # stored picture at the processing size
+            K[:2] *= W / src_w
+            return _rotate_K(K, rotation, W, H), f"file:{cand.name}" + (f" (turned {rotation} deg)" if rotation else "")
     hf = np.deg2rad(hfov_deg or DEFAULT_HFOV_DEG)
     f = (max(w, h) / 2) / np.tan(hf / 2)  # hfov refers to the long image side
     return np.array([[f, 0, w / 2], [0, f, h / 2], [0, 0, 1.0]]), f"hfov:{hfov_deg or DEFAULT_HFOV_DEG}"
@@ -586,7 +605,7 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
     kfs = select_keyframes(tr["kfs"])
     imgs = [k["img"] for k in kfs]
     h, w = imgs[0].shape[:2]
-    K, k_src = _intrinsics(video, w, h, hfov_deg)
+    K, k_src = _intrinsics(video, w, h, hfov_deg, rotation=tr["rotation"])
     # rotated clips are keyed apart: depth cached before rotation was applied must not be reused
     rot = f"|rot{tr['rotation']}" if tr["rotation"] else ""
     key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}{rot}".encode()).hexdigest()[:16]

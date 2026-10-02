@@ -590,3 +590,22 @@ def test_cli_non_ascii_path_with_redirected_cp1252_output(tmp_path):
     r = subprocess.run(cli + ["schema", "--out", str(out)], capture_output=True, env=env, timeout=120)
     assert r.returncode == 0, r.stderr.decode("cp1252", errors="replace")
     assert out.exists()
+
+
+def test_calibration_file_is_turned_with_a_rotated_clip(tmp_path):
+    # a camera_matrix.csv describes the stored (landscape) picture; for a clip flagged 90 the
+    # frames come out turned clockwise, so K must turn with them or every ray is wrong
+    from roomscan.frontends.video import _capture, _intrinsics
+    stored = np.zeros((240, 320, 3), np.uint8)
+    stored[20:31, 20:31] = (255, 0, 0)  # marker centred on stored pixel (25, 25)
+    clip = write_hevc_clip(tmp_path / "IMG_0001.MOV", [stored], [20] * 30, rotation=90)
+    np.savetxt(tmp_path / "camera_matrix.csv", [[300, 0, 160], [0, 300, 120], [0, 0, 1]], delimiter=",")
+    ok, img = _capture(clip).read()
+    assert ok and img.shape[:2] == (320, 240)
+    ys, xs = np.where(img[:, :, 2] > 128)
+    K, src = _intrinsics(clip, 240, 320, None, rotation=90)
+    assert np.allclose(K, [[300, 0, 119], [0, 300, 160], [0, 0, 1]]) and "turned 90" in src
+    # same viewing ray from both pictures: turned clockwise, (x, y) of the stored camera -> (-y, x)
+    ray_stored = np.array([(25 - 160) / 300, (25 - 120) / 300])
+    ray_turned = np.array([(xs.mean() - K[0, 2]) / K[0, 0], (ys.mean() - K[1, 2]) / K[1, 1]])
+    assert np.allclose(ray_turned, [-ray_stored[1], ray_stored[0]], atol=1.5 / 300)
