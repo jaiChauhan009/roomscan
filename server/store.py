@@ -3,8 +3,8 @@ under DATA_DIR so a restart keeps it.
 
     DATA_DIR/projects/<pid>/project.json
     DATA_DIR/projects/<pid>/files/<sid>/<sha256>      file bytes, named by content hash
-    DATA_DIR/projects/<pid>/files/_capture_video/<sha256>   the whole-home video's file
-    DATA_DIR/projects/<pid>/files/_capture_lidar/<sha256>   the whole-home LiDAR scan's file
+    DATA_DIR/projects/<pid>/files/_capture_video/<sha256>   the whole-home videos
+    DATA_DIR/projects/<pid>/files/_capture_lidar/<sha256>   the whole-home LiDAR scans (zips or loose files)
     DATA_DIR/jobs/<jid>/job.json
     DATA_DIR/jobs/<jid>/out/[<prefix>/]result.json ... outputs of each run
     DATA_DIR/jobs/<jid>/work/                          materialised capture (deleted after the run)
@@ -22,7 +22,7 @@ import uuid
 from pathlib import Path
 
 KINDS = ("photos", "video", "lidar")
-# whole-home captures: a project may have one of each. Order = run order, fastest first
+# whole-home capture containers (each up to 5 items: videos / LiDAR scans). Order = run order, fastest first
 # (LiDAR ~2-3 min, video ~8-12 min on a CPU), so the LiDAR result is ready while the video runs
 CAPTURE_KINDS = ("lidar", "video")
 

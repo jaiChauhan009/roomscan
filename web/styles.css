@@ -248,3 +248,9 @@ td .ci { display: block; color: var(--muted); font-size: .75rem; white-space: no
 .cap { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
 .cap h3 { margin: 0; font-size: 1rem; }
 .cap ul { padding-left: 1.1rem; margin: 6px 0; overflow-wrap: anywhere; }
+.cap ul.cap-items { list-style: none; padding-left: 0; }
+.cap-item { padding: 6px 0; border-top: 1px solid var(--border); }
+.cap-item:first-child { border-top: 0; }
+.cap-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.cap-row > span { min-width: 0; overflow-wrap: anywhere; }
+.cap-verify { margin-top: 4px; }

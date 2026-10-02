@@ -22,7 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from server.capture import VIDEO_EXT, cache_key, content_key, has_input, plan_runs, verify_project
+from server.capture import (MAX_ITEMS, cache_key, capture_items, content_key, has_input, is_main_file,
+                            plan_runs, verify_project)
 from server.jobs import OUTPUT_FILES, Worker, comparison, new_job, public_job
 from server.store import CAPTURE_KINDS, Store, capture_id, engine_version, new_id, safe_relpath
 
@@ -129,20 +130,16 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
                                      f"(PUT /api/projects/{{pid}}/captures/{kind} first)")
         return c
 
-    def is_main_file(kind: str, name: str) -> bool:
-        """The one file a whole-home capture holds: the clip, or the zipped LiDAR export."""
-        ext = Path(name).suffix.lower()
-        return ext in VIDEO_EXT if kind == "video" else ext == ".zip"
-
-    def second_file_error(c: dict, name: str, sha: str) -> None:
-        if not is_main_file(c["kind"], name):
-            return
-        other = next((f for f in c["files"] if f["sha256"] != sha and is_main_file(c["kind"], f["name"])), None)
-        if other:
-            what = "video" if c["kind"] == "video" else "LiDAR scan (.zip)"
-            raise HTTPException(409, f"the whole-home {c['kind']} capture already has a {what}: {other['name']}. "
-                                     f"It takes exactly one: delete that file first (DELETE .../captures/"
-                                     f"{c['kind']}/files/{other['sha256']}) to replace it")
+    def too_many_items(c: dict, name: str, sha: str) -> None:
+        """A capture holds up to MAX_ITEMS items (videos / LiDAR scans); refuse a file that would
+        start one more (a loose LiDAR file joins the existing loose-files item)."""
+        items = capture_items(c)
+        new_item = is_main_file(c["kind"], name) or (c["kind"] == "lidar" and not any(it.get("loose") for it in items))
+        if new_item and len(items) >= MAX_ITEMS:
+            what = "videos" if c["kind"] == "video" else "LiDAR scans"
+            raise HTTPException(409, f"the whole-home {c['kind']} capture already has {len(items)} {what} "
+                                     f"(the most it takes is {MAX_ITEMS}): remove one first (DELETE .../captures/"
+                                     f"{c['kind']}/files/{{sha256}}) to add {name}")
 
     def receive(pid: str, sid: str, file: UploadFile, sha256: str, name: str | None, holder, check=None) -> dict:
         """Store an upload by content hash (idempotent); `holder(p)` is the space or capture dict
@@ -186,7 +183,7 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
                 return existing
             if check:
                 try:
-                    check(hd, fname, sha)  # a second file may have landed meanwhile
+                    check(hd, fname, sha)  # another file may have landed meanwhile
                 except HTTPException:
                     if not any(f["sha256"] == sha for f in hd["files"]):
                         dest.unlink(missing_ok=True)
@@ -286,7 +283,8 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
     # ---------------------------------------------------------------- whole-home captures
     @app.put("/api/projects/{pid}/captures/{kind}")
     def put_capture(pid: str, kind: CaptureKind, body: dict | None = None):
-        """Create the whole-home video or LiDAR capture if absent (idempotent); a project may have both."""
+        """Create the whole-home video or LiDAR capture container if absent (idempotent); a project
+        may have both, each holding up to MAX_ITEMS videos / LiDAR scans (one run each)."""
         with store().lock:
             p = project_or_404(pid)
             caps = p.setdefault("captures", {})
@@ -319,7 +317,7 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
                        name: str = Form(None)):
         capture_or_404(project_or_404(pid), kind)
         return receive(pid, capture_id(kind), file, sha256, name, lambda p: capture_or_404(p, kind),
-                       second_file_error)
+                       too_many_items)
 
     @app.delete("/api/projects/{pid}/captures/{kind}/files/{sha}")
     def delete_capture_file(pid: str, kind: CaptureKind, sha: str):
@@ -359,7 +357,7 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
         with store().lock:
             p = project_or_404(pid)
             if not has_input(p):
-                raise HTTPException(409, "nothing to compute: add photos to a room, or one whole-home video / "
+                raise HTTPException(409, "nothing to compute: add photos to a room, or a whole-home video / "
                                          "LiDAR scan")
             last = p.get("last_verify")
             fresh = last and last.get("content_key") == content_key(p)

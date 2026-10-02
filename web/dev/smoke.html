@@ -42,7 +42,7 @@ f.addEventListener('load', async () => {
     if (!g.open) throw new Error('guide not open on first visit');
     await until(() => d.querySelectorAll('#guide .guide-svg svg').length === 5, 'guide svgs inline');
     if (w.localStorage.getItem('roomscan.guide.open') !== 'false') throw new Error('returning visit would not collapse the guide');
-    // both whole-home captures, independently
+    // both whole-home captures, independently; two videos (each its own run)
     const addCap = async (kind, file) => {
       await until(() => d.querySelector(`#cap-${kind} .cap-body input[type=file]`), kind + ' picker');
       const ci = d.querySelector(`#cap-${kind} .cap-body input[type=file]`);
@@ -53,11 +53,15 @@ f.addEventListener('load', async () => {
     };
     await addCap('video', new w.File([new Uint8Array([0, 0, 0, 24])], 'walk.mov', { type: 'video/quicktime' }));
     await until(() => d.querySelector('#upload-summary').textContent.includes('All 3 files uploaded'), 'video upload');
+    if (!/Add another video/.test(d.querySelector('#cap-video').textContent)) throw new Error('no Add another video button');
+    await addCap('video', new w.File([new Uint8Array([0, 0, 0, 25])], 'upstairs.mov', { type: 'video/quicktime' }));
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 4 files uploaded'), 'second video upload');
     await addCap('lidar', new w.File([new Uint8Array([80, 75, 3, 4])], 'scan.zip', { type: 'application/zip' }));
-    await until(() => d.querySelector('#upload-summary').textContent.includes('All 4 files uploaded'), 'lidar upload');
+    await until(() => d.querySelector('#upload-summary').textContent.includes('All 5 files uploaded'), 'lidar upload');
     log('video: ' + d.querySelector('#cap-video .cap-body').textContent);
     log('lidar: ' + d.querySelector('#cap-lidar .cap-body').textContent);
-    if (!/Replace video/.test(d.querySelector('#cap-video').textContent)) throw new Error('no Replace video button');
+    if (d.querySelectorAll('#cap-video .cap-item').length !== 2) throw new Error('expected two video rows');
+    if (!/Add another scan/.test(d.querySelector('#cap-lidar').textContent)) throw new Error('no Add another scan button');
     const H = d.querySelector('input[id^="H-"]');
     H.value = '2.5';
     H.dispatchEvent(new w.Event('change'));
@@ -82,9 +86,9 @@ f.addEventListener('load', async () => {
     log('downloads: ' + d.querySelectorAll('#downloads a').length);
     const tabs = [...d.querySelectorAll('#run-tabs button')].map(b => b.textContent);
     log('tabs: ' + tabs.join(' | '));
-    if (tabs.join('|') !== 'Rooms (photos)|Whole home (video)|Whole home (LiDAR)') throw new Error('expected a tab per run');
-    if (!/Whole home: video/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no video tier rows');
-    if (!/Whole home: LiDAR/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no LiDAR tier rows');
+    if (tabs.join('|') !== 'Rooms (photos)|Whole home (LiDAR: scan.zip)|Whole home (video 1: walk.mov)|Whole home (video 2: upstairs.mov)') throw new Error('expected a tab per run');
+    if (!/Whole home \(video 2: upstairs\.mov\)/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no rows for the second video run');
+    if (!/Whole home \(LiDAR: scan\.zip\)/.test(d.querySelector('#comparison-table').textContent)) throw new Error('no LiDAR run rows');
     if (!d.querySelector('#cap-video .cap-badge:not([hidden])') || !d.querySelector('#cap-lidar .cap-badge:not([hidden])')) throw new Error('capture badges missing');
     const sw = d.documentElement.scrollWidth;
     log('scrollWidth: ' + sw);

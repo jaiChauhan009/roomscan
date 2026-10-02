@@ -1,10 +1,12 @@
 ﻿"""Project -> capture folders the engine reads (materialise), and the pre-run check (verify)
 built on roomscan.capture_quality plus structural checks.
 
-A project has rooms (spaces of kind "photos": a name, optional sizes, optional photos) and at
-most one whole-home capture of each kind (one video clip and/or one LiDAR scan of the whole
-home). Runs: the rooms with photos together as one photo walk, and each whole-home capture as a
-run of its own that gets every room's sizes as unnamed known sizes."""
+A project has rooms (spaces of kind "photos": a name, optional sizes, optional photos) and up
+to two whole-home capture containers (video, LiDAR). Each holds up to MAX_ITEMS items: every
+video file is an item, every Stray Scanner .zip is an item, and an export uploaded as loose
+files (odometry.csv, depth/ ...) is one item. Runs: the rooms with photos together as one photo
+walk, then one run per LiDAR item, then one per video item (fastest first); each whole-home run
+gets every room's sizes as unnamed known sizes."""
 from __future__ import annotations
 
 import hashlib
@@ -24,8 +26,9 @@ LEVELS = {"OK": "ok", "WARN": "warn", "RETAKE": "retake"}
 _RANK = {"ok": 0, "warn": 1, "retake": 2}
 # what a verify of a zipped Stray export needs: everything but the frames and the clip
 _STRAY_BULK = ("depth/", "confidence/", "rgb.mp4")
+MAX_ITEMS = 5  # whole-home items (videos / LiDAR scans) per kind
 TITLES = {"photos": "Rooms (photos)", "video": "Whole home (video)", "lidar": "Whole home (LiDAR)"}
-CAPTURE_NAMES = {"video": "whole home: video", "lidar": "whole home: LiDAR"}
+KIND_WORD = {"video": "video", "lidar": "LiDAR"}
 RETAKE_ADVICE = {
     "video": "Record the whole home again as one clip: Video mode at 1x, walk slowly through every room "
              "(one step every two seconds), tilt up to the ceiling once in each room, keep some floor in "
@@ -47,8 +50,43 @@ def content_key(p: dict) -> str:
         return sorted((f["sha256"], f["name"]) for f in s["files"])
 
     spaces = [{"kind": s["kind"], "name": s["name"], "sizes": s["sizes"], "files": files(s)} for s in p["spaces"]]
-    captures = {k: {"kind": c["kind"], "files": files(c)} for k, c in present(p)}
+    # every item of every capture, in order (the order sets run numbers and titles)
+    captures = {k: {"kind": c["kind"], "items": [[it["name"], files(it)] for it in capture_items(c)]}
+                for k, c in present(p)}
     return hashlib.sha256(json.dumps({"spaces": spaces, "captures": captures}, sort_keys=True).encode()).hexdigest()
+
+
+def is_main_file(kind: str, name: str) -> bool:
+    """A file that is an item on its own: a clip, or a zipped LiDAR export."""
+    ext = Path(name).suffix.lower()
+    return ext in VIDEO_EXT if kind == "video" else ext == ".zip"
+
+
+def capture_items(cap: dict) -> list[dict]:
+    """The items of a whole-home capture, in upload order: [{name, files: [file records]}].
+    Video: one per clip (other files are no item). LiDAR: one per .zip, and all loose files
+    (an export uploaded unzipped) together as one item named after their top folder."""
+    kind, items, loose = cap["kind"], [], None
+    for f in cap.get("files") or []:
+        if is_main_file(kind, f["name"]):
+            items.append({"name": Path(safe_relpath(f["name"])).name, "files": [f]})
+        elif kind == "lidar":
+            if loose is None:
+                parts = safe_relpath(f["name"]).split("/")
+                loose = {"name": parts[0] if len(parts) > 1 else "loose files", "files": [], "loose": True}
+                items.append(loose)
+            loose["files"].append(f)
+    return items
+
+
+def extra_files(cap: dict) -> list[dict]:
+    """Files of a video capture that are not clips (ignored)."""
+    return [f for f in cap.get("files") or [] if cap["kind"] == "video" and not is_main_file("video", f["name"])]
+
+
+def run_title(kind: str, i: int, n: int, name: str) -> str:
+    """"Whole home (LiDAR: scan.zip)"; with 2+ items of the kind "Whole home (video 2: b.mov)"."""
+    return f"Whole home ({KIND_WORD[kind]}{f' {i}' if n > 1 else ''}: {name})"
 
 
 def present(p: dict) -> list[tuple[str, dict]]:
@@ -73,7 +111,8 @@ def room_measurements(spaces: list[dict]) -> dict | None:
 
 
 def has_input(p: dict) -> bool:
-    """Something to compute: a room with photos, or a whole-home capture with a file."""
+    """Something to compute: a room with photos, or a whole-home capture with a file (a capture
+    with files but no video / scan among them fails verify)."""
     return any(s["files"] for s in p["spaces"]) or any(c["files"] for _, c in present(p))
 
 
@@ -96,20 +135,23 @@ def _unique(name: str, used: set[str]) -> str:
 
 
 def plan_runs(p: dict) -> list[dict]:
-    """[the rooms with photos, as one walk] + [the whole-home video] + [the whole-home LiDAR
-    scan], each when present. Each run: tier, title
-    (stage name prefix), label (output prefix), space_ids (the rooms it reports on: for the
-    whole-home run every room), and for photos the folder of each room."""
+    """[the rooms with photos, as one walk] + [one per LiDAR item] + [one per video item], each
+    when present. Each run: tier, title (stage name prefix), label (output prefix), space_ids
+    (the rooms it reports on: for a whole-home run every room), for photos the folder of each
+    room, for a whole-home run its item ({name, files})."""
     runs: list[dict] = []
     photos = [s for s in p["spaces"] if s["kind"] == "photos" and s["files"]]
     if photos:
         folders = {s["space_id"]: f"{i:02d}_{safe_name(s['name'])}" for i, s in enumerate(photos, 1)}
         runs.append({"tier": "photos", "engine_tier": "photo", "label": "photos", "title": TITLES["photos"],
                      "space_ids": [s["space_id"] for s in photos], "folders": folders})
-    for kind, _ in present(p):
-        runs.append({"tier": kind, "engine_tier": kind, "label": f"whole_home_{kind}",
-                     "title": TITLES[kind], "space_ids": [s["space_id"] for s in p["spaces"]],
-                     "folders": {}, "whole_home": True})
+    for kind, cap in present(p):
+        items = capture_items(cap)
+        for i, it in enumerate(items, 1):
+            runs.append({"tier": kind, "engine_tier": kind,
+                         "label": f"whole_home_{kind}" + (f"_{i}" if len(items) > 1 else ""),
+                         "title": run_title(kind, i, len(items), it["name"]), "item": it,
+                         "space_ids": [s["space_id"] for s in p["spaces"]], "folders": {}, "whole_home": True})
     return runs
 
 
@@ -167,22 +209,22 @@ def materialise(store: Store, p: dict, work: Path, lite: bool = False) -> list[d
                                                         encoding="utf-8")
             r["path"] = root
             continue
-        # the whole-home capture
-        s, sid, d = p["captures"][r["tier"]], capture_id(r["tier"]), work / r["label"]
+        # one whole-home item: a clip, a zipped LiDAR export, or a LiDAR export's loose files
+        sid, d, it = capture_id(r["tier"]), work / r["label"], r["item"]
         d.mkdir(parents=True, exist_ok=True)
         r["files"][sid] = {}
-        zips = [f for f in s["files"] if f["name"].lower().endswith(".zip")]
-        if r["tier"] == "lidar" and len(zips) == 1:
-            src = store.file_path(p["project_id"], sid, zips[0]["sha256"])
+        if r["tier"] == "lidar" and not it.get("loose"):
+            z = it["files"][0]
+            src = store.file_path(p["project_id"], sid, z["sha256"])
             try:
                 _extract_zip(src, d, lite)
             except (zipfile.BadZipFile, ValueError, OSError, NotImplementedError, RuntimeError) as e:
-                r["error"] = f"{zips[0]['name']}: cannot unzip ({e})"
-            r["files"][sid][zips[0]["name"]] = src
+                r["error"] = f"{z['name']}: cannot unzip ({e})"
+            r["files"][sid][z["name"]] = src
             r["path"] = d
             continue
         used = set()
-        for f in s["files"]:
+        for f in it["files"]:
             rel = safe_relpath(f["name"]) if r["tier"] == "lidar" else _unique(Path(safe_relpath(f["name"])).name, used)
             dst = d / rel
             src = store.file_path(p["project_id"], sid, f["sha256"])
@@ -192,11 +234,7 @@ def materialise(store: Store, p: dict, work: Path, lite: bool = False) -> list[d
             else:
                 link_or_copy(src, dst)
             r["files"][sid][f["name"]] = dst
-        if r["tier"] == "video":
-            vids = [q for q in r["files"][sid].values() if q.suffix.lower() in VIDEO_EXT]
-            r["path"] = vids[0] if len(vids) == 1 else d
-        else:
-            r["path"] = d
+        r["path"] = next(iter(r["files"][sid].values())) if r["tier"] == "video" else d
     return runs
 
 
@@ -266,58 +304,59 @@ def verify_room(s: dict, run: dict | None, has_capture: bool) -> list[dict]:
     return F
 
 
-def verify_capture(cap: dict, run: dict) -> list[dict]:
-    """The whole-home capture: exactly one clip, or one Stray Scanner export."""
+def verify_item(kind: str, run: dict) -> list[dict]:
+    """One whole-home item: a clip, or one Stray Scanner export (zipped or loose files)."""
     from roomscan import capture_quality as cq
 
-    names = [f["name"] for f in cap["files"]]
-    kind = cap["kind"]
+    it = run["item"]
+    names = [f["name"] for f in it["files"]]
     paths = run["files"].get(capture_id(kind), {})
-    if not names:
-        what = "video" if kind == "video" else "LiDAR scan (.zip)"
-        return [finding("retake", "files", f"no {what} uploaded -> add it, or remove the whole-home capture")]
-    ext = {n: Path(n).suffix.lower() for n in names}
-    F: list[dict] = []
     if kind == "video":
-        vids = [n for n in names if ext[n] in VIDEO_EXT]
-        other = [n for n in names if n not in vids]
-        if len(vids) != 1:
-            F.append(finding("retake", "video count",
-                             f"{len(vids)} videos -> the whole-home capture is exactly one clip (.mov, .mp4) of "
-                             f"every room", vids))
-        else:
-            F.append(finding("ok", "video count", "1 video", []))
-            F += _from_cq(_guard(cq.check_video, "video check", paths[vids[0]]), vids)
-        if other:
-            F.append(finding("warn", "file types", f"{len(other)} file(s) that are not videos are ignored", other))
-        return F
+        return _from_cq(_guard(cq.check_video, "video check", paths[names[0]]), names)
     from roomscan.frontends.lidar_stray import find_stray_root
     if run.get("error"):
         return [finding("retake", "lidar export", run["error"])]
-    zips = [n for n in names if ext[n] == ".zip"]
-    if len(zips) > 1:
-        return [finding("retake", "lidar export", f"{len(zips)} zip files -> the whole-home capture is one Stray "
-                        "Scanner export: keep one", zips)]
     try:
         root = find_stray_root(Path(run["path"]))
-    except Exception as e:  # several exports
+    except Exception as e:  # several exports in one item
         root, err = None, str(e)
     else:
         err = ""
     if root is None:
-        F.append(finding("retake", "lidar export",
-                         "no Stray Scanner export found (needs odometry.csv, depth/, rgb.mp4)"
-                         + (f": {err}" if err else "") + " -> upload the export as one .zip", zips))
-    else:
-        F.append(finding("ok", "lidar export", "Stray Scanner export found"))
-        F += _from_cq(_guard(cq.check_lidar, "lidar check", root), names)
-    return F
+        return [finding("retake", "lidar export",
+                        "no Stray Scanner export found (needs odometry.csv, depth/, rgb.mp4)"
+                        + (f": {err}" if err else "") + " -> upload the export as one .zip",
+                        [n for n in names if is_main_file(kind, n)])]
+    return [finding("ok", "lidar export", "Stray Scanner export found")] + _from_cq(
+        _guard(cq.check_lidar, "lidar check", root), names)
+
+
+def verify_captures(cap: dict, runs: list[dict]) -> list[dict]:
+    """Blocks for one whole-home capture container: one per item ({kind, item, name, status,
+    findings, advice}); a container without items gets one block asking for a file."""
+    kind = cap["kind"]
+    extra = [f["name"] for f in extra_files(cap)]
+    blocks = []
+    for r in runs:
+        fs = verify_item(kind, r)
+        blocks.append({"kind": kind, "item": r["item"]["name"], "name": r["title"], "findings": fs})
+    if not blocks:
+        what = "video" if kind == "video" else "LiDAR scan (.zip)"
+        blocks.append({"kind": kind, "item": None, "name": TITLES[kind], "findings": [
+            finding("retake", "files", f"no {what} uploaded -> add one, or remove the whole-home {KIND_WORD[kind]}")]})
+    if extra:
+        blocks[0]["findings"].append(finding("warn", "file types", f"{len(extra)} file(s) that are not videos "
+                                             f"are ignored", extra))
+    for b in blocks:
+        b["status"] = worst(f["level"] for f in b["findings"])
+        b["advice"] = RETAKE_ADVICE[kind] if b["status"] != "ok" else None
+    return blocks
 
 
 def verify_project(store: Store, p: dict, work: Path | None = None, runs: list[dict] | None = None) -> dict:
     """The verify response, on runs already materialised or materialised (lite) into
     `work`, a scratch folder the caller deletes:
-    {"ok", "spaces": [per room], "captures": [per whole-home capture], "project_findings"}."""
+    {"ok", "spaces": [per room], "captures": [per whole-home item], "project_findings"}."""
     from roomscan import capture_quality as cq
 
     project: list[dict] = []
@@ -329,7 +368,7 @@ def verify_project(store: Store, p: dict, work: Path | None = None, runs: list[d
     if runs is None:
         runs = materialise(store, p, work, lite=True)
     photo_run = next((r for r in runs if r["tier"] == "photos"), None)
-    home_runs = {r["tier"]: r for r in runs if r.get("whole_home")}
+    home_runs = [r for r in runs if r.get("whole_home")]
     out = []
     for s in p["spaces"]:
         fs = verify_room(s, photo_run if photo_run and s["space_id"] in photo_run["space_ids"] else None,
@@ -338,15 +377,10 @@ def verify_project(store: Store, p: dict, work: Path | None = None, runs: list[d
                     "findings": fs})
     captures = []
     for kind, cap in caps:
-        if kind not in home_runs:
-            continue
-        fs = verify_capture(cap, home_runs[kind])
-        status = worst(f["level"] for f in fs)
-        captures.append({"kind": kind, "name": CAPTURE_NAMES[kind], "status": status, "findings": fs,
-                         "advice": RETAKE_ADVICE[kind] if status != "ok" else None})
+        captures += verify_captures(cap, [r for r in home_runs if r["tier"] == kind])
     if len(runs) > 1:
         what = (["the rooms' photos as one walk"] if photo_run else []) + [
-            "the whole-home " + ("video" if k == "video" else "LiDAR scan") for k in home_runs]
+            r["title"].replace("Whole home (", "the whole-home ").rstrip(")") for r in home_runs]
         project.append(finding("ok", "tiers", f"{len(runs)} runs: {', '.join(what[:-1])} and {what[-1]}; "
                                f"each gives its own plan"))
     if photo_run and len(photo_run["space_ids"]) > 1:
