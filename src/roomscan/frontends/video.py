@@ -24,6 +24,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import queue
+import threading
+import time
 from pathlib import Path
 
 import cv2
@@ -37,6 +40,13 @@ WORK_W = 640
 DEPTH_W = 256  # depth maps are reduced to LiDAR-like resolution for the shared back end
 CACHE = Path(".cache")
 MAX_KEYFRAMES = 320
+# keyframes come ~4 per second (track continuity) and depth (~0.5 s per frame on a laptop CPU)
+# dominates the tier once tracking is threaded. depth_keyframes can run it on a subset (about
+# one per DEPTH_DT seconds plus wherever the map needs new points); off by default (0.0) until
+# a subset is shown not to cost rooms on the benchmark clip (a first try, 0.5 s / 160 shared
+# tracks, kept 470 of 494 keyframes and found 1 room instead of 2)
+DEPTH_DT = 0.0
+DEPTH_MIN_SHARED = 160
 MIN_SECONDS = 3.0  # shorter clips cannot show a room
 CODEC_HINT = ("the file is damaged or incomplete, or its codec is not supported (this build decodes H.264 "
               "and HEVC in .mov / .mp4). Copy the original clip again (not through a chat app)")
@@ -201,12 +211,14 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
     prev = None
     pts = np.zeros((0, 2), np.float32)
     ids = np.zeros(0, np.int64)
-    kf_pos: dict[int, np.ndarray] = {}  # track id -> position at the last keyframe
+    # track ids (ascending: ids only grow) and positions at the last keyframe
+    kf_ids = np.zeros(0, np.int64)
+    kf_pts = np.zeros((0, 2), np.float32)
     next_id = 0
     kfs = []  # dicts: frame, t, img, ids, pts
 
     def add_keyframe(i, t_s, img, gray):
-        nonlocal pts, ids, next_id, kf_pos
+        nonlocal pts, ids, next_id, kf_ids, kf_pts
         mask = np.full(gray.shape, 255, np.uint8)
         for p in pts:
             cv2.circle(mask, (int(p[0]), int(p[1])), 8, 0, -1)
@@ -219,64 +231,121 @@ def track_video(video: Path, target_fps: float = 25.0, kf_parallax: float = 20.0
                 pts = np.concatenate([pts, new])
                 ids = np.concatenate([ids, np.arange(next_id, next_id + len(new))])
                 next_id += len(new)
-        kf_pos = {int(t): p.copy() for t, p in zip(ids, pts)}
+        kf_ids, kf_pts = ids.copy(), pts.copy()
         sharp = float(cv2.Laplacian(gray, cv2.CV_32F).var())
         jpg = cv2.imencode(".jpg", img[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, 92])[1]
         kfs.append({"frame": i, "t": t_s, "jpg": jpg, "ids": ids.copy(), "pts": pts.copy(),
                     "sharp": sharp})
 
+    def decode(q: queue.Queue, stop: threading.Event):
+        """Decoder thread: OpenCV releases the GIL while decoding, so the next frames are
+        decoded and prepared while the main thread tracks this one."""
+        i = -1
+        t_last = -1.0
+        try:
+            # until the decoder stops: the container's frame count is an estimate (variable frame rate)
+            while not stop.is_set() and cap.grab():
+                i += 1
+                # presentation time of this frame; i / fps is only right at a constant frame rate
+                t_s = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+                if not (np.isfinite(t_s) and t_s > t_last):
+                    t_s = t_last + 1.0 / src_fps if t_last >= 0 else 0.0
+                t_last = t_s
+                if i % step:
+                    continue
+                ok, bgr = cap.retrieve()
+                if not ok or bgr is None:
+                    continue  # one undecodable frame: keep going
+                h0, w0 = bgr.shape[:2]
+                s = WORK_W / max(w0, h0)
+                img = cv2.resize(bgr, (int(round(w0 * s)), int(round(h0 * s))), interpolation=cv2.INTER_AREA)
+                gray = clahe.apply(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+                q.put((i, t_s, t_last, img, gray))
+        finally:
+            q.put((i, None, t_last, None, None))
+
+    q: queue.Queue = queue.Queue(maxsize=8)
+    stop = threading.Event()
+    th = threading.Thread(target=decode, args=(q, stop), daemon=True)
+    th.start()
     i = -1
     since_kf = 0
     t_last = -1.0
+    done = 0
     bar = tqdm(total=n or None, desc="track", disable=not progress)
-    # until the decoder stops: the container's frame count is an estimate (variable frame rate)
-    while cap.grab():
-        i += 1
-        bar.update(1)
-        # presentation time of this frame; i / fps is only right at a constant frame rate
-        t_s = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        if not (np.isfinite(t_s) and t_s > t_last):
-            t_s = t_last + 1.0 / src_fps if t_last >= 0 else 0.0
-        t_last = t_s
-        if i % step:
-            continue
-        ok, bgr = cap.retrieve()
-        if not ok or bgr is None:
-            continue  # one undecodable frame: keep going
-        h0, w0 = bgr.shape[:2]
-        s = WORK_W / max(w0, h0)
-        img = cv2.resize(bgr, (int(round(w0 * s)), int(round(h0 * s))), interpolation=cv2.INTER_AREA)
-        gray = clahe.apply(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
-        if prev is None:
-            add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
+    try:
+        while True:
+            i, t_s, t_last, img, gray = q.get()
+            bar.update(i + 1 - done)
+            done = i + 1
+            if img is None:
+                break
+            if prev is None:
+                add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
+                prev = gray
+                continue
+            if len(pts):
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev, gray, pts.reshape(-1, 1, 2), None, **lk)
+                p0, st2, _ = cv2.calcOpticalFlowPyrLK(gray, prev, p1, None, **lk)
+                fb = np.linalg.norm(p0[:, 0] - pts, axis=1)
+                p1 = p1[:, 0]
+                good = (st[:, 0] == 1) & (st2[:, 0] == 1) & (fb < 1.0) & (p1[:, 0] > 2) & (p1[:, 1] > 2) \
+                    & (p1[:, 0] < gray.shape[1] - 2) & (p1[:, 1] < gray.shape[0] - 2)
+                pts, ids = p1[good], ids[good]
             prev = gray
-            continue
-        if len(pts):
-            p1, st, _ = cv2.calcOpticalFlowPyrLK(prev, gray, pts.reshape(-1, 1, 2), None, **lk)
-            p0, st2, _ = cv2.calcOpticalFlowPyrLK(gray, prev, p1, None, **lk)
-            fb = np.linalg.norm(p0[:, 0] - pts, axis=1)
-            p1 = p1[:, 0]
-            good = (st[:, 0] == 1) & (st2[:, 0] == 1) & (fb < 1.0) & (p1[:, 0] > 2) & (p1[:, 1] > 2) \
-                & (p1[:, 0] < gray.shape[1] - 2) & (p1[:, 1] < gray.shape[0] - 2)
-            pts, ids = p1[good], ids[good]
-        prev = gray
-        since_kf += 1
-        sel = np.array([int(t) in kf_pos for t in ids], bool)
-        old = np.array([kf_pos[int(t)] for t in ids[sel]]).reshape(-1, 2)
-        n_kf = max(len(kfs[-1]["ids"]), 1)
-        alive = len(old) / n_kf
-        par = float(np.median(np.linalg.norm(pts[sel] - old, axis=1))) if len(old) else 1e9
-        if par > kf_parallax or alive < 0.7 or since_kf > 2 * target_fps:
-            add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
-            since_kf = 0
-    bar.close()
-    cap.release()
+            since_kf += 1
+            pos = np.minimum(np.searchsorted(kf_ids, ids), max(len(kf_ids) - 1, 0))
+            sel = kf_ids[pos] == ids if len(kf_ids) else np.zeros(len(ids), bool)
+            old = kf_pts[pos[sel]].reshape(-1, 2)
+            n_kf = max(len(kfs[-1]["ids"]), 1)
+            alive = len(old) / n_kf
+            par = float(np.median(np.linalg.norm(pts[sel] - old, axis=1))) if len(old) else 1e9
+            if par > kf_parallax or alive < 0.7 or since_kf > 2 * target_fps:
+                add_keyframe(i, t_s, img[:, :, ::-1].copy(), gray)
+                since_kf = 0
+    finally:
+        stop.set()
+        while th.is_alive():  # unblock a decoder waiting on a full queue
+            try:
+                q.get(timeout=0.05)
+            except queue.Empty:
+                pass
+        bar.close()
+        cap.release()
     return {"kfs": kfs, "fps": src_fps, "n_frames": i + 1, "duration_s": max(t_last, 0.0),
             "rotation": info["rotation"], "codec": info["codec"]}
 
 
-def solve_poses(kfs: list[dict], depths: list[np.ndarray], K: np.ndarray) -> tuple[list[int], list[np.ndarray], list[float], dict]:
-    """Pass 2: incremental PnP on track points. Returns kept keyframe indices, poses, scales."""
+def depth_keyframes(kfs: list[dict], min_dt: float = DEPTH_DT, min_shared: int = DEPTH_MIN_SHARED) -> list[bool]:
+    """Which keyframes get a depth map (the expensive step of the tier).
+
+    A keyframe gets depth when it is the first or last, when min_dt seconds have passed
+    since the last one with depth, or when the next keyframe would share fewer than
+    min_shared tracks with the last one with depth (then it must seed new map points for
+    PnP to continue). The others are posed by PnP only, which keeps the map's outlier
+    pruning, and are left out of the output.
+    """
+    n = len(kfs)
+    if min_dt <= 0:
+        return [True] * n
+    use = [False] * n
+    if n == 0:
+        return use
+    use[0] = use[-1] = True
+    last = 0
+    for j in range(1, n - 1):
+        nxt = np.intersect1d(kfs[last]["ids"], kfs[j + 1]["ids"], assume_unique=True).size
+        if kfs[j]["t"] - kfs[last]["t"] >= min_dt or nxt < min_shared:
+            use[j] = True
+            last = j
+    return use
+
+
+def solve_poses(kfs: list[dict], depths: list[np.ndarray | None], K: np.ndarray) -> tuple[list[int], list[np.ndarray], list[float], dict]:
+    """Pass 2: incremental PnP on track points. Returns kept keyframe indices, poses, scales.
+
+    A keyframe whose depth is None is posed (its PnP still prunes outlier tracks from the
+    map) but neither seeds map points nor is kept."""
     h, w = kfs[0]["img"].shape[:2]
 
     def depth_at(i, p):
@@ -297,6 +366,7 @@ def solve_poses(kfs: list[dict], depths: list[np.ndarray], K: np.ndarray) -> tup
     inl_counts = []
     for i, kf in enumerate(kfs):
         ids, p = kf["ids"], kf["pts"]
+        has_d = depths[i] is not None
         known = np.array([int(t) in world for t in ids], bool)
         pose = None
         if seg is not None and known.sum() >= 12:
@@ -315,15 +385,21 @@ def solve_poses(kfs: list[dict], depths: list[np.ndarray], K: np.ndarray) -> tup
                 T_cw = np.eye(4)
                 T_cw[:3, :3], T_cw[:3, 3] = R, tvec[:, 0]
                 Pc = obj[inl] @ R.T + tvec[:, 0]
-                zp = depth_at(i, ip[inl].astype(np.float32))
-                gz = (Pc[:, 2] > 0.1) & (zp > 0.1)
-                if gz.sum() >= 8:
-                    pose = (np.linalg.inv(T_cw), float(np.median(Pc[gz, 2] / zp[gz])))
+                if has_d:
+                    zp = depth_at(i, ip[inl].astype(np.float32))
+                    gz = (Pc[:, 2] > 0.1) & (zp > 0.1)
+                    if gz.sum() >= 8:
+                        pose = (np.linalg.inv(T_cw), float(np.median(Pc[gz, 2] / zp[gz])))
+                elif (Pc[:, 2] > 0.1).sum() >= 8:
+                    pose = (np.linalg.inv(T_cw), None)
+                if pose is not None:
                     inl_counts.append(len(inl))
                     # drop outlier tracks from the map
                     bad = np.setdiff1d(np.arange(len(obj)), inl)
                     for t in ids[known][bad]:
                         world.pop(int(t), None)
+        if not has_d:
+            continue  # posed only (or not at all): a keyframe with depth follows
         if pose is None:
             if seg is not None and known.sum() >= 12 and misses < 3:
                 misses += 1  # bad keyframe (blur): skip it, live tracks still carry the map
@@ -578,19 +654,28 @@ def build_posed_capture(name: str, tier: str, imgs, depths, K, ts, frame_ids, po
     return PosedCapture(tier=tier, name=name, frames=frames, meta=meta)
 
 
-def cached_depths(imgs: list[np.ndarray], key: str, use_cache: bool, progress: bool) -> list[np.ndarray]:
+def cached_depths(imgs: list[np.ndarray], key: str, use_cache: bool, progress: bool,
+                  want: list[bool] | None = None) -> list[np.ndarray | None]:
+    """Depth maps of imgs (None where want is False), cached under key."""
     from roomscan.ml.depth import predict_depth
 
+    want = [True] * len(imgs) if want is None else list(want)
+    idx = [i for i, w_ in enumerate(want) if w_]
     cf = CACHE / f"depth_{key}.npz"
+    out: list[np.ndarray | None] = [None] * len(imgs)
     if use_cache and cf.exists():
         z = np.load(cf)
-        if len(z.files) == len(imgs):
-            return [z[f"d{i}"].astype(np.float32) for i in range(len(imgs))]
-    depths = predict_depth(imgs, progress=progress)
+        if sorted(z.files) == sorted(f"d{i}" for i in idx):
+            for i in idx:
+                out[i] = z[f"d{i}"].astype(np.float32)
+            return out
+    depths = predict_depth([imgs[i] for i in idx], progress=progress)
     if use_cache:
         CACHE.mkdir(exist_ok=True)
-        np.savez_compressed(cf, **{f"d{i}": d.astype(np.float16) for i, d in enumerate(depths)})
-    return [d.astype(np.float16).astype(np.float32) for d in depths]
+        np.savez_compressed(cf, **{f"d{i}": d.astype(np.float16) for i, d in zip(idx, depths)})
+    for i, d in zip(idx, depths):
+        out[i] = d.astype(np.float16).astype(np.float32)
+    return out
 
 
 def load_video(path: Path, use_cache: bool = True, progress: bool = True,
@@ -598,24 +683,36 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
     from roomscan.ml.depth import DEPTH_SCALE_BIAS
 
     video = find_video(Path(path))
+    prof = {}
+    t0 = time.time()
     tr = track_video(video, progress=progress)
+    prof["track"] = time.time() - t0
     if len(tr["kfs"]) < 2 or tr["duration_s"] < MIN_SECONDS:
         raise InputError(f"{video.name} is too short ({tr['n_frames']} frames, {tr['duration_s']:.1f} s): the video "
                          f"tier needs a walk through the rooms (docs/capture_protocol.md)")
     kfs = select_keyframes(tr["kfs"])
+    want = depth_keyframes(kfs)
     imgs = [k["img"] for k in kfs]
     h, w = imgs[0].shape[:2]
     K, k_src = _intrinsics(video, w, h, hfov_deg, rotation=tr["rotation"])
     # rotated clips are keyed apart: depth cached before rotation was applied must not be reused
     rot = f"|rot{tr['rotation']}" if tr["rotation"] else ""
-    key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}{rot}".encode()).hexdigest()[:16]
-    depths = cached_depths(imgs, key, use_cache, progress)
+    sub = f"|dk{sum(want)}" if not all(want) else ""  # depth on every keyframe: the key as before
+    key = hashlib.sha1(f"{video.resolve()}|{video.stat().st_size}|{len(imgs)}|{kfs[-1]['frame']}{rot}{sub}"
+                       .encode()).hexdigest()[:16]
+    t0 = time.time()
+    depths = cached_depths(imgs, key, use_cache, progress, want)
+    prof["depth"] = time.time() - t0
+    t0 = time.time()
     kept, poses, scales, stats = solve_poses(kfs, depths, K)
+    prof["pnp"] = time.time() - t0
     # map units -> metres: the model's own (bias-corrected) scale, median over keyframes
     metric = float(np.median(1.0 / np.array(scales))) / DEPTH_SCALE_BIAS
     meta = {"source": "video", "video": video.name, "intrinsics": k_src, "n_video_frames": tr["n_frames"],
             "codec": tr["codec"], "rotation_applied_deg": tr["rotation"], "duration_s": round(tr["duration_s"], 2),
-            "n_keyframe_candidates": len(tr["kfs"]), "n_keyframes": len(kfs), "n_tracked": len(kept), "vo_segments": stats["segments"],
+            "n_keyframe_candidates": len(tr["kfs"]), "n_keyframes": len(kfs), "n_depth_keyframes": int(sum(want)),
+            "n_tracked": len(kept), "vo_segments": stats["segments"],
+            "load_profile_s": {k: round(v, 1) for k, v in prof.items()},
             "vo_segments_merged": stats["segments_merged"], "vo_median_inliers": stats["median_inliers"], "metric_scale": round(metric, 4),
             "depth_model": "Depth-Anything-V2-Metric-Indoor-Small"}
     return build_posed_capture(video.stem, "video", [imgs[i] for i in kept], [depths[i] for i in kept], K,
