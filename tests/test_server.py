@@ -1,5 +1,6 @@
-"""Web API (server/): projects, uploads, verify, jobs, cache, comparison and restart, with the
-engine mocked; one optional real run on ../data/single_room."""
+"""Web API (server/): projects (rooms + one optional whole-home video / LiDAR capture), uploads,
+verify, jobs, cache, comparison and restart, with the engine mocked; one optional real run on
+../data/single_room."""
 from __future__ import annotations
 
 import hashlib
@@ -52,6 +53,17 @@ def upload(c: TestClient, pid: str, sid: str, name: str, data: bytes, digest: st
                  data={"sha256": digest or sha(data), "name": name})
 
 
+def upload_cap(c: TestClient, pid: str, name: str, data: bytes, digest: str | None = None):
+    return c.put(f"/api/projects/{pid}/capture/files", files={"file": (name, data)},
+                 data={"sha256": digest or sha(data), "name": name})
+
+
+def capture(c, pid, kind):
+    r = c.put(f"/api/projects/{pid}/capture", json={"kind": kind})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 def space(c, pid, name, kind="photos", **sizes):
     r = c.post(f"/api/projects/{pid}/spaces",
                json={"name": name, "kind": kind, "sizes": {"length": None, "width": None, "height": None, **sizes}})
@@ -81,14 +93,18 @@ def box(rid: str, L: float, W: float, H: float = 2.5) -> dict:
 
 
 class FakeEngine:
-    """Stands in for roomscan.pipeline.run: one 4.0 x 3.0 x 2.5 m room per photo folder (or
-    per capture), the files the real run writes, and a log of the calls."""
+    """Stands in for roomscan.pipeline.run: one 4.0 x 3.0 x 2.5 m room per photo folder (a
+    whole-home capture: the rooms in `home_rooms`), the files the real run writes, and a log of
+    the calls."""
 
     def __init__(self):
         self.calls: list[dict] = []
+        self.home_rooms = [("room_1", 4.0, 3.0)]
 
-    def run(self, path, out_dir, tier="auto", damage=True, progress=True, **kw):
+    def run(self, path, out_dir, tier="auto", damage=True, progress=True, measurements=None, **kw):
         path, out_dir = Path(path), Path(out_dir)
+        if measurements is not None:
+            kw["measurements"] = measurements
         call = {"path": path, "tier": tier, "damage": damage, "kw": kw}
         if path.is_dir():
             call["folders"] = sorted(p.name for p in path.iterdir() if p.is_dir())
@@ -100,9 +116,10 @@ class FakeEngine:
             kw["on_stage"]("load+depth", "running", None, None)
             kw["on_stage"]("load+depth", "done", 1.5, "3 photos")
             kw["on_stage"]("extra", "done", 0.1, None)
-        ids = call.get("folders") or ["room_1"]
+        rooms = ([box(rid, 4.0, 3.0) for rid in call["folders"]] if tier == "photo"
+                 else [box(*r) for r in self.home_rooms])
         res = {"capture": {"id": path.name, "tier": tier}, "property": {}, "warnings": ["fake"],
-               "rooms": [box(rid, 4.0, 3.0) for rid in ids], "damage": [], "concealed_damage_flags": [], "scope": []}
+               "rooms": rooms, "damage": [], "concealed_damage_flags": [], "scope": []}
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "result.json").write_text(json.dumps(res), encoding="utf-8")
         (out_dir / "plan.png").write_bytes(b"\x89PNG fake")
@@ -171,6 +188,9 @@ def test_projects_spaces_and_uploads(client):
     assert client.get(f"/api/projects/{pid}").json()["spaces"] == []
     assert client.get("/api/projects/ffffffffffff").status_code == 404
     assert client.post(f"/api/projects/{pid}/spaces", json={"name": "x", "kind": "laser"}).status_code == 422
+    r = client.post(f"/api/projects/{pid}/spaces", json={"name": "x", "kind": "video"})
+    assert r.status_code == 422 and "/capture" in r.json()["detail"]
+    assert client.post(f"/api/projects/{pid}/spaces", json={"name": "no kind"}).json()["kind"] == "photos"
 
 
 def test_upload_size_limit(client, monkeypatch):
@@ -192,7 +212,7 @@ def test_verify_run_poll_download_compare_and_cache(client, engine):
     assert r["cached"] is False
     j = wait(client, r["job_id"])
     assert j["status"] == "done", j
-    assert [s["name"] for s in j["stages"]] == ["verify", "load+process", "export"]
+    assert [s["name"] for s in j["stages"]] == ["verify", "Rooms (photos): load+process", "Rooms (photos): export"]
     assert all(s["status"] == "done" for s in j["stages"])
     assert j["runs"][0]["tier"] == "photos" and j["runs"][0]["space_ids"] == [k["space_id"], h["space_id"]]
     # the capture as materialised for the engine
@@ -229,8 +249,8 @@ def test_verify_run_poll_download_compare_and_cache(client, engine):
 
 
 def test_engine_stage_callback(client, engine, monkeypatch):
-    """An engine with on_stage: its stage plan is shown, updated live, extra stages appended;
-    a known size of a video space is passed as measurements."""
+    """An engine with on_stage: its stage plan is shown (prefixed by the run), updated live, extra
+    stages appended; every room's sizes go to the whole-home run as an unnamed list."""
     from roomscan.stages import PLAN, StageFailed
 
     def run(path, out_dir, tier="auto", damage=True, progress=True, measurements=None, on_stage=None):
@@ -240,21 +260,26 @@ def test_engine_stage_callback(client, engine, monkeypatch):
             raise StageFailed("layout: no room found")
         return engine.run(path, out_dir, tier=tier, damage=damage, progress=progress, on_stage=on_stage)
     monkeypatch.setattr(pl, "run", run)
-    pid, *_ = photo_project(client, n=2)
+    pid, k, h = photo_project(client, n=2)
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={"damage": False}).json()["job_id"])
     names = [s["name"] for s in j["stages"]]
-    assert names == ["verify"] + [s for s in PLAN["photo"] if s != "damage"] + ["extra"]
-    assert j["stages"][1] == {"name": "load+depth", "status": "done", "seconds": 1.5, "note": "3 photos"}
+    assert names == ["verify"] + [f"Rooms (photos): {s}" for s in PLAN["photo"] if s != "damage"] + \
+        ["Rooms (photos): extra"]
+    assert j["stages"][1] == {"name": "Rooms (photos): load+depth", "status": "done", "seconds": 1.5,
+                              "note": "3 photos"}
     assert j["stages"][2]["status"] == "pending"  # the fake engine reports no more
-    # a video space with a known length: the engine's stage error is the job's error
-    v = space(client, pid, "clip", kind="video", length=5.0)
-    upload(client, pid, v["space_id"], "walk.mp4", b"fake")
+    # a whole-home video: the engine's stage error is that run's error
+    client.patch(f"/api/projects/{pid}/spaces/{k['space_id']}", json={"sizes": {"length": 5.0}})
+    space(client, pid, "Lounge", width=3.0, height=2.4)  # sizes only, no photos
+    capture(client, pid, "video")
+    assert upload_cap(client, pid, "walk.mp4", b"fake").status_code == 200
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
-    assert engine.calls[-1]["measurements"] == {"rooms": [{"length": 5.0}]}
+    assert engine.calls[-1]["measurements"] == {"rooms": [{"length": 5.0}, {"width": 3.0, "height": 2.4}]}
     vrun = j["runs"][1]
+    assert vrun["title"] == "Whole home (video)" and vrun["whole_home"] is True
     assert j["status"] == "done" and vrun["status"] == "failed" and vrun["error"] == "layout: no room found"
-    assert "layout: no room found" in j["error"]
-    load = next(s for s in j["stages"] if s["name"] == "video_01_clip: load")
+    assert "Whole home (video): layout: no room found" in j["error"]
+    load = next(s for s in j["stages"] if s["name"] == "Whole home (video): load")
     assert load["status"] == "failed"
 
 
@@ -266,10 +291,10 @@ def test_verify_asks_for_retake_and_run_refuses(client, engine):
     for i in range(40):
         upload(client, pid, walk["space_id"], f"IMG_{i:04d}.jpg", jpeg(100 + i, 240, 320))
     v = client.post(f"/api/projects/{pid}/verify").json()
-    assert v["ok"] is False
+    assert v["ok"] is False and v["capture"] is None
     st = {s["name"]: s for s in v["spaces"]}
     assert st["one photo"]["status"] == "retake"
-    f = next(f for f in st["one photo"]["findings"] if f["check"] == "photos in space")
+    f = next(f for f in st["one photo"]["findings"] if f["check"] == "photos in room")
     assert f["level"] == "retake" and f["files"] == ["only.jpg"]
     assert st["walking"]["status"] == "retake"
     assert next(f for f in st["walking"]["findings"] if f["check"] == "photo count")["level"] == "retake"
@@ -281,28 +306,75 @@ def test_verify_asks_for_retake_and_run_refuses(client, engine):
 
 def test_unverified_retake_fails_in_job(client, engine):
     pid = client.post("/api/projects").json()["project_id"]
-    s = space(client, pid, "v", kind="video")
-    upload(client, pid, s["space_id"], "a.mp4", b"not a video")
-    upload(client, pid, s["space_id"], "b.mp4", b"not a video either")
+    capture(client, pid, "video")
+    upload_cap(client, pid, "notes.txt", b"not a video")
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={}).json()["job_id"])
     assert j["status"] == "failed" and "retake" in j["error"] and engine.calls == []
     assert j["stages"][0]["status"] == "failed"
 
 
-def test_structural_checks_video_and_lidar(client):
+def test_capture_endpoints_and_second_file_rejected(client):
     pid = client.post("/api/projects").json()["project_id"]
-    v = space(client, pid, "clip", kind="video")
-    upload(client, pid, v["space_id"], "a.mov", b"one")
-    upload(client, pid, v["space_id"], "b.mov", b"two")
-    li = space(client, pid, "scan", kind="lidar")
-    upload(client, pid, li["space_id"], "notes.txt", b"hello")
+    assert client.get(f"/api/projects/{pid}").json()["capture"] is None
+    assert client.get(f"/api/projects/{pid}/capture").status_code == 404
+    assert upload_cap(client, pid, "a.mov", b"one").status_code == 404
+    assert client.put(f"/api/projects/{pid}/capture", json={"kind": "photos"}).status_code == 422
+    assert capture(client, pid, "video") == {"kind": "video", "files": []}
+    # one clip; the same clip again is idempotent; a second clip is refused with a clear message
+    r1, r2 = upload_cap(client, pid, "a.mov", b"one"), upload_cap(client, pid, "again.mov", b"one")
+    assert r1.status_code == r2.status_code == 200 and r1.json() == r2.json()
+    r = upload_cap(client, pid, "b.mp4", b"two")
+    assert r.status_code == 409 and "already has a video: a.mov" in r.json()["detail"]
+    assert upload_cap(client, pid, "c.mov", b"x", digest="0" * 64).status_code in (400, 409)
+    assert client.get(f"/api/projects/{pid}/capture/files").json()["files"] == [r1.json()]
+    assert client.get(f"/api/projects/{pid}").json()["capture"] == {"kind": "video", "files": [r1.json()]}
+    # same kind again keeps the file; delete the file, then the second clip is accepted
+    assert capture(client, pid, "video")["files"] == [r1.json()]
+    assert client.delete(f"/api/projects/{pid}/capture/files/{sha(b'one')}").status_code == 200
+    assert client.delete(f"/api/projects/{pid}/capture/files/{sha(b'one')}").status_code == 404
+    assert upload_cap(client, pid, "b.mp4", b"two").status_code == 200
+    # switching to LiDAR drops the clip; one zip, a second zip refused
+    assert capture(client, pid, "lidar") == {"kind": "lidar", "files": []}
+    assert upload_cap(client, pid, "scan.zip", b"zip one").status_code == 200
+    r = upload_cap(client, pid, "scan2.zip", b"zip two")
+    assert r.status_code == 409 and "LiDAR scan (.zip)" in r.json()["detail"]
+    assert client.delete(f"/api/projects/{pid}/capture").status_code == 200
+    assert client.get(f"/api/projects/{pid}").json()["capture"] is None
+    assert client.delete(f"/api/projects/{pid}/capture").status_code == 404
+
+
+def test_rooms_without_photos_need_a_capture(client, engine):
+    pid = client.post("/api/projects").json()["project_id"]
+    r = space(client, pid, "Kitchen", length=4.0)
+    v = client.post(f"/api/projects/{pid}/verify").json()
+    assert v["ok"] is False and v["spaces"][0]["status"] == "retake"
+    assert any(f["check"] == "nothing to compute" for f in v["project_findings"])
+    r409 = client.post(f"/api/projects/{pid}/run", json={"force": True})
+    assert r409.status_code == 409 and "nothing to compute" in r409.json()["detail"]
+    capture(client, pid, "video")
+    upload_cap(client, pid, "walk.mov", b"clip")
+    v = client.post(f"/api/projects/{pid}/verify").json()
+    sp = v["spaces"][0]
+    assert sp["space_id"] == r["space_id"] and sp["status"] == "ok" and "size" in sp["findings"][0]["message"]
+    assert v["capture"]["name"] == "whole home: video" and v["capture"]["kind"] == "video"
+    assert {"status", "findings", "advice"} <= set(v["capture"])
+    j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
+    assert j["status"] == "done" and [r["tier"] for r in j["runs"]] == ["video"]
+    assert j["runs"][0]["prefix"] == "" and engine.calls[-1]["tier"] == "video"
+    assert engine.calls[-1]["kw"]["measurements"] == {"rooms": [{"length": 4.0}]}
+    assert all(s["name"] == "verify" or s["name"].startswith("Whole home (video): ") for s in j["stages"])
+
+
+def test_structural_checks_capture(client):
+    pid = client.post("/api/projects").json()["project_id"]
+    capture(client, pid, "lidar")
+    upload_cap(client, pid, "notes.txt", b"hello")
     empty = space(client, pid, "empty")
     res = client.post(f"/api/projects/{pid}/verify").json()
-    st = {s["name"]: s for s in res["spaces"]}
-    assert st["clip"]["findings"][0]["check"] == "video count" and st["clip"]["status"] == "retake"
-    assert st["scan"]["status"] == "retake" and st["empty"]["status"] == "retake"
-    assert any(f["check"] == "tiers" for f in res["project_findings"])
-    assert empty["kind"] == "photos"
+    assert res["capture"]["status"] == "retake" and res["capture"]["name"] == "whole home: LiDAR"
+    assert "Stray Scanner" in res["capture"]["advice"]
+    assert res["spaces"][0]["status"] == "ok" and empty["kind"] == "photos"  # a size reference, no sizes
+    assert res["ok"] is False
 
 
 def test_lidar_zip_verify_reads_odometry(client):
@@ -319,28 +391,74 @@ def test_lidar_zip_verify_reads_odometry(client):
         for i in range(10):
             z.writestr(f"scan/depth/{i:06d}.png", b"x")
     pid = client.post("/api/projects").json()["project_id"]
-    s = space(client, pid, "scan", kind="lidar")
-    upload(client, pid, s["space_id"], "scan.zip", buf.getvalue())
-    sp = client.post(f"/api/projects/{pid}/verify").json()["spaces"][0]
-    checks = {f["check"]: f["level"] for f in sp["findings"]}
-    assert checks["lidar export"] == "ok" and "duration" in checks, sp
+    capture(client, pid, "lidar")
+    upload_cap(client, pid, "scan.zip", buf.getvalue())
+    cap = client.post(f"/api/projects/{pid}/verify").json()["capture"]
+    checks = {f["check"]: f["level"] for f in cap["findings"]}
+    assert checks["lidar export"] == "ok" and "duration" in checks, cap
 
 
-def test_tiers_run_separately_with_prefixes(client, engine):
-    pid, *_ = photo_project(client, n=2)
-    v = space(client, pid, "Living room", kind="video", length=5.0)
-    upload(client, pid, v["space_id"], "walk.mov", b"fake clip")
+def test_photos_and_whole_home_run_separately(client, engine):
+    """Photos run + whole-home run; comparison rows per room for each run with its tier: the
+    photo run by folder, the whole-home run by the engine's matching (aspect, size)."""
+    engine.home_rooms = [("room_1", 4.0, 4.0), ("room_2", 6.0, 3.0)]
+    pid, k, h = photo_project(client, n=2)
+    client.patch(f"/api/projects/{pid}/spaces/{k['space_id']}", json={"sizes": {"length": 6.2, "width": 2.9}})
+    client.patch(f"/api/projects/{pid}/spaces/{h['space_id']}", json={"sizes": {"length": 3.9, "width": 3.9}})
+    capture(client, pid, "video")
+    upload_cap(client, pid, "walk.mov", b"fake clip")
     j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
     assert j["status"] == "done", j
-    assert [(r["tier"], r["prefix"]) for r in j["runs"]] == [("photos", "photos/"),
-                                                             ("video", "video_01_Living room/")]
+    assert [(r["tier"], r["title"], r["prefix"]) for r in j["runs"]] == [
+        ("photos", "Rooms (photos)", "photos/"), ("video", "Whole home (video)", "whole_home/")]
     assert engine.calls[1]["tier"] == "video" and engine.calls[1]["path"].name == "walk.mov"
+    assert engine.calls[1]["kw"]["measurements"] == {"rooms": [{"length": 6.2, "width": 2.9},
+                                                               {"length": 3.9, "width": 3.9}]}
+    assert "measurements" not in engine.calls[0]["kw"] and "01_Kitchen" in engine.calls[0]["measurements"]
     assert j["outputs"]["result_json"].endswith("/files/photos/result.json")
     assert client.get(j["runs"][1]["outputs"]["plan_svg"]).status_code == 200
-    assert "video_01_Living room: load+process" in [s["name"] for s in j["stages"]]
+    names = [s["name"] for s in j["stages"]]
+    assert "Rooms (photos): load+process" in names and "Whole home (video): load+process" in names
     rows = client.get(f"/api/jobs/{j['job_id']}/comparison").json()["rows"]
-    lr = next(r for r in rows if r["space"] == "Living room" and r["quantity"] == "length")
-    assert lr["computed"] == 4.0 and lr["diff"] == pytest.approx(-1.0) and lr["tier"] == "video"
+    assert {(r["space"], r["tier"]) for r in rows} == {("Kitchen", "photos"), ("Hall / entry", "photos"),
+                                                        ("Kitchen", "video"), ("Hall / entry", "video")}
+    kv = {r["quantity"]: r for r in rows if r["space"] == "Kitchen" and r["tier"] == "video"}
+    assert kv["length"]["room_id"] == "room_2" and kv["length"]["computed"] == 6.0
+    assert kv["length"]["diff"] == pytest.approx(-0.2) and kv["width"]["computed"] == 3.0
+    hv = {r["quantity"]: r for r in rows if r["space"] == "Hall / entry" and r["tier"] == "video"}
+    assert hv["length"]["room_id"] == "room_1" and hv["width"]["computed"] == 4.0
+    kp = {r["quantity"]: r for r in rows if r["space"] == "Kitchen" and r["tier"] == "photos"}
+    assert kp["length"]["room_id"] == "01_Kitchen" and kp["length"]["computed"] == 4.0
+    assert all(r["run"] in ("Rooms (photos)", "Whole home (video)") for r in rows)
+
+
+def test_whole_home_rooms_without_photos_and_height_only(client, engine):
+    """LiDAR whole home + rooms that are size references only; a height-only room is compared
+    with the largest room left; a room without sizes gets no match."""
+    engine.home_rooms = [("room_1", 5.0, 4.0), ("room_2", 3.0, 2.0)]
+    pid = client.post("/api/projects").json()["project_id"]
+    space(client, pid, "Bed", length=3.1, width=2.1)
+    space(client, pid, "Living", height=2.6)
+    space(client, pid, "Bath")
+    capture(client, pid, "lidar")
+    upload_cap(client, pid, "scan.zip", b"not really a zip")
+    j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
+    # an unreadable zip fails the run before the engine
+    assert j["status"] == "failed" and "cannot unzip" in j["error"]
+    rows = []
+    # engine reached with a folder of loose export files instead
+    client.delete(f"/api/projects/{pid}/capture/files/{sha(b'not really a zip')}")
+    upload_cap(client, pid, "odometry.csv", b"t,f\n")
+    j = wait(client, client.post(f"/api/projects/{pid}/run", json={"force": True}).json()["job_id"])
+    assert j["status"] == "done", j
+    assert engine.calls[-1]["tier"] == "lidar"
+    assert engine.calls[-1]["kw"]["measurements"] == {"rooms": [{"length": 3.1, "width": 2.1}, {"height": 2.6}]}
+    rows = client.get(f"/api/jobs/{j['job_id']}/comparison").json()["rows"]
+    by = {(r["space"], r["quantity"]): r for r in rows}
+    assert {r["tier"] for r in rows} == {"lidar"}
+    assert by[("Bed", "length")]["room_id"] == "room_2" and by[("Bed", "length")]["computed"] == 3.0
+    assert by[("Living", "height")]["room_id"] == "room_1" and by[("Living", "height")]["computed"] == 2.5
+    assert by[("Bath", "length")]["room_id"] is None and by[("Bath", "length")]["computed"] is None
 
 
 def test_failed_engine_run_reports_error(client, monkeypatch):
@@ -414,13 +532,14 @@ def test_real_run_single_room(tmp_path, monkeypatch):
                 z.write(f, f"{src.name}/{f.relative_to(src).as_posix()}")
     with TestClient(create_app(tmp_path / "data")) as c:
         pid = c.post("/api/projects").json()["project_id"]
-        s = space(c, pid, "single room", kind="lidar", height=2.5)
-        r = c.put(f"/api/projects/{pid}/spaces/{s['space_id']}/files",
+        space(c, pid, "single room", height=2.5)
+        capture(c, pid, "lidar")
+        r = c.put(f"/api/projects/{pid}/capture/files",
                   files={"file": ("scan.zip", zpath.open("rb"))},
                   data={"sha256": hashlib.sha256(zpath.read_bytes()).hexdigest(), "name": "scan.zip"})
         assert r.status_code == 200, r.text
         v = c.post(f"/api/projects/{pid}/verify").json()
-        assert v["spaces"][0]["findings"][0]["check"] == "lidar export"
+        assert v["capture"]["findings"][0]["check"] == "lidar export"
         j = wait(c, c.post(f"/api/projects/{pid}/run", json={"damage": False, "force": True}).json()["job_id"],
                  timeout=900)
         assert j["status"] == "done", j

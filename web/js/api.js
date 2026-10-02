@@ -11,6 +11,9 @@ export class ApiError extends Error {
 }
 
 const enc = encodeURIComponent;
+// The whole-home capture uses the same upload queue as rooms, under this pseudo space id.
+export const CAPTURE = "_capture";
+const filesPath = (pid, sid) => sid === CAPTURE ? `/api/projects/${enc(pid)}/capture/files` : `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`;
 
 export function url(path) {
   if (/^https?:\/\//i.test(path)) return path;
@@ -64,8 +67,10 @@ export const api = {
   patchSpace: (pid, sid, body) => req("PATCH", `/api/projects/${enc(pid)}/spaces/${enc(sid)}`, body),
   deleteSpace: (pid, sid) => req("DELETE", `/api/projects/${enc(pid)}/spaces/${enc(sid)}`),
   setOrder: (pid, spaceIds) => req("PUT", `/api/projects/${enc(pid)}/order`, { space_ids: spaceIds }),
-  listFiles: (pid, sid) => req("GET", `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`),
-  deleteFile: (pid, sid, sha) => req("DELETE", `/api/projects/${enc(pid)}/spaces/${enc(sid)}/files/${enc(sha)}`),
+  listFiles: (pid, sid) => req("GET", filesPath(pid, sid)),
+  deleteFile: (pid, sid, sha) => req("DELETE", `${filesPath(pid, sid)}/${enc(sha)}`),
+  setCapture: (pid, kind) => req("PUT", `/api/projects/${enc(pid)}/capture`, { kind }),
+  deleteCapture: (pid) => req("DELETE", `/api/projects/${enc(pid)}/capture`),
   verify: (pid) => req("POST", `/api/projects/${enc(pid)}/verify`, {}, { timeout: 120000 }),
   run: (pid, force = false) => req("POST", `/api/projects/${enc(pid)}/run`, force ? { damage: true, force: true } : { damage: true }),
   job: (jid) => req("GET", `/api/jobs/${enc(jid)}`),
@@ -77,7 +82,7 @@ export const api = {
 export function uploadFile(pid, sid, { blob, name, sha256 }, onProgress, signal) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url(`/api/projects/${enc(pid)}/spaces/${enc(sid)}/files`));
+    xhr.open("PUT", url(filesPath(pid, sid)));
     xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total); };
     xhr.onload = () => {
       let data = null;

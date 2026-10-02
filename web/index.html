@@ -10,6 +10,7 @@
   <title>roomscan</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <script src="env.js"></script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -28,62 +29,60 @@
 
     <section class="card intro" aria-labelledby="intro-h">
       <h2 id="intro-h">Your property</h2>
-      <p class="muted">Add one space per room, in the order you walk through the property. Add the photos, video or LiDAR scan for each, then check and compute.</p>
+      <p class="muted">Two parts: an optional <strong>whole-home capture</strong> (one video or one LiDAR scan of every room), and your <strong>rooms</strong> (name, optional sizes, optional photos). Then check and compute.</p>
       <p class="small muted">Project <code id="project-id">&hellip;</code>
         <button type="button" id="new-project" class="link">Start a new project</button></p>
     </section>
 
+    <section class="card guide" id="guide" aria-labelledby="guide-h">
+      <h2 id="guide-h">How to capture &mdash; 1 minute</h2>
+      <p class="small muted">Before you start: open every interior door, switch on all lights, wipe the lens, zoom at <strong>1x</strong>, phone upright at chest height.</p>
+      <div class="guide-grid">
+        <figure id="guide-walk"><div class="guide-svg" data-svg="img/guide/video-walk.svg"></div>
+          <figcaption>Whole home (video or LiDAR): one slow walk through every room, along the walls.</figcaption></figure>
+        <figure id="guide-tilt"><div class="guide-svg" data-svg="img/guide/tilt-ceiling.svg"></div>
+          <figcaption>In every room, tilt up to the ceiling once (video and LiDAR).</figcaption></figure>
+        <figure id="guide-photos"><div class="guide-svg" data-svg="img/guide/photos-doorway.svg"></div>
+          <figcaption>Room photos: from the doorway, 5&ndash;6 photos turning left to right, overlapping.</figcaption></figure>
+        <figure id="guide-lookback"><div class="guide-svg" data-svg="img/guide/photos-lookback.svg"></div>
+          <figcaption>Every room but the first: one photo looking back into the room you came from.</figcaption></figure>
+        <figure id="guide-sizes"><div class="guide-svg" data-svg="img/guide/marker-and-tape.svg"></div>
+          <figcaption>Sizes: tape one length or width wall to wall (a height alone is only compared).</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="card capture" id="capture-card" aria-labelledby="capture-h">
+      <div class="section-head">
+        <h2 id="capture-h">Whole-home capture <span class="muted small">(optional)</span></h2>
+        <span id="capture-badge" class="badge" hidden></span>
+      </div>
+      <fieldset class="kinds">
+        <legend>One video or one LiDAR scan of the whole home</legend>
+        <label class="choice"><input type="radio" name="capkind" value="none" checked> <span>None</span></label>
+        <label class="choice"><input type="radio" name="capkind" value="video"> <span>Video</span></label>
+        <label class="choice"><input type="radio" name="capkind" value="lidar"> <span>LiDAR scan (.zip)</span></label>
+      </fieldset>
+      <p id="capture-tip" class="small muted"></p>
+      <div id="capture-body"></div>
+    </section>
+
     <section aria-labelledby="spaces-h">
       <div class="section-head">
-        <h2 id="spaces-h">Spaces <span class="muted small" id="spaces-count"></span></h2>
+        <h2 id="spaces-h">Rooms <span class="muted small" id="spaces-count"></span></h2>
       </div>
       <ol id="spaces" class="spaces" aria-describedby="walk-hint"></ol>
-      <p id="walk-hint" class="small muted">Walk order is the list order. Use &uarr; / &darr; to move a space.</p>
+      <p id="walk-hint" class="small muted">Walk order is the list order (photos are taken in this order). Use &uarr; / &darr; to move a room.</p>
 
       <form id="add-space" class="card add-space" autocomplete="off">
-        <h3>Add a space</h3>
+        <h3>Add a room</h3>
         <div class="row">
           <label class="field grow">
             <span>Name</span>
             <input id="new-name" name="name" type="text" maxlength="60" placeholder="Room 1">
           </label>
         </div>
-        <fieldset class="kinds">
-          <legend>What will you add?</legend>
-          <label class="choice"><input type="radio" name="kind" value="photos" checked> <span>Photos</span></label>
-          <label class="choice"><input type="radio" name="kind" value="video"> <span>Video</span></label>
-          <label class="choice"><input type="radio" name="kind" value="lidar"> <span>LiDAR scan (.zip)</span></label>
-        </fieldset>
-        <button type="submit" class="btn primary">+ Add space</button>
+        <button type="submit" class="btn primary">+ Add room</button>
       </form>
-
-      <details class="card guide">
-        <summary>How to capture (1 minute read)</summary>
-        <div class="guide-body">
-          <p><strong>Before you start:</strong> open every interior door, switch on all lights, wipe the lens, keep the zoom at <strong>1x</strong>, hold the phone upright at chest height.</p>
-          <h4>Photos (2 to 8 per room)</h4>
-          <ol>
-            <li>Stand in the doorway you came in by, back against the door frame.</li>
-            <li>Take 5&ndash;6 photos turning from left to right, each overlapping the last by about a third. Floor and ceiling in every photo.</li>
-            <li>Every room except the first: turn around and take one photo looking back into the room you came from.</li>
-          </ol>
-          <p class="small muted">Send originals (Files, AirDrop, cable). Chat apps shrink photos and they will be rejected.</p>
-          <h4>Video (about a minute per room)</h4>
-          <ol>
-            <li>Video mode, 1x. Walk slowly, one step every two seconds, around the room.</li>
-            <li>Tilt up to the ceiling once in each room. Keep some floor in view; never turn on the spot.</li>
-          </ol>
-          <h4>LiDAR (Pro iPhone / iPad Pro, 30&ndash;40 s per room)</h4>
-          <ol>
-            <li>Record with the free <strong>Stray Scanner</strong> app: walk slowly round each room, tilt up to the ceiling and down to the floor once.</li>
-            <li>Files app &gt; On My iPhone &gt; Stray Scanner: press and hold the newest folder &gt; <strong>Compress</strong>, then add the .zip here.</li>
-          </ol>
-          <h4>Optional: printed A4 scale marker</h4>
-          <p>For photos and video, tape one printed marker (printed at 100&nbsp;%, square 180&nbsp;mm) flat on a wall at chest height in each room, and keep it in view in 3 or more photos or a few seconds of video. It makes the sizes much more accurate.</p>
-          <h4>Sizes (L / B / H)</h4>
-          <p>Optional, in metres. One is enough. For photos and video, a length or breadth (wall to wall) improves the scale; a ceiling height alone is only compared with ours, not used for scale.</p>
-        </div>
-      </details>
     </section>
 
     <section class="card" aria-labelledby="check-h">
@@ -113,6 +112,7 @@
 
     <section id="results" aria-labelledby="results-h" hidden>
       <h2 id="results-h">Results</h2>
+      <div id="run-tabs" class="actions" role="group" aria-label="Choose a run"></div>
       <div class="card">
         <dl id="summary" class="summary"></dl>
         <div class="downloads" id="downloads"></div>
@@ -127,6 +127,7 @@
       </div>
       <div class="card">
         <h3>Your sizes vs ours</h3>
+        <p class="small muted">One row per room and size for every run (tier): photos by room, the whole-home capture by the room it matched on size and shape.</p>
         <div class="table-wrap" id="comparison-table"></div>
       </div>
       <div class="card">

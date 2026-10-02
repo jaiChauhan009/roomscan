@@ -3,6 +3,7 @@ under DATA_DIR so a restart keeps it.
 
     DATA_DIR/projects/<pid>/project.json
     DATA_DIR/projects/<pid>/files/<sid>/<sha256>      file bytes, named by content hash
+    DATA_DIR/projects/<pid>/files/_capture/<sha256>   the whole-home capture's files
     DATA_DIR/jobs/<jid>/job.json
     DATA_DIR/jobs/<jid>/out/[<prefix>/]result.json ... outputs of each run
     DATA_DIR/jobs/<jid>/work/                          materialised capture (deleted after the run)
@@ -20,6 +21,8 @@ import uuid
 from pathlib import Path
 
 KINDS = ("photos", "video", "lidar")
+CAPTURE_KINDS = ("video", "lidar")  # a whole-home capture
+CAPTURE_ID = "_capture"  # the capture's file folder (space ids are 12 hex characters)
 QUANTITIES = ("length", "width", "height")
 
 
@@ -93,8 +96,8 @@ class Store:
         return self.root / "projects" / pid
 
     def create_project(self) -> dict:
-        p = {"project_id": new_id(), "created": time.time(), "spaces": [], "last_job_id": None,
-             "last_verify": None}
+        p = {"project_id": new_id(), "created": time.time(), "spaces": [], "capture": None,
+             "last_job_id": None, "last_verify": None}
         with self.lock:
             write_json(self.pdir(p["project_id"]) / "project.json", p)
         return p
@@ -103,7 +106,9 @@ class Store:
         f = self.pdir(pid) / "project.json"
         if not f.is_file():
             raise KeyError(pid)
-        return read_json(f)
+        p = read_json(f)
+        p.setdefault("capture", None)
+        return p
 
     def save_project(self, p: dict) -> None:
         write_json(self.pdir(p["project_id"]) / "project.json", p)

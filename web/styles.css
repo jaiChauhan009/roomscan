@@ -226,3 +226,13 @@ td .ci { display: block; color: var(--muted); font-size: .75rem; white-space: no
   .space-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
   .sizes { margin-top: 0; }
 }
+
+/* capture guide: inline SVGs follow the theme (currentColor, --guide-bg) */
+.guide { --guide-bg: var(--surface); }
+.guide-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 640px) { .guide-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 960px) { .guide-grid { grid-template-columns: repeat(3, 1fr); } }
+.guide-grid figure { margin: 0; }
+.guide-svg svg { width: 100%; height: auto; display: block; color: var(--text); }
+.guide-grid figcaption { font-size: .85rem; margin-top: 4px; }
+.capture .kinds { margin: 8px 0; }
