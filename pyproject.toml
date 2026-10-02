@@ -27,7 +27,15 @@ ml = [
     "torch>=2.2",
     "transformers>=4.45",
 ]
-dev = ["pytest>=8.0"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.0",
+]
+server = [
+    "fastapi>=0.142.2",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.54.0",
+]
 
 [project.scripts]
 roomscan = "roomscan.cli:app"
