@@ -1,0 +1,126 @@
+name: iOS app
+
+on:
+  push:
+    branches: [ios-app]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          echo "Using $X"; sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Build (device, unsigned)
+        run: |
+          cd ios
+          set +e
+          xcodebuild -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphoneos \
+            -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build > build.log 2>&1
+          status=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -100
+          grep -c "warning:" build.log | xargs echo "warnings:"
+          if [ $status -ne 0 ] || [ ! -f build/Build/Products/Release-iphoneos/RoomscanCapture.app/RoomscanCapture ]; then
+            echo "### Build failed" >> $GITHUB_STEP_SUMMARY
+            grep -A4 "error:" build.log | head -60 | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+      - name: Package .ipa
+        run: |
+          cd ios
+          rm -rf Payload && mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/RoomscanCapture.app Payload/
+          zip -qry roomscan-unsigned.ipa Payload
+          ls -la roomscan-unsigned.ipa
+          echo "### roomscan-unsigned.ipa: $(du -h roomscan-unsigned.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roomscan-unsigned-ipa
+          path: ios/roomscan-unsigned.ipa
+      - name: Publish release ios-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Unsigned build ${{ github.run_number }} of ${GITHUB_SHA::7} from branch ${GITHUB_REF_NAME}. Install with Sideloadly (see docs/ios_app.md)."
+          if gh release view ios-latest >/dev/null 2>&1; then
+            gh release upload ios-latest ios/roomscan-unsigned.ipa --clobber
+            gh release edit ios-latest --notes "$NOTES" --target "$GITHUB_SHA"
+          else
+            gh release create ios-latest ios/roomscan-unsigned.ipa --prerelease --target "$GITHUB_SHA" \
+              --title "roomscan iOS (latest)" --notes "$NOTES"
+          fi
+
+  test-simulator:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          echo "Using $X"; sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Pick a simulator
+        id: sim
+        run: python3 ios/ci/pick_simulator.py >> $GITHUB_OUTPUT
+      - name: Unit and UI tests
+        run: |
+          cd ios
+          set +e
+          xcodebuild test -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphonesimulator \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO > test.log 2>&1
+          status=$?
+          grep -E "error:|Test Case .* (passed|failed|skipped)|expected failure|\*\* TEST" test.log | head -150
+          exit $status
+      - name: Test summary
+        if: always()
+        run: |
+          cd ios
+          if [ ! -d TestResults.xcresult ]; then
+            echo "### No test results (build failed?)" >> $GITHUB_STEP_SUMMARY
+            grep -A4 "error:" test.log | head -60 | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          xcrun xcresulttool get test-results tests --path TestResults.xcresult > tests.json || true
+          python3 ci/test_summary.py tests.json >> $GITHUB_STEP_SUMMARY
+      - name: Export screenshots
+        if: always()
+        run: |
+          cd ios
+          mkdir -p attachments screenshots
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path attachments || true
+          fi
+          python3 ci/name_screenshots.py attachments screenshots
+          ls -la screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simulator-screenshots
+          path: ios/screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simulator-test-log
+          path: |
+            ios/test.log
+            ios/tests.json
