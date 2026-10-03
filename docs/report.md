@@ -15,6 +15,86 @@ Companion documents:
 
 ---
 
+## Results at a glance
+
+### Strengths, measured
+
+| What | Result | Source |
+|---|---|---|
+| LiDAR footprint vs laser truth (4 public rooms, Faro scans) | within **0.6-7.6 %** (one room passes the gate outright at +0.6 %) | [benchmark.md](../bench/reports/benchmark.md), [tech_report.md](tech_report.md) |
+| LiDAR walls vs laser | median error **3-13 cm** per room | same |
+| LiDAR ceilings vs laser (after fix-loop round 4) | **2 of 4** rooms within 1.5 cm; every room within **0.22 cm of its declared prediction** | [fixloop/round4](../fixloop/round4/README.md) |
+| LiDAR repeatability, our iPhone 16 Pro | the same room scanned twice: shared walls agree to **1.7 cm** (median), **5 mm** on the clean wall | [benchmark.md](../bench/reports/benchmark.md) |
+| Drift correction | loop residual on the sample's scan B **0.169 → 0.026 m**; walls sharper with it on (ablation) | benchmark.md |
+| Honest intervals (held-out coverage, target 0.90) | video **0.93**, photo **0.92**, LiDAR 0.85 | [calibration.md](../bench/reports/calibration.md) |
+| Damage (synthetic staged, two classes) | both found with the right class, extents within 16 %, **0 false positives: PASS** | [synth_damage.md](../bench/reports/synth_damage.md) |
+| RoomPlan tier (our iOS app's scans), synthetic | exact: 12.00 m² and 9.00 m² rooms, 2.60 m ceilings, live on the cloud | [testing.md](testing.md) |
+| Fix loop | 4 rounds declared before each fix; rounds 2 and 4 met **every** declared number | [fixloop/](../fixloop/README.md) |
+
+### Gates that pass
+
+- Interval calibration at the video and photo tiers (coverage ≥ 0.90 held out).
+- Photo-tier stitch with **no room overlaps**.
+- Drift accountability: correction on/off ablation reported, with a measurable gain.
+- Synthetic damage: found, classified and sized within 30 %, no phantoms.
+- Footprint within ±3 % on one laser room (+0.6 %); the others are within 7.6 %.
+- Ceilings within 1.5 cm on 2 of 4 laser rooms.
+
+### Photos and video: plain vs assisted
+
+The brief allows calibration aids. With one tape-measured length per room typed in (the optional
+`measurements.yaml`, or the room's L/B/H boxes in the web and iOS apps), the photo tier gets the metric scale it otherwise
+has to guess. Both rows are real measurements, held out on the sample flat
+([compliance_matrix.md](compliance_matrix.md), [architecture.md](architecture.md) "Known sizes").
+
+| Tier | Mode | Footprint error | Median wall error |
+|---|---|---|---|
+| Photo (sample flat) | plain: monocular depth only | +109 % | 1.41 m |
+| Photo (sample flat) | **assisted: one tape length per room** | **−23 %** | **0.27 m** |
+| Video (sample flat) | plain | −70 % | 0.37 m |
+| Video (sample flat) | assisted: one length per room | −87 % (not helped: its error is missing rooms, not scale) | n/a |
+
+The printed A4 marker is the second aid. It is wired into both tiers and corrects a 1.6× scale error to
+within 2 % on synthetic rooms. It has not yet been measured on a real capture.
+
+### Gates that fail: cause and fix path
+
+| Gate | Where we are | Cause | Fix path |
+|---|---|---|---|
+| LiDAR walls ≤ 1 cm | 3-13 cm median | furniture taller than ~1.1 m hides wall bases; a uniform ~−1 % scale bias in the converted laser clouds | round 5: per-frame depth vs laser at the same pixels; wall evidence from above furniture |
+| Ceiling ≤ 1.5 cm on all rooms | 2 of 4 | the residual −1 % scale bias (all four rooms read low by the same fraction) | same as above; no scale factor fitted on the test set, by choice |
+| Repeatability, sample flat | rooms split 9 vs 7 | scan B never looked up, so no door heads or ceilings; open-plan rooms have no wall to split on | the protocol's upward sweep; the capture checker flags such a scan as RETAKE |
+| Video footprint ±3 % | −70 % | tracking breaks on fast sweeps and blank walls, so only part of the home survives | slower capture (the checker flags speed); the A4 marker for scale; more keyframes |
+| Photo footprint ±8 % | +32 % to +109 % plain, −23 % assisted | no depth sensor: monocular scale per photo | one tape length or the A4 marker per room |
+| Opening widths ≤ 2 cm | not met on video / photo | doors cannot be measured from thin, unscaled depth | LiDAR or RoomPlan for openings |
+
+## Testing without a permanent iOS device
+
+The brief assumes an iPhone 15 or newer with LiDAR. We **did not own one**. We borrowed an iPhone 16 Pro for one short
+session (about 30 minutes) and used it for everything that needed real hardware:
+- three Stray Scanner LiDAR scans of our flat, including a repeat of one room;
+- photos and a video;
+- a magicplan Auto-Scan export for the head-to-head.
+
+Later attempts to get the device again were only partly successful, so we tested as much as possible without it:
+
+| What | How we tested it without the device | Result |
+|---|---|---|
+| LiDAR tier accuracy | public ARKitScenes rooms (iPad Pro LiDAR) with Faro laser truth; our own iPhone scans for repeatability | numbers above |
+| Video and photo tiers | the sample flat's video and photo set; our iPhone and Android captures | numbers above |
+| Damage | synthetic stain and crack painted into real scan frames | PASS |
+| Our iOS app | built on GitHub's macOS runners; unit, UI-screenshot and end-to-end tests on the **iOS Simulator** against the live back end | all green ([testing.md](testing.md)); screens in [img/ios_app_screens.jpg](img/ios_app_screens.jpg) |
+| RoomPlan tier | synthetic `capture.json` rooms through the deployed cloud API | exact sizes |
+| Web app and back end | real captures through the Vercel site and the Google Cloud back end; email reports | done |
+
+What could **not** be tested without a device, and is reported as open, not claimed:
+- a real RoomPlan scan with our app;
+- tape truth of our flat, and therefore the magicplan head-to-head score;
+- real staged damage;
+- the A4 marker on a real print.
+
+---
+
 ## 1. Summary
 
 **What was built.**
