@@ -784,3 +784,16 @@ def test_email_report_lists_every_room_by_the_users_name():
     assert lines[0].startswith("    1. hall: floor 12.50 m2 (11.00-14.00)")
     assert lines[1].startswith("    2. room 2:")
     assert "damage regions: 1" in lines[2] and "scope items: 2" in lines[2]
+
+
+def test_a_done_job_with_a_failed_run_is_not_reused_from_the_cache(tmp_path):
+    from server.store import Store
+    st = Store(tmp_path)
+    ok = {"job_id": "a" * 12, "cache_key": "k", "status": "done", "created": 1,
+          "runs": [{"status": "done"}, {"status": "done"}]}
+    bad = {"job_id": "b" * 12, "cache_key": "k", "status": "done", "created": 2,
+           "runs": [{"status": "failed"}, {"status": "done"}]}
+    st.save_job(bad)
+    assert st.find_cached("k") is None  # retried, not served
+    st.save_job(ok)
+    assert st.find_cached("k")["job_id"] == "a" * 12

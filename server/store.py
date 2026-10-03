@@ -165,8 +165,10 @@ class Store:
         return out
 
     def find_cached(self, key: str) -> dict | None:
-        """The newest done job with this cache key, else a queued / running one."""
-        js = [j for j in self.jobs() if j.get("cache_key") == key]
+        """The newest done job with this cache key, else a queued / running one. A done job where
+        a run failed (a crash, a missing library) is not reused: pressing run again retries it."""
+        js = [j for j in self.jobs() if j.get("cache_key") == key
+              and not (j.get("status") == "done" and any(r.get("status") == "failed" for r in j.get("runs", [])))]
         for status in ("done", "running", "queued"):
             hit = sorted((j for j in js if j["status"] == status), key=lambda j: j.get("created", 0))
             if hit:
