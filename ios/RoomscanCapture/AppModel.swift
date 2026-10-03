@@ -163,7 +163,7 @@ final class AppModel: ObservableObject {
     var framesDir: String { sessionDir + "/frames" }
 
     func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord]) {
-        let r = ScannedRoom(name: name, captured: room, frames: frames, sessionId: arSessionId)
+        let r = ScannedRoom(name: name, captured: room, sessionId: arSessionId, frames: frames)
         lidarRooms.append(r)
         guard let pid = projectId else { return }
         let n = lidarRooms.count
