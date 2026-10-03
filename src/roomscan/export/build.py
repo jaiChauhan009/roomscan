@@ -198,7 +198,7 @@ def _adjacency(layout: Layout, openings: list[Opening]) -> list[S.Adjacency]:
     rooms = layout.rooms
     for i in range(len(rooms)):
         for j in range(i + 1, len(rooms)):
-            key = (rooms[i].id, rooms[j].id)
+            key = tuple(sorted([rooms[i].id, rooms[j].id]))  # same key as a door between them
             if key in out:
                 continue
             if _shared_wall(rooms[i], rooms[j]) > 0.5:

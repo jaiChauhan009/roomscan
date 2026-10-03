@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import zipfile
 from dataclasses import dataclass, field
@@ -578,7 +579,12 @@ def build_layout(rp: RoomPlanCapture) -> Built:
     rooms: list[Room] = []
     labels, info, uid = {}, [], {}
     for k, r in enumerate(rp.rooms):
-        rid = f"room_{len(rooms) + 1}"
+        # the room's own name as its id ("kitchen", "hall_2" when repeated), like photo rooms keep
+        # their folder name; "room_N" only when the name has no usable characters
+        slug = re.sub(r"[^a-z0-9]+", "_", r.name.lower()).strip("_") or f"room_{len(rooms) + 1}"
+        rid, n = slug, 2
+        while any(x.id == rid for x in rooms):
+            rid, n = f"{slug}_{n}", n + 1
         walls = [w for w in r.walls if w.length >= MIN_WALL]
         if len(walls) < len(r.walls):
             notes.append(f"{r.name}: {len(r.walls) - len(walls)} wall segment(s) shorter than {MIN_WALL * 100:.0f} cm "
