@@ -6,10 +6,10 @@
 #  docs/deploy.md.) The image is ~3 GB: CPU torch, open3d, and ~0.8 GB of model weights.
 FROM python:3.11-slim
 
-# Runtime libraries: libgl1 / libegl1 / libgomp1 / libusb for open3d, libglib2.0-0 for opencv
+# Runtime libraries: libgl1 / libegl1 / libgomp1 / libusb / libidn2 / libtbb for open3d, libglib2.0-0 for opencv
 # (headless). pillow-heif ships manylinux wheels with libheif.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libgl1 libegl1 libgomp1 libglib2.0-0 libusb-1.0-0 \
+ && apt-get install -y --no-install-recommends libgl1 libegl1 libgomp1 libglib2.0-0 libusb-1.0-0 libidn2-0 libtbb12 \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -50,6 +50,9 @@ RUN uv export --frozen --extra ml --extra server --no-emit-project --no-hashes -
  && uv pip install --python /app/.venv -r /tmp/req-cpu.txt \
  && uv pip install --python /app/.venv "$TORCH" --index-url https://download.pytorch.org/whl/cpu \
  && rm -rf /root/.cache/uv /tmp/req*.txt
+
+# fail the build here, not at a user's first LiDAR run, if a native library is missing
+RUN python -c "import open3d, open3d.pipelines.registration, cv2, torch, scipy, shapely, skimage"
 
 COPY src ./src
 COPY scripts ./scripts
