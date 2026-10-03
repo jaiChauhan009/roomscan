@@ -28,11 +28,18 @@ jobs:
       - name: Build (device, unsigned)
         run: |
           cd ios
-          set -o pipefail
+          set +e
           xcodebuild -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphoneos \
             -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD" || true
-          test -d build/Build/Products/Release-iphoneos/RoomscanCapture.app || { grep -B2 -A6 "error:" build.log | head -200; exit 1; }
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build > build.log 2>&1
+          status=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -100
+          grep -c "warning:" build.log | xargs echo "warnings:"
+          if [ $status -ne 0 ] || [ ! -f build/Build/Products/Release-iphoneos/RoomscanCapture.app/RoomscanCapture ]; then
+            echo "### Build failed" >> $GITHUB_STEP_SUMMARY
+            grep -A4 "error:" build.log | head -60 | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
       - name: Package .ipa
         run: |
           cd ios

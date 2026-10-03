@@ -2,7 +2,7 @@ import Foundation
 import RoomPlan
 import simd
 
-private func confidence(_ c: CapturedRoom.Confidence) -> String {
+private func confidenceString(_ c: CapturedRoom.Confidence) -> String {
     switch c {
     case .high: return "high"
     case .medium: return "medium"
@@ -16,7 +16,7 @@ extension PlanSurface {
         var open: Bool? = nil
         if case .door(let o) = s.category { open = o }
         self.init(id: s.identifier.uuidString, parentId: s.parentIdentifier?.uuidString,
-                  transform: s.transform, dimensions: s.dimensions, confidence: confidence(s.confidence),
+                  transform: s.transform, dimensions: s.dimensions, confidence: confidenceString(s.confidence),
                   isOpen: open, polygon: s.polygonCorners)
     }
 }

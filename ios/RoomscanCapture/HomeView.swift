@@ -122,7 +122,10 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder var extraSections: some View { EmptyView() }
+    @ViewBuilder var extraSections: some View {
+        RoomsSection()
+        VideoSection()
+    }
 
     @ViewBuilder var uploadsSection: some View {
         if !model.uploads.isEmpty {
