@@ -367,8 +367,15 @@ def run_posed(cap: PosedCapture, out_dir: Path, source: str, drift: str, damage:
 
     t = time.time()
     info = {"id": cap.name, "tier": cap.tier, "source": source, "n_frames_used": len(cap.frames),
-            "meta": {k: v for k, v in cap.meta.items() if isinstance(v, (str, int, float, list, tuple))}}
-    out = build_output(layout, openings, cap.tier, info, drift_info, dmg, flags, scope, warnings, timing)
+            "meta": {k: v for k, v in cap.meta.items()
+                     if isinstance(v, (str, int, float, list, tuple)) or (k == "scale" and isinstance(v, dict))}}
+    # a clip scale set by the printed A4 marker: its spread replaces the tier's scale prior
+    sc = cap.meta.get("scale") or {}
+    scale_rel = None
+    if sc.get("source") == "marker" and sc.get("marker"):
+        scale_rel = float(sc["marker"]["rel_sigma"])
+    out = build_output(layout, openings, cap.tier, info, drift_info, dmg, flags, scope, warnings, timing,
+                       scale_rel=scale_rel)
     if ks_plan is not None:
         from roomscan.known_sizes import finish
         finish(out, ks_plan, layout.rooms, known, mode="global")

@@ -79,8 +79,17 @@ def room_label(poly: Polygon, height: float | None, n_doors: int) -> str:
 def build_output(layout: Layout, openings: list[Opening], tier: str, capture_info: dict,
                  drift_info: dict, damage: list | None = None, flags: list | None = None,
                  scope: list | None = None, warnings: list[str] | None = None,
-                 timing: dict | None = None, stitch_method: str = "single_capture") -> S.Output:
+                 timing: dict | None = None, stitch_method: str = "single_capture",
+                 scale_rel: dict[str, float] | float | None = None) -> S.Output:
+    """scale_rel: relative 1-sigma of a measured metric scale (printed marker), for every room
+    (a float: video clip) or per room id (a dict: photo rooms); it replaces the tier's relative
+    scale prior in the intervals (uncertainty.intervals.measure). None: the tier's prior."""
     warnings = list(warnings or [])
+
+    def rel_of(room_id: str) -> float | None:
+        if isinstance(scale_rel, dict):
+            return scale_rel.get(room_id)
+        return scale_rel
     origin = np.min(np.concatenate([r.polygon for r in layout.rooms]), axis=0) if layout.rooms else np.zeros(2)
 
     def P(p):
@@ -95,11 +104,12 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
     for room in layout.rooms:
         poly = Polygon(room.polygon)
         h = room.height
+        sr = rel_of(room.id)
         hs = None
         if room.ceiling is not None:
             hs = float(np.hypot(room.floor.sigma, room.ceiling.sigma))
         if room.ceiling_source == "ceiling_plane" and h is not None:
-            ceiling = measure(h, hs, tier, "ceiling_height")
+            ceiling = measure(h, hs, tier, "ceiling_height", scale_rel=sr)
         else:
             ceiling = measure(None, 0, tier, "ceiling_height", lower_bound=h,
                               note="ceiling not captured; lower bound = top of observed walls")
@@ -117,30 +127,31 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
             gross = w.length * h_val
             walls_out.append(S.Wall(
                 id=w.id, start=P(w.start), end=P(w.end),
-                length=measure(w.length, ls, tier, "wall_length"),
+                length=measure(w.length, ls, tier, "wall_length", scale_rel=sr),
                 height=ceiling,
-                area=measure(max(gross - open_area, 0.0), ls * h_val + w.length * (hs or 0.05), tier, "area", "m2"),
+                area=measure(max(gross - open_area, 0.0), ls * h_val + w.length * (hs or 0.05), tier, "area", "m2",
+                             scale_rel=sr),
                 opening_ids=[o.id for o in w_ops],
                 evidence_coverage=round(w.coverage, 3), plane_spread=round(w.spread, 4)))
             surfaces.append(S.Surface(id=f"{w.id}", type="wall", ref=w.id,
                                       area=walls_out[-1].area))
         per_sigma = float(np.sqrt(sum(w.sigma ** 2 for w in room.walls)))
         area_sigma = float(np.mean([w.sigma for w in room.walls]) * poly.length / 2) if room.walls else 0.05
-        floor_area = measure(poly.area, area_sigma, tier, "area", "m2")
+        floor_area = measure(poly.area, area_sigma, tier, "area", "m2", scale_rel=sr)
         surfaces += [S.Surface(id=f"{room.id}_floor", type="floor", ref=room.id, area=floor_area),
                      S.Surface(id=f"{room.id}_ceiling", type="ceiling", ref=room.id, area=floor_area)]
         ops_out = []
         for o in room_ops:
             ops_out.append(S.Opening(
                 id=o.id, type=o.kind, wall_id=o.wall_id, room_id=o.room_id, connects_to=o.connects,
-                width=measure(o.width, o.sigma_w, tier, "opening_width", note=o.note),
-                height=measure(o.height, 0.03, tier, "opening_height"),
-                sill_height=measure(o.bottom, 0.03, tier, "opening_height"),
+                width=measure(o.width, o.sigma_w, tier, "opening_width", note=o.note, scale_rel=sr),
+                height=measure(o.height, 0.03, tier, "opening_height", scale_rel=sr),
+                sill_height=measure(o.bottom, 0.03, tier, "opening_height", scale_rel=sr),
                 offset_along_wall=round(o.u0, 4)))
         n_doors = sum(1 for o in room_ops if o.kind == "door")
         rooms_out.append(S.Room(
             id=room.id, label=room_label(poly, h, n_doors), polygon=[P(p) for p in room.polygon],
-            floor_area=floor_area, perimeter=measure(poly.length, per_sigma, tier, "wall_length"),
+            floor_area=floor_area, perimeter=measure(poly.length, per_sigma, tier, "wall_length", scale_rel=sr),
             ceiling_height=ceiling, ceiling_source=room.ceiling_source, walls=walls_out,
             openings=ops_out, surfaces=surfaces))
 
@@ -153,12 +164,15 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
         diag = float(np.linalg.norm(allp.max(0) - allp.min(0)))
     else:
         diag = 0.0
+    # the whole plan's diagonal: a measured scale only if every room has one (the largest spread)
+    rels = [rel_of(r.id) for r in layout.rooms]
+    bbox_rel = max(rels) if rels and all(x is not None for x in rels) else None
     prop = S.Property(
         # an area is never negative: the lower end stops at 0 (a wide photo-tier interval went below it)
         footprint_area=S.Measurement(value=round(fp, 4), ci90=(round(max(fp - 1.6449 * fp_sigma, 0.0), 4),
                                                                round(fp + 1.6449 * fp_sigma, 4)),
                                      sigma=round(fp_sigma, 5), unit="m2"),
-        bbox=measure(diag, 0.02, tier, "wall_length"),
+        bbox=measure(diag, 0.02, tier, "wall_length", scale_rel=bbox_rel),
         room_ids=[r.id for r in rooms_out], adjacency=adjacency,
         stitch_method=stitch_method, drift_correction=drift_info)
     return S.Output(

@@ -22,7 +22,9 @@ depend on matching photos to each other:
   2. per room: photos share one standpoint; headings follow from wall directions (known
      modulo 90 deg) unwrapped with the left-to-right order; each photo is rescaled so all
      see the same camera height; the room is the rectangle bounded by the outermost wall
-     planes (geometry/boxfit.py), with the unseen wall behind the standpoint
+     planes (geometry/boxfit.py), with the unseen wall behind the standpoint; its metric
+     scale is then set by a typed length / width, else by a printed A4 marker seen in its
+     photos (roomscan.markers, docs/scale_marker.md), else left at the model's (apply_scales)
   3. stitch: the look-back photo is located inside an earlier room with a learned matcher
      (EfficientLoFTR + PnP on that room's depth). That gives the door position on the
      parent's wall, hence the child's placement. If no match is found the previous folder
@@ -506,14 +508,17 @@ def scale_room_fit(rf: RoomFit, s: float) -> None:
         rf.cloud = Cloud(rf.cloud.points * np.float32(s), rf.cloud.normals, rf.cloud.weight)
 
 
-def apply_known_sizes(fits: list[RoomFit], known, warnings: list[str]):
+def apply_known_sizes(fits: list[RoomFit], known, warnings: list[str], own_scale=frozenset()):
     """Per-room scale from the user's tape numbers (median of given / fitted over the numbers
-    given for that room), applied before stitching. Returns the plan or None."""
+    given for that room), applied before stitching. Returns the plan or None.
+
+    own_scale: rooms whose scale a printed marker sets; they are scaled here only when a length
+    or width was typed for them (typed numbers win), never by the measured rooms' median."""
     from roomscan import known_sizes as KS
 
     if known is None or known.empty() or not fits:
         return None
-    p = KS.plan(known, [KS.dims_of(rf.room) for rf in fits], "room")
+    p = KS.plan(known, [KS.dims_of(rf.room) for rf in fits], "room", own_scale=own_scale)
     if p is None:
         return None
     warnings += p.warnings
@@ -522,6 +527,64 @@ def apply_known_sizes(fits: list[RoomFit], known, warnings: list[str]):
     for rf in fits:
         scale_room_fit(rf, p.per_room.get(rf.name, 1.0))
     return p
+
+
+def room_marker_scale(rf: RoomFit) -> dict | None:
+    """Printed A4 marker in a room's sweep photos (roomscan.markers.marker_scale), or None.
+
+    Runs on the working-resolution images and DEPTH_W depth maps already in memory. Each
+    photo's depth is taken in the room's current units (depth x the photo's camera-height
+    scale), so res["scale"] is the factor that turns the fitted room into metres. The look-back
+    photo is left out: it shows the previous room."""
+    from roomscan.markers import marker_scale
+
+    sweep = [ph for ph in rf.sweep if ph.img is not None and ph.depth is not None]
+    if not sweep:
+        return None
+    return marker_scale([ph.img for ph in sweep], [ph.K for ph in sweep], [ph.depth for ph in sweep],
+                        depth_scales=[ph.scale for ph in sweep])
+
+
+def apply_scales(fits: list[RoomFit], known, warnings: list[str]):
+    """Metric scale of every fitted room, before stitching. Per room, in priority order:
+    a typed length / width (known_sizes) > a printed A4 marker seen in that room's photos >
+    the measured rooms' median (known_sizes, rooms with no number) > the depth model's own
+    scale (camera-height normalised). A marker only scales its own room: rooms are fitted
+    independently and stitching shares no scale, so nothing is propagated.
+
+    Returns (known-sizes plan or None, capture.meta["scale"], {room: marker scale_rel})."""
+    from roomscan import markers as M
+
+    found = {}
+    for rf in fits:
+        res = room_marker_scale(rf)
+        if res is not None:
+            found[rf.name] = res
+    p = apply_known_sizes(fits, known, warnings, own_scale=frozenset(found))
+    typed = {x.room for x in p.ratios if x.qty != "height"} if p is not None and p.per_room else set()
+    per_room = p.per_room if p is not None else {}
+    rooms, rel = {}, {}
+    for rf in fits:
+        res = found.get(rf.name)
+        if rf.name in typed:
+            rooms[rf.name] = "known_sizes"
+            if res is not None:
+                warnings.append(f"room {rf.name}: {M.note(res)} would scale it x{res['scale']:.3f}; the typed "
+                                f"size sets the scale instead (x{per_room[rf.name]:.3f})")
+        elif res is not None:
+            scale_room_fit(rf, res["scale"])
+            rooms[rf.name] = "marker"
+            rel[rf.name] = M.scale_rel(res)
+            warnings.append(f"room {rf.name}: scale from {M.note(res)}: x{res['scale']:.3f} applied to the "
+                            f"depth model's scale")
+        elif rf.name in per_room:
+            rooms[rf.name] = "known_sizes"
+        else:
+            rooms[rf.name] = "model"
+    kinds = set(rooms.values())
+    meta = {"source": kinds.pop() if len(kinds) == 1 else "mixed", "rooms": rooms,
+            "marker": {n: M.summary(r) for n, r in found.items()}}
+    return p, meta, rel
 
 
 def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: bool = True,
@@ -600,7 +663,7 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
         why = "; ".join(w for w in warnings if "room missing" in w)[:300]
         raise InputError(f"no room could be reconstructed from the photos in {path} ({why or 'no floor or walls'}): "
                          f"each photo should show floor, walls and ceiling (docs/capture_protocol.md)")
-    ks_plan = apply_known_sizes(fits, known, warnings)
+    ks_plan, scale_meta, scale_rel = apply_scales(fits, known, warnings)
     timing["room_fit"] = time.time() - t
 
     t = time.time()
@@ -688,10 +751,12 @@ def run_photo_tier(path: Path, out_dir: Path, use_cache: bool = True, progress: 
             S.gate_damage(timing, dmg)
     info = {"id": cap.name, "tier": "photo", "source": "photo_folders", "n_frames_used": len(frames),
             "meta": dict(cap.meta, links={rf.name: rf.link for rf in placed}, overlaps_resolved=n_fix,
-                         camera_height_m={rf.name: round(rf.cam_height, 3) for rf in placed})}
+                         camera_height_m={rf.name: round(rf.cam_height, 3) for rf in placed},
+                         scale=scale_meta)}
     drift_info = {"enabled": False, "method": "not applicable (independent stills, no odometry to drift)"}
     stitch = "look-back photo located in parent room (EfficientLoFTR + depth PnP); capture-order fallback"
-    out = build_output(layout, openings, "photo", info, drift_info, dmg, flags, scope, warnings, timing, stitch)
+    out = build_output(layout, openings, "photo", info, drift_info, dmg, flags, scope, warnings, timing, stitch,
+                       scale_rel=scale_rel or None)
     if ks_plan is not None:
         from roomscan.known_sizes import finish
         finish(out, ks_plan, [rf.room for rf in placed], known, mode="room")

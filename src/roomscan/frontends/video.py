@@ -5,7 +5,9 @@
 2. monocular metric depth per keyframe (Depth Anything V2 metric indoor)
 3. incremental pose: PnP of each keyframe against 3D points of live tracks; the
    keyframe's depth map is scale-aligned to the map before it seeds new track points
-4. metric scale = median over keyframes of the depth model's own scale, bias-corrected
+4. metric scale = median over keyframes of the depth model's own scale, bias-corrected; or,
+   when a printed A4 marker is seen (roomscan.markers), the marker's scale pooled over all
+   keyframes (the depth is scale-consistent along the clip after step 3): clip_marker_scale
 5. gravity: plane direction along which the camera height stays constant
 Output is a PosedCapture consumed by the same back end as LiDAR.
 
@@ -711,16 +713,48 @@ def load_video(path: Path, use_cache: bool = True, progress: bool = True,
     prof["pnp"] = time.time() - t0
     # map units -> metres: the model's own (bias-corrected) scale, median over keyframes
     metric = float(np.median(1.0 / np.array(scales))) / DEPTH_SCALE_BIAS
+    # ... unless the printed A4 marker is in view: one scale pooled over the whole clip
+    t0 = time.time()
+    model_metric = metric
+    mk = clip_marker_scale([imgs[i] for i in kept], K, [depths[i] for i in kept], scales)
+    prof["marker"] = time.time() - t0
+    scale_meta = {"source": "model", "model_scale": round(model_metric, 4)}
+    input_warnings = []
+    if mk is not None:
+        from roomscan import markers as M
+        metric = float(mk["scale"])
+        scale_meta.update(source="marker", marker=M.summary(mk))
+        input_warnings.append(f"clip {video.name}: scale from {M.note(mk)}: x{metric / model_metric:.3f} the "
+                              f"depth model's scale")
     meta = {"source": "video", "video": video.name, "intrinsics": k_src, "n_video_frames": tr["n_frames"],
             "codec": tr["codec"], "rotation_applied_deg": tr["rotation"], "duration_s": round(tr["duration_s"], 2),
             "n_keyframe_candidates": len(tr["kfs"]), "n_keyframes": len(kfs), "n_depth_keyframes": int(sum(want)),
             "n_tracked": len(kept), "vo_segments": stats["segments"],
             "load_profile_s": {k: round(v, 1) for k, v in prof.items()},
             "vo_segments_merged": stats["segments_merged"], "vo_median_inliers": stats["median_inliers"], "metric_scale": round(metric, 4),
-            "depth_model": "Depth-Anything-V2-Metric-Indoor-Small"}
+            "depth_model": "Depth-Anything-V2-Metric-Indoor-Small",
+            "metric_scale_source": "marker" if mk is not None else "depth model", "scale": scale_meta}
+    if input_warnings:
+        meta["input_warnings"] = input_warnings
     return build_posed_capture(video.stem, "video", [imgs[i] for i in kept], [depths[i] for i in kept], K,
                                [kfs[i]["t"] for i in kept], [kfs[i]["frame"] for i in kept], poses, scales,
                                metric, meta, depth_sigma_rel=0.05)
+
+
+def clip_marker_scale(imgs: list[np.ndarray], K: np.ndarray, depths: list[np.ndarray],
+                      scales: list[float]) -> dict | None:
+    """One clip scale from the printed A4 marker, pooled over every frame that shows it.
+
+    imgs / depths / scales are aligned over the posed keyframes: imgs at the tracking resolution
+    (already in memory) with intrinsics K, depths the model's maps, scales[i] the factor that
+    puts frame i's depth into map units (solve_poses). The map is scale-consistent, so every
+    detection measures the same number: metres per map unit. Returns markers.marker_scale's
+    dict (scale = metres per map unit) or None when no usable marker is seen."""
+    from roomscan.markers import marker_scale
+
+    if not imgs:
+        return None
+    return marker_scale(imgs, K, depths, depth_scales=scales)
 
 
 def scale_capture(cap: PosedCapture, s: float) -> PosedCapture:
@@ -766,4 +800,9 @@ def apply_known_sizes(cap: PosedCapture, cloud, layout, known, warnings: list[st
                 KS.scale_room(r, s)
     cap.meta["metric_scale"] = round(float(cap.meta.get("metric_scale", 1.0)) * s, 4)
     cap.meta["metric_scale_source"] = "known sizes"
+    sc = dict(cap.meta.get("scale") or {})
+    if sc.get("source") == "marker":
+        warnings.append(f"known sizes take priority over the A4 marker: the typed numbers rescale the clip x{s:.3f}")
+    sc["source"] = "known_sizes"
+    cap.meta["scale"] = sc
     return cap, cloud, layout, p

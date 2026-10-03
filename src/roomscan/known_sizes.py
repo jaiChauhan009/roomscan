@@ -20,7 +20,9 @@ names), applied to the fitted rooms by best match (aspect ratio, then size rank)
 
 Use per tier:
   * photo: per room, scale = median of (given / fitted) over the given numbers; applied to that
-    room before stitching. Rooms without a number get the median of the measured rooms.
+    room before stitching. Rooms without a number get the median of the measured rooms, except
+    rooms whose scale a printed A4 marker sets (roomscan.markers; priority: typed length or
+    width > marker > the median of the measured rooms > depth model).
   * video: one global scale = median over the measured rooms' scales (the poses are one map).
   * LiDAR: never rescaled; the differences are printed as a self-check.
 The measured quantity's interval shrinks to the tape's own uncertainty (TAPE_M); every other
@@ -284,9 +286,12 @@ def _spread(rs: np.ndarray, s: float) -> float:
     return float(np.max(np.abs(rs / s - 1.0))) if len(rs) else 0.0
 
 
-def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str) -> ScalePlan | None:
+def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str, own_scale=frozenset()) -> ScalePlan | None:
     """mode 'room': one scale per room (photo); 'global': one scale for the capture (video, and the
-    LiDAR self-check). None when nothing given applies."""
+    LiDAR self-check). None when nothing given applies.
+
+    own_scale (room mode): rooms with a scale of their own (a printed marker). Without a typed
+    length or width they are left out of per_room (not given the measured rooms' median)."""
     notes: list[str] = []
     assigned = assign(ks, rooms, notes)
     for name, k in assigned.items():  # numbers typed by a person: flag likely typos, still use them
@@ -327,8 +332,9 @@ def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str) -> ScalePlan | None:
             notes.append(f"known sizes: {', '.join(only_h)} scaled by the ceiling height only; on photos the "
                          f"height does not fix the floor size reliably: add a length (docs/capture_protocol.md)")
         spread =max(_spread(np.array([x.r for x in ratios if x.room == n]), s) for n, s in room_scale.items())
-        per = {r.name: room_scale.get(r.name, s_all) for r in rooms}
-        unmeasured = [r.name for r in rooms if r.name not in room_scale]
+        per = {r.name: room_scale.get(r.name, s_all) for r in rooms
+               if r.name in room_scale or r.name not in own_scale}
+        unmeasured = [r.name for r in rooms if r.name not in room_scale and r.name not in own_scale]
         src = (f"known sizes from {ks.source or FILE}: {len(room_scale)} room(s) measured"
                + (f"; {len(unmeasured)} without a number scaled by their median x{s_all:.3f}" if unmeasured else ""))
         if unmeasured:
