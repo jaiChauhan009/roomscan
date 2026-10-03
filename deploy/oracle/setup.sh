@@ -74,6 +74,10 @@ sudo docker rm -f caddy >/dev/null 2>&1 || true
 sudo docker run -d --name caddy --restart unless-stopped --network host \
   -v /opt/caddy/Caddyfile:/etc/caddy/Caddyfile -v caddy_data:/data caddy:2 >/dev/null
 
+echo "== remove old images (each build leaves a ~3 GB image behind; a full disk breaks the next build)"
+sudo docker image prune -f >/dev/null
+sudo docker builder prune -af >/dev/null 2>&1
+
 echo "== waiting for the API"
 for i in $(seq 1 60); do curl -fsS http://127.0.0.1:7860/api/health && break; sleep 5; done
 echo
