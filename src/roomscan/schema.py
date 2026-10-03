@@ -60,7 +60,9 @@ class Room(BaseModel):
     floor_area: Measurement
     perimeter: Measurement
     ceiling_height: Measurement
-    ceiling_source: Literal["ceiling_plane", "wall_top", "none", "model"]
+    ceiling_source: Literal["ceiling_plane", "wall_top", "none", "model", "roomplan"] = Field(
+        description="ceiling_plane: measured ceiling; roomplan: median of RoomPlan's wall heights; wall_top: lower "
+                    "bound from the observed wall tops; model: photo-tier model estimate")
     walls: list[Wall]
     openings: list[Opening]
     surfaces: list[Surface]
@@ -118,7 +120,7 @@ class Property(BaseModel):
 
 class CaptureInfo(BaseModel):
     id: str
-    tier: Literal["lidar", "video", "photo"]
+    tier: Literal["lidar", "video", "photo", "roomplan"]
     source: str
     n_frames_used: int
     meta: dict = {}

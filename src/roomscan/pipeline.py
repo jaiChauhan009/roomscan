@@ -20,7 +20,7 @@ VIDEO_EXT = {".mp4", ".mov", ".m4v"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 RAW_EXT = {".dng"}  # iPhone ProRAW / RAW; other cameras' raw formats are rejected as unknown types
 CACHE_DIR = Path(".cache")
-TIERS = ("auto", "lidar", "video", "photo")
+TIERS = ("auto", "lidar", "video", "photo", "roomplan")
 # OS and sync-tool metadata that sits next to real files (compared lower-case)
 _JUNK = {"__macosx", "thumbs.db", "ehthumbs.db", "desktop.ini", "$recycle.bin", "system volume information",
          "@eadir", ".ds_store"}
@@ -112,7 +112,8 @@ def _unsupported_file(path: Path) -> str:
     if ext in RAW_EXT:
         return f"{path.name}: {DNG_HINT}"
     return (f"{path.name}: unsupported file type {ext}. Give a video (.mov, .mp4), a photo (.heic, .jpg, .png), "
-            f"a folder of per-room photo folders, a Stray Scanner folder, or a .zip of one of these")
+            f"a folder of per-room photo folders, a Stray Scanner folder, a RoomPlan capture (capture.json), "
+            f"or a .zip of one of these")
 
 
 def _unzip(zpath: Path) -> Path:
@@ -167,22 +168,28 @@ def prepare_input(path: Path) -> Path:
 
 
 def detect_tier(path: Path) -> str:
-    """lidar | video | photo for a capture folder or file; InputError when nothing fits.
+    """roomplan | lidar | video | photo for a capture folder or file; InputError when nothing fits.
 
-    A folder with photos is the photo tier even when Live Photo .MOV files sit next to the
+    A folder (or one or two levels below it) with a capture.json is the roomplan tier (our iOS
+    app's RoomPlan export; several of them, one zip per room, are one run). A folder with photos is the photo tier even when Live Photo .MOV files sit next to the
     photos; a folder is the video tier only when it holds a clip and no photos."""
     from roomscan.frontends.lidar_stray import find_stray_root
+    from roomscan.frontends.roomplan import find_roomplan_roots
 
     path = Path(path)
     if not path.exists():
         raise InputError(f"{path} does not exist")
     if path.is_file():
+        if path.name.lower() == "capture.json":
+            return "roomplan"
         ext = path.suffix.lower()
         if ext in VIDEO_EXT:
             return "video"
         if ext in IMAGE_EXT:
             return "photo"
         raise InputError(_unsupported_file(path))
+    if find_roomplan_roots(path):
+        return "roomplan"
     if find_stray_root(path) is not None:
         return "lidar"
     inner = unwrap(path)
@@ -198,8 +205,8 @@ def detect_tier(path: Path) -> str:
             return "video"
     if any(p.suffix.lower() in RAW_EXT and visible(p) for p in itertools.islice(inner.rglob("*"), 5000)):
         raise InputError(f"{path}: {DNG_HINT}")
-    raise InputError(f"cannot use {path}: {_describe(path)}. Expected a Stray Scanner folder, a video "
-                     f"(.mov, .mp4), or a folder of per-room photo folders (.heic, .jpg, .png)")
+    raise InputError(f"cannot use {path}: {_describe(path)}. Expected a Stray Scanner folder, a RoomPlan capture "
+                     f"(capture.json), a video (.mov, .mp4), or a folder of per-room photo folders (.heic, .jpg, .png)")
 
 
 def _cache_key(*parts) -> str:
@@ -278,6 +285,10 @@ def run(path: Path, out_dir: Path, tier: str = "auto", stride: int = 5, drift: s
 
 def _run_tier(path, out_dir, tier, stride, drift, damage, use_cache, progress, known, timing, t0):
     from roomscan.stages import gate_load
+    if tier == "roomplan":
+        from roomscan.frontends.roomplan import run_roomplan
+        return run_roomplan(path.parent if path.is_file() else path, out_dir, damage=damage, known=known,
+                            timing=timing, progress=progress)
     if tier == "lidar":
         from roomscan.frontends.lidar_stray import load_stray
         cap = load_stray(path, stride=stride)

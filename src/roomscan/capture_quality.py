@@ -6,7 +6,7 @@ Every check returns a `Finding` with a level:
     WARN    the run will go ahead, but the result may be worse; retake if it is easy
     RETAKE  the capture breaks the protocol badly enough that the result will be poor
 
-Each tier has one entry point (`check_photos`, `check_video`, `check_lidar`); all work on
+Each tier has one entry point (`check_photos`, `check_video`, `check_lidar`, `check_roomplan`); all work on
 downscaled images or a few dozen sampled frames, so a capture is checked in seconds.
 The metric functions (`sharpness`, `overlap_inliers`, `look_up_fraction`, ...) are pure
 and are what the unit tests exercise.
@@ -416,4 +416,51 @@ def lidar_findings(t: np.ndarray, xyz: np.ndarray, quats: np.ndarray, has_rgb: b
                          "turning too fast: turn slowly, about a quarter turn in two seconds"))
     F.append(Finding("colour video", OK if has_rgb else WARN, "rgb.mp4 present" if has_rgb else "no rgb.mp4",
                      "copy the whole Stray Scanner folder (Compress it first): no damage detection without it"))
+    return F
+
+
+# ---------------------------------------------------------------- RoomPlan
+
+def check_roomplan(path: Path) -> list[Finding]:
+    """A RoomPlan capture (our iOS app's capture.json, one or several): RETAKE when capture.json
+    cannot be used or a room has no walls; WARN on walls RoomPlan is not sure of (confidence
+    low) and when there are no frames (no damage detection); OK otherwise. Reads capture.json
+    and the frames' image headers only."""
+    from roomscan.frontends.roomplan import find_roomplan_roots, parse_capture
+    from roomscan.pipeline import InputError
+
+    retake = "scan the room again with the app, slowly, pointing at every wall"
+    try:
+        roots = find_roomplan_roots(Path(path))
+    except InputError as e:
+        return [Finding("roomplan export", RETAKE, str(e), "export the scan again from the app")]
+    if not roots:
+        return [Finding("roomplan export", RETAKE, "no capture.json found", "upload the zip the app made, unchanged")]
+    F: list[Finding] = []
+    for root in roots:
+        notes: list[str] = []
+        try:
+            meta, rooms, frames = parse_capture(root, notes)
+        except InputError as e:
+            F.append(Finding("roomplan export", RETAKE, str(e), "export the scan again from the app"))
+            continue
+        tag = f"{root.name}: " if len(roots) > 1 else ""
+        F.append(Finding("roomplan export", OK, f"{tag}{len(rooms)} room(s) from app {meta['app_version'] or '?'} "
+                         f"on {meta['device']['model'] or 'unknown device'}"))
+        for r in rooms:
+            if not r.walls:
+                F.append(Finding("walls", RETAKE, f"{tag}{r.name}: RoomPlan found no walls", retake))
+                continue
+            unsure = [w for w in r.walls if w.confidence != "high"]
+            low = sum(w.confidence == "low" for w in unsure)
+            F.append(Finding("walls", WARN if low else OK,
+                             f"{tag}{r.name}: {len(r.walls)} walls"
+                             + (f", {len(unsure)} not high confidence ({low} low)" if unsure else ""),
+                             "low-confidence walls get wide intervals: scan the room again, slowly, keeping each "
+                             "wall in view for a moment"))
+        F.append(Finding("frames", OK if frames else WARN, f"{tag}{len(frames)} frame(s)",
+                         "no frames in the capture: no damage detection (turn frame capture on in the app)"))
+        for n in notes:
+            if "frame" in n:
+                F.append(Finding("frames", WARN, n, "export the scan again from the app"))
     return F

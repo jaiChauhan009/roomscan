@@ -56,7 +56,8 @@
           "enum": [
             "lidar",
             "video",
-            "photo"
+            "photo",
+            "roomplan"
           ],
           "title": "Tier",
           "type": "string"
@@ -464,11 +465,13 @@
           "$ref": "#/$defs/Measurement"
         },
         "ceiling_source": {
+          "description": "ceiling_plane: measured ceiling; roomplan: median of RoomPlan's wall heights; wall_top: lower bound from the observed wall tops; model: photo-tier model estimate",
           "enum": [
             "ceiling_plane",
             "wall_top",
             "none",
-            "model"
+            "model",
+            "roomplan"
           ],
           "title": "Ceiling Source",
           "type": "string"

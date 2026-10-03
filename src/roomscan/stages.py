@@ -18,6 +18,7 @@ PLAN = {
     "lidar": ["load", "drift", "fuse", "layout", "openings", "damage", "export"],
     "video": ["load", "drift", "fuse", "layout", "openings", "damage", "export"],
     "photo": ["load+depth", "room_fit", "stitch", "openings", "damage", "export"],
+    "roomplan": ["load", "layout", "openings", "damage", "export"],
 }
 
 OnStage = Callable[[str, str, float | None, str | None], None]  # name, status, seconds, note

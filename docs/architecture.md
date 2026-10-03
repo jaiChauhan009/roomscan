@@ -172,13 +172,16 @@ roomscan/
 | photo | one folder per room, 2 to 8 photos from the doorway | `.heic`, `.heif`, `.jpg`, `.jpeg`, `.png`, any case | engine uses at most `MAX_PER_ROOM = 8` per room (`frontends/photos.py`): the last photo plus 7 evenly spaced others |
 | video | one clip of the whole home | `.mp4`, `.mov`, `.m4v` (H.264 / HEVC, 8 or 10 bit, any frame rate, VFR, rotation flag applied) | web: up to 5 clips per project (`MAX_ITEMS = 5`), each its own run |
 | LiDAR | Stray Scanner export, as `.zip` or as loose files | see 3.2 | web: up to 5 scans per project, each its own run |
+| RoomPlan | our iOS app's export: `capture.json` + `frames/*.jpg` + `room.usdz`, one `.zip` per room (uploaded into the LiDAR capture) | see 3.6 | web: shares the LiDAR capture's 5 items, one run each, plus a combined run per session |
 
 **Tier detection** (`pipeline.detect_tier`, used when `--tier auto`):
 
 1. A video file is the video tier. An image file is the photo tier.
-2. A folder holding a Stray export (itself or up to 2 levels down) is the LiDAR tier.
-3. Otherwise a folder with images (directly or in sub-folders) is the photo tier.
-4. Otherwise a folder with clips is the video tier. Live Photo `.MOV` files next to a
+2. A folder holding a `capture.json` (itself, up to 2 levels down, or zips of such captures)
+   is the RoomPlan tier.
+3. A folder holding a Stray export (itself or up to 2 levels down) is the LiDAR tier.
+4. Otherwise a folder with images (directly or in sub-folders) is the photo tier.
+5. Otherwise a folder with clips is the video tier. Live Photo `.MOV` files next to a
    same-stem image are ignored.
 
 A `.zip`, or a folder holding only one `.zip`, is first extracted to `.cache/inputs/<key>/`.
@@ -335,6 +338,122 @@ prior (twice that for areas). The calibrated multiplier is unchanged. It is reco
   The server treats only `.mp4`/`.mov`/`.m4v` as video items. Other files in a video capture
   are accepted, but verify warns that they are ignored.
 
+### 3.6 RoomPlan tier (`frontends/roomplan.py`)
+
+Our own iOS app (iPhone / iPad Pro with LiDAR, iOS 17+) runs Apple RoomPlan live capture
+and writes one `.zip` per scan. RoomPlan has already done the geometry on the phone, so the
+engine reads its walls, openings and floor directly. It builds no point cloud and runs no
+depth model.
+
+**Input** (zip or folder):
+
+| Path | Required | Content |
+|---|---|---|
+| `capture.json` | **yes** | the contract below |
+| `frames/*.jpg` | no | colour keyframes named in `capture.json`. Without them there is no damage detection (verify: WARN) |
+| `room.usdz` | no | RoomPlan's 3D model. Not read |
+
+`capture.json` (`"format": "roomscan.roomplan/1"`, fixed contract with the app):
+
+```json
+{"format": "roomscan.roomplan/1", "app_version": "0.1.0",
+ "device": {"model": "iPhone16,1", "system": "iOS 17.5"}, "captured_at": "2026-10-03T14:00:00Z",
+ "units": "m", "coordinate_frame": "arkit_world_y_up", "merged": true,
+ "rooms": [{"name": "Kitchen", "index": 0, "story": 0,
+   "walls": [{"id": "uuid", "start": [x, z], "end": [x, z], "height": 2.6, "thickness": 0.0, "confidence": "high|medium|low"}],
+   "doors": [{"id": "uuid", "wall_id": "uuid-or-null", "center": [x, y, z], "width": 0.9, "height": 2.1, "confidence": "high", "is_open": null}],
+   "windows": [...], "openings": [...],
+   "floor": {"polygon": [[x, z], ...], "y": 0.0},
+   "objects": [{"category": "bed", "center": [x, y, z], "dimensions": [w, h, d], "yaw": 0.0}],
+   "section_labels": ["kitchen"]}],
+ "frames": [{"file": "frames/000001.jpg", "room_index": 0, "t": 12.34,
+   "transform": [16 floats, column-major, camera-to-world, ARKit camera axes],
+   "intrinsics": [9 floats, column-major], "width": 1920, "height": 1440}]}
+```
+
+Coordinates are the ARKit world (metres, +Y up). The plan is world (x, z) with no rotation.
+`floor` may be `null`. An optional `session_id` (outside the contract) groups one-room zips
+of one session. Every field is validated: a wrong format, unit, frame, number, list length,
+`room_index` or non-invertible matrix raises `InputError` naming the field
+(`capture.json: rooms[0].walls[3].end must be a list of 2 numbers`). A row-major transform
+(last row `0 0 0 1`) is also accepted. Frames whose image is missing, unreadable, or not the
+stated width × height (rotated) are skipped with a warning.
+
+**Detection.** A folder with a `capture.json` (itself, up to 2 levels down, or `.zip` files
+of such captures inside it) is the `roomplan` tier. It is checked before Stray Scanner. A
+folder of several RoomPlan zips (the app uploads one per room) is **one** run.
+
+**Geometry:**
+
+- **Outline.** The floor polygon when given. Otherwise the walls are chained into a closed
+  outline: endpoints within 5 cm are one corner, walls are ordered by connectivity, and the
+  outline is turned counter-clockwise. If they do not form one closed loop, the convex hull of
+  the wall ends is used, with a warning.
+- **Walls.** RoomPlan's walls in outline order. Length is the segment length. Segments under
+  5 cm are dropped. `evidence_coverage` is 1.0.
+- **Ceiling.** Height = median wall height, `ceiling_source: "roomplan"` (a measurement, not a
+  lower bound).
+- **Floor height.** `floor.y`. Without it, the doors' bottoms. Without doors, 0 (warning).
+- **Openings.** Doors, windows and openings go on the wall named by `wall_id`, otherwise on
+  the nearest wall. Width and height are kept. Sill = centre y − height/2 − floor. A door or
+  opening within 0.3 m of another room's outline connects the two rooms.
+- **Adjacency.** By door or opening as above, and by shared wall (parallel walls within
+  0.4 m overlapping > 0.5 m, as in the other tiers).
+- **`merged: false`.** The rooms have independent frames, so each room and its frames are
+  shifted to sit in a row 1 m apart. Adjacency between them is unknown (warning). Several
+  captures are kept in their world frame only when all say `merged: true`, share a session,
+  and no two rooms overlap by more than 0.5 m². Otherwise they go side by side (warning).
+- **Objects** (furniture) are copied to `capture.meta.rooms[].objects`.
+- **Known sizes** are compared only (`lidar_check(..., label="RoomPlan")`). They never set
+  the scale.
+
+**Damage.** RoomPlan records no depth, so each frame's depth (256 px wide) is ray-cast from
+its pose and intrinsics against the RoomPlan walls (doors and openings cut out), floors and
+ceilings (`PlaneScene`). The poses are ARKit camera axes, converted to OpenCV
+(`T @ diag(1, -1, -1, 1)`). The unchanged LiDAR damage code (`damage.detect`) then assigns
+pixels to surfaces with a 6 cm tolerance and runs the CLIP tiles. Regions therefore land on
+RoomPlan surfaces with metric extent. Frames: at most 40 evenly spaced per room, thinned by
+surface coverage. Known limit: furniture is not in the rendered depth, so a stain seen on a
+sofa in front of a wall is put on the wall behind it.
+
+**Stages** (`PLAN["roomplan"]`):
+
+| Stage | What it does | Gate |
+|---|---|---|
+| `load` | find and parse every `capture.json`, check frames, side-by-side layout if needed | **fail** if no room has walls. **warn** with no frames |
+| `layout` | outlines, walls, ceiling, plan raster for the damage code | `gate_layout` |
+| `openings` | openings onto walls, rooms connected | `gate_openings` |
+| `damage` | as above | `gate_damage` |
+| `export` | `build_output(..., labels=room names)`, `result.json`, `plan.png` / `.svg` | `gate_export` |
+
+A capture without frames runs in well under a second after the imports.
+
+**Output.** The same contract as the other tiers:
+
+- `capture.tier = "roomplan"` and `capture.source = "roomplan_app"`.
+- `capture.meta` holds `device`, `app_version`, `captured_at`, `merged`, `frames` (count),
+  `frames_used_for_damage` and `rooms[]`. Each room entry has its RoomPlan name, story,
+  section labels, outline source and objects.
+- Room `label` = first section label, else the room name (lower case).
+- `property.stitch_method` = `roomplan_world_frame` or `roomplan_side_by_side`.
+
+**Intervals.** The `roomplan` block in `calibration.yaml` is RoomPlan's typical error
+(abs 1 cm + 0.4 % for lengths, 1 % for areas). It is **uncalibrated**: `scale` is 1.0 until
+there is truth. The raw sigma per wall or opening comes from RoomPlan's confidence: high
+0.01, medium 0.03, low 0.08 m. A wall's length sigma is at least √2 × its own sigma, so
+medium and low walls get wider intervals. Areas propagate from the walls as in the other
+tiers.
+
+**Verify** (`capture_quality.check_roomplan`):
+
+| Condition | Level |
+|---|---|
+| `capture.json` unreadable or invalid | RETAKE (the parser's message) |
+| a room without walls | RETAKE |
+| a room with low-confidence walls | WARN |
+| no frames, or listed frames missing | WARN |
+| otherwise | OK |
+
 ---
 
 ## 4. Backend API (`server/`)
@@ -404,6 +523,16 @@ Ids are 12 hex characters (`uuid4().hex[:12]`). A malformed id is handled as not
 2. **One run per LiDAR item**, in upload order.
    - Label `whole_home_lidar`, or `whole_home_lidar_<i>` when there are 2 or more.
    - Title `Whole home (LiDAR: x.zip)`, or `Whole home (LiDAR 2: x.zip)`.
+   - A LiDAR `.zip` holding a `capture.json` is a **RoomPlan** capture from our app
+     (`roomplan_info` reads it from the zip; engine tier `roomplan`, section 3.6). Label
+     `roomplan_<i>`. Title `Room (RoomPlan): Kitchen` for a one-room zip (the app uploads
+     one per room), `Whole home (RoomPlan: Kitchen, Hall)` for several rooms. A repeated title
+     gets the zip name added. The run reports on, and gets the typed sizes of, the rooms
+     whose name matches a RoomPlan room name (all rooms when none matches).
+   - Two or more RoomPlan zips with `merged: true` and the same `session_id` (or none) also
+     get **one combined run** after the LiDAR items. Label `roomplan_home`, title
+     `Whole home (RoomPlan: N rooms)`, each zip extracted into its own sub-folder. It does not
+     count towards the 5 items, and verify checks its zips one by one.
 3. **One run per video item**, in the same pattern (`whole_home_video[_i]`).
 
 The order is set by `CAPTURE_KINDS = ("lidar", "video")`. LiDAR runs before video because it
@@ -618,7 +747,7 @@ progress=True, measurements=None, on_stage=None)` runs in four steps:
 
 **Invalid arguments** raise `InputError` (CLI exit code 2):
 
-- `tier` outside `auto|lidar|video|photo`;
+- `tier` outside `auto|lidar|video|photo|roomplan`;
 - `drift` outside `off|loop|heading|loop+heading`;
 - `stride` < 1.
 
@@ -629,6 +758,7 @@ PLAN = {
   "lidar": ["load", "drift", "fuse", "layout", "openings", "damage", "export"],
   "video": ["load", "drift", "fuse", "layout", "openings", "damage", "export"],
   "photo": ["load+depth", "room_fit", "stitch", "openings", "damage", "export"],
+  "roomplan": ["load", "layout", "openings", "damage", "export"],  # section 3.6
 }
 ```
 

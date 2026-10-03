@@ -37,6 +37,11 @@ SLOT_MAX = 0.4  # m: antiparallel walls closer than this, cut into a room, are a
 SLOT_DEPTH = 1.5  # m: deepest such slot that is filled (a longer one may be a thin partition)
 
 
+# ceiling sources whose height is a measurement (not a lower bound): a fitted ceiling plane, or
+# RoomPlan's wall heights (frontends/roomplan.py)
+MEASURED_CEILING = ("ceiling_plane", "roomplan")
+
+
 @dataclass
 class PlanFrame:
     """Rotation of world XZ into the Manhattan-aligned plan frame (a, b)."""

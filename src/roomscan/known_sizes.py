@@ -354,12 +354,13 @@ def plan(ks: KnownSizes, rooms: list[RoomDims], mode: str, own_scale=frozenset()
     return ScalePlan({}, s, ratios, spread, src, notes, assigned)
 
 
-def lidar_check(ks: KnownSizes, rooms: list[RoomDims]) -> list[str]:
-    """LiDAR is not rescaled: one line per given number with the difference, for the user to check."""
+def lidar_check(ks: KnownSizes, rooms: list[RoomDims], label: str = "LiDAR") -> list[str]:
+    """LiDAR (and RoomPlan, label="RoomPlan") is not rescaled: one line per given number with the
+    difference, for the user to check. Typed sizes never set the scale of these tiers."""
     p = plan(ks, rooms, "global")
     if p is None:
         return []
-    out = [f"known sizes (LiDAR self-check, not applied): {x.room} {x.qty} given {x.given:.2f} m, scanned "
+    out = [f"known sizes ({label} self-check, not applied): {x.room} {x.qty} given {x.given:.2f} m, scanned "
            f"{x.fitted:.2f} m ({100 * (x.fitted / x.given - 1):+.1f} %)" for x in p.ratios]
     return out + [w for w in p.warnings if "disagree" not in w]
 

@@ -6,7 +6,7 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 from roomscan import schema as S
-from roomscan.geometry.layout import Layout
+from roomscan.geometry.layout import MEASURED_CEILING, Layout
 from roomscan.geometry.openings import Opening
 from roomscan.uncertainty.intervals import measure
 
@@ -80,10 +80,12 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
                  drift_info: dict, damage: list | None = None, flags: list | None = None,
                  scope: list | None = None, warnings: list[str] | None = None,
                  timing: dict | None = None, stitch_method: str = "single_capture",
-                 scale_rel: dict[str, float] | float | None = None) -> S.Output:
+                 scale_rel: dict[str, float] | float | None = None,
+                 labels: dict[str, str] | None = None) -> S.Output:
     """scale_rel: relative 1-sigma of a measured metric scale (printed marker), for every room
     (a float: video clip) or per room id (a dict: photo rooms); it replaces the tier's relative
-    scale prior in the intervals (uncertainty.intervals.measure). None: the tier's prior."""
+    scale prior in the intervals (uncertainty.intervals.measure). None: the tier's prior.
+    labels: room id -> label given by the capture (RoomPlan's room names); else from the shape."""
     warnings = list(warnings or [])
 
     def rel_of(room_id: str) -> float | None:
@@ -108,7 +110,7 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
         hs = None
         if room.ceiling is not None:
             hs = float(np.hypot(room.floor.sigma, room.ceiling.sigma))
-        if room.ceiling_source == "ceiling_plane" and h is not None:
+        if room.ceiling_source in MEASURED_CEILING and h is not None:
             ceiling = measure(h, hs, tier, "ceiling_height", scale_rel=sr)
         else:
             ceiling = measure(None, 0, tier, "ceiling_height", lower_bound=h,
@@ -122,6 +124,10 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
                           sum(o.width for o in room_ops if o.wall_id == w.id)) for i, w in enumerate(room.walls)]
         for i, w in enumerate(room.walls):
             ls = float(np.hypot(ends[i - 1], ends[(i + 1) % n]))  # the two walls that end it
+            if tier == "roomplan":
+                # RoomPlan measures each wall segment itself: a wall it is unsure of (confidence
+                # medium / low: a larger sigma) has uncertain ends whatever its neighbours are
+                ls = max(ls, float(np.sqrt(2.0)) * float(w.sigma))
             w_ops = [o for o in room_ops if o.wall_id == w.id]
             open_area = sum(o.width * o.height for o in w_ops)
             gross = w.length * h_val
@@ -150,7 +156,8 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
                 offset_along_wall=round(o.u0, 4)))
         n_doors = sum(1 for o in room_ops if o.kind == "door")
         rooms_out.append(S.Room(
-            id=room.id, label=room_label(poly, h, n_doors), polygon=[P(p) for p in room.polygon],
+            id=room.id, label=(labels or {}).get(room.id) or room_label(poly, h, n_doors),
+            polygon=[P(p) for p in room.polygon],
             floor_area=floor_area, perimeter=measure(poly.length, per_sigma, tier, "wall_length", scale_rel=sr),
             ceiling_height=ceiling, ceiling_source=room.ceiling_source, walls=walls_out,
             openings=ops_out, surfaces=surfaces))

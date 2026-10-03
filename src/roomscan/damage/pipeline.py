@@ -149,21 +149,24 @@ def scope_items(regions: list[tuple[str, Region]], flags: list[S.ConcealedFlag],
 
 
 def assess_damage(cap: PosedCapture, layout: Layout, openings: list[Opening], cloud=None,
-                  progress: bool = False, threshold: float = 0.6):
+                  progress: bool = False, threshold: float = 0.6, frames: list | None = None):
+    """frames: the frames to examine, chosen by the caller (RoomPlan: a few per room); None
+    chooses them here by surface coverage."""
     warnings: list[str] = []
     if not layout.rooms:
         return [], [], [], warnings
     # loads while the frames below are chosen and decoded
-    loading = preload_clip() if any(f.rgb_fn is not None for f in cap.frames) else None
+    pool = cap.frames if frames is None else frames
+    loading = preload_clip() if any(f.rgb_fn is not None for f in pool) else None
     try:
         # The frames detection examines are chosen from poses and depth alone, so every colour
         # frame read below is known before the first is read: a LiDAR video is decoded in one
         # forward pass instead of once for the brightness check and again for detection.
-        max_frames = 64
-        chosen = select_frames_coverage(cap, layout, max_frames, images=False)
+        max_frames = 64 if frames is None else max(len(frames), 1)
+        chosen = select_frames_coverage(cap, layout, max_frames, images=False) if frames is None else list(frames)
         with colour_prefetched(sharpness_candidates(cap, 6) + (chosen or [])):
-            frames = select_frames(cap, 6)
-            lum = [float(np.mean(f.rgb_fn())) for f in frames if f.rgb_fn() is not None]
+            sample = select_frames(cap, 6)
+            lum = [float(np.mean(f.rgb_fn())) for f in sample if f.rgb_fn() is not None]
             if lum and np.median(lum) < DIM_MEAN:  # dim frames are lifted for CLIP, but stay unreliable
                 warnings.append("low light (median brightness %.0f/255): damage detection is unreliable on this "
                                 "capture" % np.median(lum))
