@@ -19,10 +19,17 @@ Interface for the pipeline::
     res = marker_scale(images, Ks, depths)   # lists of equal length; depths may hold None
     if res is not None:                       # {"scale", "spread", "n", "quality", ...}
         depth_metric = res["scale"] * depth_model_units
+
+Wired in (docs/scale_marker.md, "How it is used"): the photo tier runs it per room on the
+room's sweep photos (frontends/photos.py, apply_scales), the video tier once per clip on
+the scale-consistent keyframe depth (frontends/video.py, clip_marker_scale). Typed lengths
+(known_sizes) keep priority. When the marker sets the scale, the relative scale term of the
+intervals is scale_rel(res) instead of the tier's monocular prior (uncertainty/intervals.py).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 import cv2
 import numpy as np
@@ -36,6 +43,11 @@ MAX_TILT_DEG = 60.0     # angle between marker normal and the viewing ray
 MAX_BLUR = 0.06         # edge width / marker side; heavier blur biases corners
 MAX_REPROJ_PX = 1.5     # PnP reprojection RMS: larger means the quad is not a flat square
 INNER = 0.7             # sample depth over the central 70 % x 70 % of the marker
+
+# Relative 1-sigma of a marker-set scale is never taken below this: the marker fixes the
+# depth model's scale *at the marker* to < 1 %, but the model's scale also varies ~6 % within
+# a frame, and the pooled spread of 1-2 detections understates that.
+MARKER_REL_FLOOR = 0.02
 
 _OBJ_UNIT = np.array([[-0.5, 0.5, 0], [0.5, 0.5, 0], [0.5, -0.5, 0], [-0.5, -0.5, 0]], np.float64)
 
@@ -60,6 +72,7 @@ class Detection:
     reason: str = ""
 
 
+@lru_cache(maxsize=1)
 def _detector() -> cv2.aruco.ArucoDetector:
     params = cv2.aruco.DetectorParameters()
     params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
@@ -238,24 +251,28 @@ def scale_from_depth(detections: list[tuple[Detection, np.ndarray, np.ndarray]])
 
 
 def marker_scale(images, Ks, depths, side_m: float = MARKER_SIDE_M, dist=None,
-                 marker_id: int | None = MARKER_ID) -> dict | None:
+                 marker_id: int | None = MARKER_ID, depth_scales=None) -> dict | None:
     """Scale of a room / clip from the printed marker, or None if no usable marker.
 
     images: RGB/grey uint8 frames; Ks: 3x3 intrinsics per image (or one K for all);
     depths: the depth model's map per image (model units; None for frames without one).
+    depth_scales: optional factor per image multiplying its depth map (e.g. a photo's
+    camera-height scale, a video keyframe's scale to the map); applied only to the images
+    where a marker is accepted, so frames without one cost nothing beyond detection.
     Returns {"scale", "spread", "n", "quality", "ratios", "distances", "rejected"}, where
     metric depth = scale * model depth, spread is relative (MAD), n the detections used
     and rejected counts the reasons for detections that were not used."""
     Ks = [Ks] * len(images) if np.ndim(Ks) == 2 else list(Ks)
+    depth_scales = [1.0] * len(images) if depth_scales is None else list(depth_scales)
     used, rejected, distances = [], {}, []
-    for img, K, dep in zip(images, Ks, depths):
+    for img, K, dep, ds in zip(images, Ks, depths, depth_scales):
         if img is None or dep is None:
             continue
         for d in detect(img, K, side_m=side_m, dist=dist, marker_id=marker_id):
             if not d.ok:
                 rejected[d.reason] = rejected.get(d.reason, 0) + 1
                 continue
-            used.append((d, dep, K))
+            used.append((d, dep if ds is None or ds == 1.0 else np.asarray(dep, np.float32) * np.float32(ds), K))
             distances.append(d.distance)
     res = scale_from_depth(used)
     if res is None:
@@ -263,3 +280,19 @@ def marker_scale(images, Ks, depths, side_m: float = MARKER_SIDE_M, dist=None,
     res["distances"] = distances
     res["rejected"] = rejected
     return res
+
+
+def scale_rel(res: dict) -> float:
+    """Relative 1-sigma of a marker-set scale: the detections' spread, at least MARKER_REL_FLOOR."""
+    return float(max(res.get("spread", 0.0), MARKER_REL_FLOOR))
+
+
+def summary(res: dict) -> dict:
+    """What the output records about a marker result (capture.meta.scale.marker)."""
+    return {"scale": round(float(res["scale"]), 4), "spread": round(float(res["spread"]), 4),
+            "n": int(res["n"]), "quality": res["quality"], "rel_sigma": round(scale_rel(res), 4)}
+
+
+def note(res: dict) -> str:
+    """'A4 marker (n=4, spread 1.2 %, good)'."""
+    return f"A4 marker (n={res['n']}, spread {100 * res['spread']:.1f} %, {res['quality']})"

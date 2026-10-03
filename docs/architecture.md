@@ -93,7 +93,7 @@ roomscan/
 │   ├── schema.py                output contract as pydantic models (SCHEMA_VERSION 1.0.0)
 │   ├── capture_quality.py       fast pre-run checks: OK / WARN / RETAKE with advice
 │   ├── known_sizes.py           measurements.yaml: parse, match to rooms, rescale, tighten intervals
-│   ├── markers.py               printed A4 ArUco scale marker (detection + scale; not wired into a tier)
+│   ├── markers.py               printed A4 ArUco scale marker (detection + scale; photo per room, video per clip)
 │   ├── heif.py                  optional HEIC/HEIF decoder (pillow-heif), loaded once
 │   ├── frontends/
 │   │   ├── lidar_stray.py       Stray Scanner export -> PosedCapture
@@ -267,7 +267,7 @@ rooms:
 
 | Tier | Effect |
 |---|---|
-| photo | Per-room scale = median of given/fitted over length and width, applied before stitching. Rooms without a number get the median scale. **A height alone is compared only, never used for scale.** |
+| photo | Per-room scale = median of given/fitted over length and width, applied before stitching. Rooms without a number get the median scale, unless the A4 marker is seen in that room (3.4). **A height alone is compared only, never used for scale.** |
 | video | One global scale = median over the measured rooms. |
 | LiDAR | Never rescaled. The differences are added to `warnings` as a self-check. |
 
@@ -295,8 +295,18 @@ The marker is `DICT_4X4_50` id 0 with a 180 mm black square, printed on A4. Dete
 - the blur ratio is at most 0.06;
 - the reprojection error is at most 1.5 px.
 
-`marker_scale()` returns the median ratio of metric depth to model depth. **The pipeline
-does not import it**: the module is tested, but not used by any tier.
+`marker_scale()` returns the median ratio of metric depth to model depth. It is used
+automatically when the marker is seen, and nothing changes when it is not:
+
+- **photo:** per room, on the room's sweep photos (`photos.apply_scales`), before stitching;
+  it is not passed on to other rooms;
+- **video:** once per clip, pooled over all keyframes (`video.clip_marker_scale`); it replaces
+  the depth model's median scale.
+
+Priority: typed length / width > marker > (photo) median of measured rooms > depth model.
+With a marker scale the intervals' relative term is `max(spread, 2 %)` instead of the tier
+prior (twice that for areas). The calibrated multiplier is unchanged. It is recorded in
+`capture.meta.scale` and in a warning line. Details are in `docs/scale_marker.md`.
 
 ### 3.5 Size limits and browser-side handling
 
@@ -1179,7 +1189,7 @@ generated images and clips, and a mock API. Run it with `uv run --extra dev pyte
 |---|---|
 | Geometry and layout | `test_geometry.py`, `test_outline.py`, `test_drift.py` |
 | Inputs and capture checks | `test_inputs.py`, `test_capture_quality.py`, `test_photo_thinning.py`, `test_depth_batches.py`, `test_photo_set.py` |
-| Known sizes and marker | `test_known_sizes.py`, `test_markers.py` |
+| Known sizes and marker | `test_known_sizes.py`, `test_markers.py`, `test_marker_wiring.py` |
 | Damage | `test_damage_crack.py`, `test_damage_outline.py`, `test_synth_damage.py` |
 | Output contract, intervals, calibration | `test_contract.py`, `test_intervals_evidence.py`, `test_calibration.py`, `test_sheet.py` |
 | Stage queue | `test_stages.py` |

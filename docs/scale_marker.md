@@ -7,7 +7,8 @@ Wherever it appears in a frame, roomscan measures how far away it is from its si
 in pixels, and compares that distance with the model's depth at the same pixels.
 
 The marker is optional. Without it, the pipeline still uses typed-in room sizes or the
-model's own scale.
+model's own scale. A typed length or width takes priority over the marker (see "In the
+pipeline" below).
 
 ## Print it
 
@@ -69,4 +70,49 @@ Measured accuracy is in `tests/test_markers.py`:
 The marker measures the depth model's scale *at the marker* to within 1 %. The model's
 scale also changes from one frame to the next, and within one frame. So a scale from
 one frame only fully applies to depth that has already been made consistent across
-frames. See the scale pooling in the pipeline.
+frames. The tiers below take care of that.
+
+## In the pipeline
+
+The marker is used automatically when it is seen. Nothing needs to be switched on. When
+no photo or frame shows it, nothing changes: detection is a fast ArUco search on the
+images already in memory (a few ms per image) and nothing else runs.
+
+- **Photo tier, per room** (`frontends/photos.py`, `apply_scales`). Each room's sweep
+  photos are searched, at the working resolution (960 px) with their depth maps. The
+  look-back photo is not used, because it shows the previous room. Each photo's depth is
+  taken after the room fit's camera-height normalisation, so one ratio from any of the
+  room's photos is the room's scale. The result multiplies the fitted room: its
+  rectangle, levels, camera height and photo depths. This is the same point where a typed
+  length applies, before stitching.
+  - A marker only scales **its own room**. Rooms are fitted on their own, and stitching
+    does not share a scale, so nothing is passed on to other rooms.
+- **Video tier, per clip** (`frontends/video.py`, `clip_marker_scale`). After pose
+  solving, the keyframes' depth is consistent along the clip (each keyframe has its
+  factor to the map). All detections over the clip are pooled into one scale, metres per
+  map unit. That scale replaces the depth model's bias-corrected median scale.
+- **Priority:**
+  1. a typed length or width (`measurements.yaml`);
+  2. the marker;
+  3. photo tier only: the median of the rooms with a typed number;
+  4. the depth model's own scale.
+
+  A typed height alone is still only compared. When both a typed number and a marker
+  exist, the typed number is used and the warnings give the marker's scale for comparison.
+- **Intervals** (`uncertainty/intervals.py`). With a marker scale, the tier's relative
+  (scale) term `rel` is replaced by `max(spread, 2 %)`:
+  - this applies to lengths, heights and opening sizes, and twice that to areas;
+  - the floor is `markers.MARKER_REL_FLOOR`, which covers the model's scale changing
+    within a frame;
+  - the absolute term, inflation and the calibrated per-tier multiplier stay as they are
+    (they have not been refitted for marker captures).
+- **Output.** `capture.meta.scale` records it:
+  - photo: `{"source": "marker" | "known_sizes" | "model" | "mixed", "rooms": {room:
+    source}, "marker": {room: {scale, spread, n, quality, rel_sigma}}}`;
+  - video: `{"source": ..., "model_scale": ..., "marker": {scale, spread, n, quality,
+    rel_sigma}}`;
+  - there is also a warning line, for example `room 02_kitchen: scale from A4 marker (n=4,
+    spread 1.2 %, good): x0.812 applied to the depth model's scale`.
+
+  For the photo tier, `scale` is the factor applied to the fitted room. For video it is
+  metres per map unit, which is the new `metric_scale`.

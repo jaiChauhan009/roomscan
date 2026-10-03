@@ -49,7 +49,9 @@ uv run roomscan run <capture>                                   # writes runs/<c
 | `walkin.txt` | `walkin.py` only: the printed per-room report |
 
 Optional: a `measurements.yaml` with a tape length per room sets the photo / video scale
-(see "Known sizes" in [docs/architecture.md](docs/architecture.md)).
+(see "Known sizes" in [docs/architecture.md](docs/architecture.md)). Also optional: a printed A4
+marker on a wall sets the scale of that room's photos, or of the whole clip, when it is seen and no
+length was typed ([docs/scale_marker.md](docs/scale_marker.md)).
 
 ## Setup (once)
 
