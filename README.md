@@ -33,6 +33,19 @@ The job runs on the server, so the tab can be closed. Results appear run by run 
 The hosted app is a convenience. The brief requires everything to run without our infrastructure,
 so the official path is the local command line below, which needs no network after setup.
 
+## Project structure
+
+| Part | Folder | README |
+|---|---|---|
+| **Back end** (FastAPI API, job queue, email) | [`server/`](server/) | [server/README.md](server/README.md) |
+| **Web front end** (Vercel) | [`web/`](web/) | [web/README.md](web/README.md) |
+| **iOS capture app** (RoomPlan live scan; branch `ios-app`) | `ios/` | `ios/README.md` |
+| **Engine** (photos / video / LiDAR → plan) | [`src/roomscan/`](src/roomscan/) | [docs/architecture.md](docs/architecture.md) |
+| **Benchmark** | [`bench/`](bench/) | [bench/README.md](bench/README.md) |
+| **Fix loop** | [`fixloop/`](fixloop/) | [fixloop/README.md](fixloop/README.md) |
+| **Deployment** | [`deploy/`](deploy/) | [docs/deploy.md](docs/deploy.md) |
+| **Documentation** | [`docs/`](docs/) | [docs/README.md](docs/README.md) |
+
 ## Documentation map
 
 | Document | What it covers |
