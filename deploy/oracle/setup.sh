@@ -24,9 +24,9 @@ sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io git iptables-persistent >/dev/null
 sudo systemctl enable --now docker
 
-echo "== firewall: open 80 and 443 (Oracle's Ubuntu image rejects everything but 22)"
+echo "== firewall: open 80 and 443 (Oracle's Ubuntu image rejects everything but 22; harmless elsewhere)"
 for p in 80 443; do
-  sudo iptables -C INPUT -p tcp --dport $p -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 5 -p tcp --dport $p -j ACCEPT
+  sudo iptables -C INPUT -p tcp --dport $p -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport $p -j ACCEPT
 done
 sudo netfilter-persistent save >/dev/null
 
