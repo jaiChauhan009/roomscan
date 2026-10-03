@@ -14,6 +14,58 @@ One command per capture. The input tier is detected from what you give it:
 
 How to capture: [docs/capture_protocol.md](docs/capture_protocol.md) (one page).
 
+## Live demo
+
+| | Link |
+|---|---|
+| **Web app (front end, Vercel)** | **https://roomscan-web-rose.vercel.app** |
+| API (back end, Google Cloud VM, HTTPS) | https://34-14-174-240.sslip.io (health: [`/api/health`](https://34-14-174-240.sslip.io/api/health), interactive API: [`/docs`](https://34-14-174-240.sslip.io/docs)) |
+| iOS capture app (RoomPlan live scan, in progress) | `ios/` on branch `ios-app`; builds published at [releases/ios-latest](https://github.com/jaiChauhan009/roomscan/releases/tag/ios-latest) when ready |
+
+How to use it from a phone:
+1. Open the site and, optionally, enter an email for the report.
+2. Add rooms with photos, and/or whole-home videos and LiDAR scans (Stray Scanner zips).
+3. Press **Check captures**, then **Start computing**.
+
+The job runs on the server, so the tab can be closed. Results appear run by run (plan, sizes with
+90 % ranges, Excel and JSON) and, with an email, arrive as a report.
+
+The hosted app is a convenience. The brief requires everything to run without our infrastructure,
+so the official path is the local command line below, which needs no network after setup.
+
+## Documentation map
+
+| Document | What it covers |
+|---|---|
+| [docs/report.md](docs/report.md) | **Project report**: what was built, how we tested it, scores per tier, fix-loop rounds, deployment, limitations, optimization steps and next steps |
+| [docs/architecture.md](docs/architecture.md) | **Architecture**: folder structure, inputs (required and optional), API endpoints and fields, pipeline stages and gates, the output JSON field by field, the front end, deployment |
+| [docs/tech_report.md](docs/tech_report.md) | Technical report (max 6 pages): method, tier design, drift, error budget, calibration, fix loop, failure modes |
+| [docs/compliance_matrix.md](docs/compliance_matrix.md) | Every requirement of the brief → file → artifact → status |
+| [bench/reports/benchmark.md](bench/reports/benchmark.md), [calibration.md](bench/reports/calibration.md), [synth_damage.md](bench/reports/synth_damage.md) | Benchmark: gates at all tiers, repeatability, drift ablation, timing; interval calibration; synthetic damage |
+| [fixloop/](fixloop/README.md) | Fix-loop rounds 1-4: declarations (committed before each fix), evidence, before/after runs, diffs, post-mortems |
+| [docs/capture_protocol.md](docs/capture_protocol.md), [docs/device_matrix.md](docs/device_matrix.md) | Capture route (one page) and which tier runs on which device, with accuracy |
+| [docs/scale_marker.md](docs/scale_marker.md) | Optional printed A4 marker for exact photo / video scale |
+| [docs/deploy.md](docs/deploy.md), [deploy/oracle/setup.sh](deploy/oracle/setup.sh) | Hosting: Vercel front end, Docker back end on a VM (Google Cloud / Oracle), HTTPS, email settings |
+| [docs/raw_data.md](docs/raw_data.md) | Raw benchmark data: what it is, where it comes from, checksums (`bench/raw_data.sha256`) |
+| [docs/worklog.md](docs/worklog.md), [docs/design_qa.md](docs/design_qa.md) | Build log by stage; design decisions and their reasons |
+| [server/README.md](server/README.md) | Web API reference |
+
+## What we achieved (summary)
+
+Every number comes from the reports above. Details and caveats are in [docs/report.md](docs/report.md).
+
+| Area | Result |
+|---|---|
+| All three tiers | photos, video and LiDAR each produce the same output contract: per-room and stitched plan, walls, ceilings, openings, damage, concealed-damage flags with the rule that fired, scope items, a 90 % interval on every number, JSON to the schema, rendered plan, Excel |
+| LiDAR vs laser truth (4 public ARKitScenes rooms) | footprint within 0.6-7.6 %; median wall error 3-13 cm; ceilings 2 of 4 within 1.5 cm (fix-loop round 4) |
+| Repeatability, our iPhone 16 Pro | the same room scanned twice: shared walls agree to 1.7 cm (median) |
+| Interval honesty (held-out coverage, target 0.90) | LiDAR 0.85, video 0.93, photo 0.92 |
+| Synthetic damage benchmark | stain and crack both found with the right class, extents within 16 %, 0 false positives: PASS |
+| Fix loop | 4 rounds, each declared before the fix; rounds 2 and 4 hit every declared number |
+| Tests | 218 passed, 2 skipped (HEIC on Windows); server, web and marker tests included |
+| Live system | Vercel front end + Google Cloud back end; jobs keep running with the tab closed; report emailed; tested end to end on real captures |
+| Known gaps | photo / video accuracy far from the gates without a typed length or the A4 marker; head-to-head vs a consumer app and real staged damage still need the iPhone; benchmark to rerun after round 4 |
+
 ## Use it
 
 Setup first (next section). Then either of two ways.

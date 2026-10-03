@@ -160,7 +160,7 @@ phone / browser ──► Vercel (static front end, web/) ──► Google Cloud
 
 | Piece | Where | Notes |
 |---|---|---|
-| Front end | static site in `web/` on **Vercel** (Hobby plan) | redeploys automatically from GitHub `main`; `web/env.js` uses the cloud API unless the page runs on localhost |
+| Front end | static site in `web/` on **Vercel** (Hobby plan): **https://roomscan-web-rose.vercel.app** | redeploys automatically from GitHub `main`; `web/env.js` uses the cloud API unless the page runs on localhost |
 | Back end | FastAPI + engine in Docker on a **Google Cloud Compute Engine VM** | see the details below |
 | Setup script | `deploy/oracle/setup.sh` | installs Docker, builds the image on the VM, runs it with restart, sets up Caddy HTTPS on `<ip>.sslip.io`. Works on Oracle ARM and on GCP. Re-run it to update |
 | Email | Gmail SMTP (`server/notify.py`) | optional email field at the top of the page; the report (every room's sizes with ranges, plan, spreadsheet) is mailed when the job ends. Credentials live only in the server's env file (`/etc/roomscan.env`), never in the repository |
