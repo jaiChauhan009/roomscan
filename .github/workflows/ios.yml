@@ -31,6 +31,7 @@ jobs:
           set +e
           xcodebuild -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphoneos \
             -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build > build.log 2>&1
           status=$?
           grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -100
@@ -56,7 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Unsigned build of ${GITHUB_SHA::7} from branch ${GITHUB_REF_NAME}. Install with Sideloadly (see docs/ios_app.md)."
+          NOTES="Unsigned build ${{ github.run_number }} of ${GITHUB_SHA::7} from branch ${GITHUB_REF_NAME}. Install with Sideloadly (see docs/ios_app.md)."
           if gh release view ios-latest >/dev/null 2>&1; then
             gh release upload ios-latest ios/roomscan-unsigned.ipa --clobber
             gh release edit ios-latest --notes "$NOTES" --target "$GITHUB_SHA"
@@ -105,11 +106,12 @@ jobs:
         if: always()
         run: |
           cd ios
-          mkdir -p screenshots
+          mkdir -p attachments screenshots
           if [ -d TestResults.xcresult ]; then
-            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path screenshots || true
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path attachments || true
           fi
-          ls -la screenshots | head -40
+          python3 ci/name_screenshots.py attachments screenshots
+          ls -la screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

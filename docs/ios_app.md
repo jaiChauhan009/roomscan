@@ -27,7 +27,7 @@ the same parts as the web app (`web/`):
   result.xlsx / result.json / plan.png through the share sheet.
 - **Share the whole scan (.zip)**: one zip of all LiDAR rooms for AirDrop / Files (offline route to
   the laptop). With 2+ rooms the app tries RoomPlan's `StructureBuilder` to put them in one
-  frame (`"merged": true`); otherwise each room keeps its own frame (`"merged": false`).
+  frame; rooms scanned in one app session already share the ARKit world frame (`"merged": true`).
 
 ## Install on an iPhone from Windows (no Mac)
 
@@ -73,6 +73,7 @@ the shared one `<timestamp>.roomscan.zip`.
 ```json
 {
   "format": "roomscan.roomplan/1",
+  "session_id": "uuid",
   "app_version": "0.1.0",
   "device": {"model": "iPhone16,1", "system": "iOS 17.5"},
   "captured_at": "2026-10-03T14:00:00Z",
@@ -97,6 +98,10 @@ the shared one `<timestamp>.roomscan.zip`.
 }
 ```
 
+- `session_id`: one id per continuous ARSession (renewed when the app goes to the background).
+  Zips with the same id are in one world frame; the server builds a combined whole-home run from them.
+- `merged`: true when the rooms in the file share one ARKit world frame (rooms scanned in the
+  same ARSession, which the per-room upload zips always are; or rooms joined by StructureBuilder).
 - Coordinates: ARKit world, metres, x right, y up, z toward the viewer; the plan uses (x, z).
 - Wall start / end: `transform * (±width/2, 0, 0, 1)`, world x and z. Door / window / opening
   centre: the surface transform's translation; width = dimensions.x, height = dimensions.y;

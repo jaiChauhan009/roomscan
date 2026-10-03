@@ -38,7 +38,7 @@ final class BackendTests: XCTestCase {
         try await api.setCapture(pid, kind: "lidar")
         let zip = FileManager.default.temporaryDirectory.appendingPathComponent("synthetic-room1.roomscan.zip")
         try? FileManager.default.removeItem(at: zip)
-        try writeRoomscanZip(rooms: [NamedRoom(name: "Kitchen", room: syntheticRoom(), frames: [])], merged: false, extras: [], to: zip)
+        try writeRoomscanZip(rooms: [NamedRoom(name: "Kitchen", room: syntheticRoom(), frames: [])], merged: true, sessionId: UUID().uuidString.lowercased(), extras: [], to: zip)
         let sha = try sha256Hex(of: zip)
         _ = try await api.upload(pid: pid, target: "captures/lidar", file: zip, name: zip.lastPathComponent, sha256: sha) { _ in }
         let ver = try await api.verify(pid)

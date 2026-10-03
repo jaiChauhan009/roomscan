@@ -16,6 +16,8 @@ struct HomeView: View {
                 if let e = model.error {
                     Section { Text(e).foregroundStyle(.red).accessibilityIdentifier("error") }
                 }
+                lidarSection
+
                 Section {
                     TextField("Email me the report (optional)", text: $model.email)
                         .keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -27,7 +29,6 @@ struct HomeView: View {
                     Button("Start a new project") { Task { await model.newProject() } }
                 }
 
-                lidarSection
                 extraSections
                 uploadsSection
                 verifySection
@@ -98,7 +99,12 @@ struct HomeView: View {
                 scanName = roomName.trimmingCharacters(in: .whitespaces).isEmpty ? nextRoomName : roomName
                 roomName = ""
                 scanning = true
-            } label: { Label("Scan a room", systemImage: "camera.metering.matrix") }
+            } label: {
+                Label("Scan a room", systemImage: "camera.metering.matrix")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
             .disabled(model.projectId == nil || (model.captureFiles["lidar"]?.count ?? 0) >= 5)
             .accessibilityIdentifier("scan")
             ForEach(model.lidarRooms) { r in
@@ -117,7 +123,7 @@ struct HomeView: View {
             if !model.lidarRooms.isEmpty {
                 Button("Share the whole scan (.zip)") { Task { if let u = await model.homeZip() { share = ShareTarget(url: u) } } }
             }
-        } header: { Text("Whole home: LiDAR scan") } footer: {
+        } header: { Text("Whole home: LiDAR scan").font(.headline).foregroundStyle(.primary) } footer: {
             Text("One room at a time: follow the on-screen guidance, open the doors, good light. Each room uploads as soon as you tap Done (up to 5).")
         }
     }

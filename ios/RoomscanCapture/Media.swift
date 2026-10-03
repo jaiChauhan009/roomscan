@@ -19,6 +19,7 @@ func jpegWithMetadata(_ cg: CGImage, metadata: [String: Any], quality: Double = 
         props[kCGImagePropertyTIFFDictionary as String] = tiff
     }
     if var exif = props[kCGImagePropertyExifDictionary as String] as? [String: Any] {
+        if exif[kCGImagePropertyExifVersion as String] == nil { exif[kCGImagePropertyExifVersion as String] = [2, 3, 2] }
         exif[kCGImagePropertyExifPixelXDimension as String] = cg.width
         exif[kCGImagePropertyExifPixelYDimension as String] = cg.height
         props[kCGImagePropertyExifDictionary as String] = exif

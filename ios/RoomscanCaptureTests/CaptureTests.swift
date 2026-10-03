@@ -50,7 +50,7 @@ final class CaptureTests: XCTestCase {
         let frame = FrameRecord(file: "frames/000001.jpg", path: "x", t: 12.345678, transform: t.columnMajor,
                                 intrinsics: K.columnMajor, width: 1920, height: 1440)
         let j = captureJSON(rooms: [NamedRoom(name: "Kitchen", room: syntheticRoom(), frames: [frame])], merged: false,
-                            capturedAt: "2026-10-03T14:00:00Z")
+                            sessionId: "s-1", capturedAt: "2026-10-03T14:00:00Z")
         let text = j.text
         // 4-decimal rounding in the text itself
         XCTAssertTrue(text.contains("1.2346"), text)
@@ -58,9 +58,10 @@ final class CaptureTests: XCTestCase {
         XCTAssertTrue(text.contains("12.3457"))
 
         let o = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
-        XCTAssertEqual(Set(o.keys), ["format", "app_version", "device", "captured_at", "units", "coordinate_frame", "merged", "rooms", "frames"])
+        XCTAssertEqual(Set(o.keys), ["format", "session_id", "app_version", "device", "captured_at", "units", "coordinate_frame", "merged", "rooms", "frames"])
         XCTAssertEqual(o["format"] as? String, "roomscan.roomplan/1")
         XCTAssertEqual(o["units"] as? String, "m")
+        XCTAssertEqual(o["session_id"] as? String, "s-1")
         XCTAssertEqual(o["coordinate_frame"] as? String, "arkit_world_y_up")
         XCTAssertEqual(o["merged"] as? Bool, false)
         XCTAssertEqual(o["captured_at"] as? String, "2026-10-03T14:00:00Z")
@@ -111,7 +112,7 @@ final class CaptureTests: XCTestCase {
     func testNoFloorGivesNull() throws {
         var r = syntheticRoom()
         r.floors = []
-        let text = captureJSON(rooms: [NamedRoom(name: "A", room: r, frames: [])], merged: true).text
+        let text = captureJSON(rooms: [NamedRoom(name: "A", room: r, frames: [])], merged: true, sessionId: "s").text
         let o = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
         let room = try XCTUnwrap((o["rooms"] as? [[String: Any]])?.first)
         XCTAssertTrue(room["floor"] is NSNull)
@@ -138,7 +139,7 @@ final class CaptureTests: XCTestCase {
 
     func testRoomscanZip() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).roomscan.zip")
-        try writeRoomscanZip(rooms: [NamedRoom(name: "Kitchen", room: syntheticRoom(), frames: [])], merged: false, extras: [], to: url)
+        try writeRoomscanZip(rooms: [NamedRoom(name: "Kitchen", room: syntheticRoom(), frames: [])], merged: true, sessionId: "s", extras: [], to: url)
         let entries = try TinyZipReader.read(try Data(contentsOf: url))
         XCTAssertEqual(entries.map(\.name), ["capture.json"])
         let o = try JSONSerialization.jsonObject(with: entries[0].data) as? [String: Any]
@@ -155,8 +156,17 @@ final class CaptureTests: XCTestCase {
         let src = try XCTUnwrap(CGImageSourceCreateWithData(out as CFData, nil))
         let props = try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any])
         XCTAssertEqual(props[kCGImagePropertyPixelWidth as String] as? Int, 2048)
-        let exif = try XCTUnwrap(props[kCGImagePropertyExifDictionary as String] as? [String: Any])
-        XCTAssertEqual(exif[kCGImagePropertyExifFocalLenIn35mmFilm as String] as? Int, 24)
+        print("shrunk photo properties:", props)
+        let exif = try XCTUnwrap(props[kCGImagePropertyExifDictionary as String] as? [String: Any], "\(props)")
+        XCTAssertEqual((exif[kCGImagePropertyExifFocalLenIn35mmFilm as String] as? NSNumber)?.intValue, 24, "\(exif)")
+        XCTAssertEqual((exif[kCGImagePropertyExifFocalLength as String] as? NSNumber)?.doubleValue ?? 0, 5.96, accuracy: 0.01, "\(exif)")
+
+        // library path: a JPEG with EXIF in, the same EXIF out
+        let shrunkAgain = try XCTUnwrap(shrinkPhotoData(out))
+        let src2 = try XCTUnwrap(CGImageSourceCreateWithData(shrunkAgain as CFData, nil))
+        let p2 = try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(src2, 0, nil) as? [String: Any])
+        let exif2 = try XCTUnwrap(p2[kCGImagePropertyExifDictionary as String] as? [String: Any], "\(p2)")
+        XCTAssertEqual((exif2[kCGImagePropertyExifFocalLenIn35mmFilm as String] as? NSNumber)?.intValue, 24, "\(exif2)")
     }
 }
 

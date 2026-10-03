@@ -35,7 +35,7 @@ struct RoomsSection: View {
                 Task { for id in ids { await model.deleteSpace(id) } }
             }
         } header: { Text("Rooms (photos)") } footer: {
-            Text("Per room: 2–8 photos from the corners, plus any sizes you know.")
+            Text("From the doorway: 5-6 photos turning left to right, overlapping, phone upright at chest height, 1x. From the 2nd room on, add 1 photo looking back into the room you came from. Add any sizes you know.")
         }
     }
 
@@ -80,7 +80,7 @@ struct SpaceView: View {
                     Text("\(s.files) photo(s) on the server").font(.caption)
                     ForEach(model.uploads.filter { $0.target == "spaces/\(s.id)" }) { UploadRow(item: $0) }
                 } header: { Text("Photos") } footer: {
-                    Text("2–8 photos: stand in each corner and photograph the opposite corner, landscape, wide lens, good light.")
+                    Text("From the doorway: 5-6 photos turning left to right, overlapping, phone upright at chest height, 1x. From the 2nd room on, add 1 photo looking back into the room you came from.")
                 }
             } else {
                 Text("This room no longer exists.")

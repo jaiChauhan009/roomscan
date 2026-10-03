@@ -40,20 +40,23 @@ struct ScannedRoom: Identifiable {
     let id = UUID()
     var name: String
     var captured: CapturedRoom
+    /// ARSession run this room was scanned in: rooms with the same id share one world frame
+    var sessionId: String
     var frames: [FrameRecord]
     var plan: PlanRoom { PlanRoom(captured) }
     var stats: RoomStats { RoomStats(plan) }
 }
 
 enum RoomPlanExport {
-    /// One room → its own zip (rooms keep their own frame; merged false).
+    /// One room → its own zip. `merged` is true: the room is in the world frame of its ARSession,
+    /// shared by every room with the same session_id (the server joins them by that id).
     static func roomZip(_ r: ScannedRoom, to zipURL: URL) throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
         let u = tmp.appendingPathComponent("room.usdz")
         let extras: [(name: String, url: URL)] = (try? r.captured.export(to: u, exportOptions: .parametric)) != nil ? [("room.usdz", u)] : []
-        try writeRoomscanZip(rooms: [NamedRoom(name: r.name, room: r.plan, frames: r.frames)], merged: false, extras: extras, to: zipURL)
+        try writeRoomscanZip(rooms: [NamedRoom(name: r.name, room: r.plan, frames: r.frames)], merged: true, sessionId: r.sessionId, extras: extras, to: zipURL)
     }
 
     /// All rooms → one zip; merged with StructureBuilder when there are 2+ rooms and it succeeds.
@@ -85,7 +88,8 @@ enum RoomPlanExport {
                 if (try? r.captured.export(to: u, exportOptions: .parametric)) != nil { extras.append(("room_\(i).usdz", u)) }
             }
         }
-        try writeRoomscanZip(rooms: named, merged: merged, extras: extras, to: zipURL)
+        let oneFrame = merged || Set(rooms.map(\.sessionId)).count == 1
+        try writeRoomscanZip(rooms: named, merged: oneFrame, sessionId: rooms[0].sessionId, extras: extras, to: zipURL)
         return merged
     }
 }

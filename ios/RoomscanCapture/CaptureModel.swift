@@ -171,7 +171,7 @@ func systemVersionString() -> String {
     return "iOS \(v.majorVersion).\(v.minorVersion)" + (v.patchVersion > 0 ? ".\(v.patchVersion)" : "")
 }
 
-func captureJSON(rooms: [NamedRoom], merged: Bool, capturedAt: String = isoNow()) -> J {
+func captureJSON(rooms: [NamedRoom], merged: Bool, sessionId: String, capturedAt: String = isoNow()) -> J {
     var frames: [J] = []
     for (i, r) in rooms.enumerated() {
         for f in r.frames {
@@ -185,6 +185,7 @@ func captureJSON(rooms: [NamedRoom], merged: Bool, capturedAt: String = isoNow()
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
     return .obj([
         ("format", .str("roomscan.roomplan/1")),
+        ("session_id", .str(sessionId)),
         ("app_version", .str(version)),
         ("device", .obj([("model", .str(deviceModel())), ("system", .str(systemVersionString()))])),
         ("captured_at", .str(capturedAt)),
@@ -197,9 +198,9 @@ func captureJSON(rooms: [NamedRoom], merged: Bool, capturedAt: String = isoNow()
 }
 
 /// Write a .roomscan.zip: capture.json, frames/*.jpg, and the given extra files (usdz).
-func writeRoomscanZip(rooms: [NamedRoom], merged: Bool, extras: [(name: String, url: URL)], to zipURL: URL) throws {
+func writeRoomscanZip(rooms: [NamedRoom], merged: Bool, sessionId: String, extras: [(name: String, url: URL)], to zipURL: URL) throws {
     let zw = try ZipWriter(url: zipURL)
-    try zw.add(name: "capture.json", data: Data(captureJSON(rooms: rooms, merged: merged).text.utf8))
+    try zw.add(name: "capture.json", data: Data(captureJSON(rooms: rooms, merged: merged, sessionId: sessionId).text.utf8))
     for r in rooms {
         for f in r.frames {
             try zw.addFile(name: f.file, url: documentsDir.appendingPathComponent(f.path))

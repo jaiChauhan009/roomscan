@@ -25,6 +25,8 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSCameraUsageDescription: "The camera and LiDAR scanner measure your rooms."
+        NSMicrophoneUsageDescription: "Video walkthroughs are recorded with sound."
+        NSPhotoLibraryUsageDescription: "Pick room photos and walkthrough videos from your library."
         UIRequiredDeviceCapabilities: [arkit]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

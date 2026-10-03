@@ -35,15 +35,18 @@ final class ScreensUITests: XCTestCase {
         shot("01-home")
 
         // no LiDAR on the simulator: a clear message, and the scan button explains instead of crashing
-        let noLidar = app.descendants(matching: .any)["noLidar"]
-        XCTAssertTrue(reveal(noLidar), "the 'needs LiDAR' message is shown")
+        let noLidar = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'no LiDAR'")).firstMatch
+        XCTAssertTrue(noLidar.waitForExistence(timeout: 5), "the 'needs LiDAR' message is shown")
         let scan = app.buttons["scan"]
-        if reveal(scan), scan.isEnabled {
+        if scan.waitForExistence(timeout: 5), scan.isEnabled {
             scan.tap()
             let alert = app.alerts.firstMatch
-            if alert.waitForExistence(timeout: 5) {
+            XCTAssertTrue(alert.waitForExistence(timeout: 5), "tapping Scan explains that LiDAR is needed")
+            if alert.exists {
+                XCTAssertTrue(alert.label.localizedCaseInsensitiveContains("LiDAR"), alert.label)
                 shot("02-no-lidar-alert")
-                alert.buttons.firstMatch.tap()
+                alert.buttons["OK"].tap()
+                XCTAssertTrue(alert.waitForNonExistence(timeout: 5))
             }
         }
         shot("03-lidar-section")
