@@ -376,7 +376,7 @@ def create_app(data_dir: str | Path | None = None, engine_cache: bool = True) ->
                         hit["notify_email"] = email
                         store().save_job(hit)
                 return {"job_id": hit["job_id"], "cached": hit["status"] == "done"}
-            job = new_job(p, plan_runs(p), body.damage, body.force, key, state["engine"])
+            job = new_job(p, plan_runs(p, store()), body.damage, body.force, key, state["engine"])
             job["notify_email"] = email
             p["last_job_id"] = job["job_id"]
             store().save_project(p)

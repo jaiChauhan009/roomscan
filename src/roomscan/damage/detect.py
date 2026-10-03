@@ -27,7 +27,7 @@ import cv2
 import numpy as np
 
 from roomscan.capture import Frame, PosedCapture
-from roomscan.geometry.layout import Layout
+from roomscan.geometry.layout import MEASURED_CEILING, Layout
 from roomscan.geometry.pointcloud import backproject
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
@@ -236,7 +236,7 @@ def surface_cells(layout: Layout, step: float = 0.5) -> tuple[np.ndarray, np.nda
                 xz = fr.to_world(np.array([[a_, b_]]))[0]
                 pts.append([xz[0], room.floor.value, xz[1]])
                 nrm.append([0.0, 1.0, 0.0])
-                if room.ceiling_source == "ceiling_plane" and room.height:
+                if room.ceiling_source in MEASURED_CEILING and room.height:
                     pts.append([xz[0], room.floor.value + room.height, xz[1]])
                     nrm.append([0.0, -1.0, 0.0])
     return np.array(pts), np.array(nrm)
@@ -362,7 +362,7 @@ class SurfaceIndex:
             if fm.any():
                 idx[fm] = len(table)
                 table.append((f"{room.id}_floor", room.id, "floor", None))
-            if room.height and room.ceiling_source == "ceiling_plane":
+            if room.height and room.ceiling_source in MEASURED_CEILING:
                 cm = m & (np.abs(h - room.height) < self.tol)
                 if cm.any():
                     idx[cm] = len(table)
@@ -702,7 +702,8 @@ def detect_damage(cap: PosedCapture, layout: Layout, threshold: float = 0.6, max
     chose them (chosen here when not given)."""
     from tqdm import tqdm
 
-    tol = 0.06 if cap.tier == "lidar" else 0.20
+    # LiDAR depth, and RoomPlan depth rendered from the very surfaces it is assigned to: tight
+    tol = 0.06 if cap.tier in ("lidar", "roomplan") else 0.20
     sidx = SurfaceIndex(layout, tol)
     obs = []
     if frames is None:

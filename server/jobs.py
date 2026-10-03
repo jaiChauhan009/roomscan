@@ -236,7 +236,7 @@ class Worker:
                     # photos: measurements.yaml (by folder name) sits in the capture folder; the
                     # whole-home clip or scan has rooms room_1.., so every room's sizes go as an
                     # unnamed list the engine matches on aspect and size (LiDAR: compared only)
-                    meas = room_measurements(j["spaces"])
+                    meas = room_measurements([s for s in j["spaces"] if s["space_id"] in set(r["space_ids"])])
                     if meas:
                         kw["measurements"] = meas
                 try:

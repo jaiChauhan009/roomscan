@@ -12,6 +12,13 @@ we have. "Measured" means a number from `bench/` or `tests/`; everything else is
 | iPhone 15 / 15 Plus, 16 / 16 Plus / 16e, 17, Air (no LiDAR) | no | yes | yes | Camera app |
 | any older iPhone or Android phone | no | runs (tested on a moto g45) | runs (tested on a moto g45) | camera app; photos need EXIF focal length or the 26 mm default is used |
 
+**RoomPlan tier** (Apple RoomPlan live capture in our own iOS app; `docs/architecture.md` 3.6):
+
+| Device | RoomPlan tier | Capture tool | Status |
+|---|---|---|---|
+| iPhone 12 Pro or later Pro / Pro Max, iPad Pro with LiDAR (2020 or later), iOS 17+ | yes: one zip per room (`capture.json` + `frames/` + `room.usdz`) | our roomscan iOS app (RoomPlan) | engine and server accept it, tested on synthetic captures only. No real device capture and no truth yet, so its intervals are an uncalibrated prior (RoomPlan's typical 1-3 cm / ~1 %) |
+| devices without LiDAR, or iOS < 17 | no (RoomPlan needs LiDAR) | | use the video or photo tier |
+
 The tier is chosen by what is handed over, not by the device (see `docs/capture_protocol.md`).
 
 **Devices actually run (2 October 2026)**:

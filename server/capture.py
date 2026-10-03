@@ -6,7 +6,14 @@ to two whole-home capture containers (video, LiDAR). Each holds up to MAX_ITEMS 
 video file is an item, every Stray Scanner .zip is an item, and an export uploaded as loose
 files (odometry.csv, depth/ ...) is one item. Runs: the rooms with photos together as one photo
 walk, then one run per LiDAR item, then one per video item (fastest first); each whole-home run
-gets every room's sizes as unnamed known sizes."""
+gets every room's sizes as unnamed known sizes.
+
+A LiDAR .zip holding a capture.json is a RoomPlan capture from our iOS app (engine tier
+"roomplan"); the app uploads one zip per room as soon as the room is scanned. Each is its own
+run ("Room (RoomPlan): Kitchen"). Two or more of them that say they share the session's world
+frame (merged = true, and the same session_id when the app gives one) also get one combined run
+("Whole home (RoomPlan: 3 rooms)"); the engine lays the rooms side by side instead if they
+overlap (not one frame after all)."""
 from __future__ import annotations
 
 import hashlib
@@ -37,7 +44,10 @@ RETAKE_ADVICE = {
     "lidar": "Scan the whole home again as one Stray Scanner recording: walk slowly round every room, tilt "
              "up to the ceiling and down to the floor once per room; then Files app > Stray Scanner > press "
              "and hold the newest folder > Compress, delete the old .zip here and upload the new one.",
+    "roomplan": "Scan the room again with the roomscan app: walk slowly along every wall, keep each wall in "
+                "view for a moment, then delete the old .zip here; the app uploads the new scan.",
 }
+_RP_INFO: dict[str, dict | None] = {}  # sha256 -> roomplan_info (a stored file never changes)
 
 
 def worst(levels) -> str:
@@ -135,11 +145,49 @@ def _unique(name: str, used: set[str]) -> str:
     return out
 
 
-def plan_runs(p: dict) -> list[dict]:
+def roomplan_info(store: Store | None, pid: str, f: dict) -> dict | None:
+    """What a stored LiDAR .zip says about itself when it is a RoomPlan capture (it holds a
+    capture.json): {rooms: [names], merged, session, error}; None for anything else (a Stray
+    Scanner export) or without a store to read it from."""
+    if store is None or Path(f["name"]).suffix.lower() != ".zip":
+        return None
+    sha = f["sha256"]
+    if sha not in _RP_INFO:
+        from roomscan.frontends.roomplan import zip_capture_json
+
+        path = store.file_path(pid, capture_id("lidar"), sha)
+        if not path.is_file():
+            return None
+        d = zip_capture_json(path)
+        if d is None:
+            info = None
+        elif "_error" in d:
+            info = {"rooms": [], "merged": False, "session": None, "error": d["_error"]}
+        else:
+            raw = d.get("rooms") if isinstance(d.get("rooms"), list) else []
+            rooms = [str(r.get("name") or f"Room {i + 1}").strip() for i, r in enumerate(raw) if isinstance(r, dict)]
+            info = {"rooms": rooms, "merged": d.get("merged", True) is True,
+                    "session": None if d.get("session_id") is None else str(d.get("session_id")), "error": None}
+        if len(_RP_INFO) > 512:
+            _RP_INFO.clear()
+        _RP_INFO[sha] = info
+    return _RP_INFO[sha]
+
+
+def _roomplan_spaces(p: dict, names: list[str]) -> list[str]:
+    """The rooms a RoomPlan run reports on: those named like its rooms; all when none is."""
+    want = {n.strip().casefold() for n in names}
+    hit = [s["space_id"] for s in p["spaces"] if s["name"].strip().casefold() in want]
+    return hit or [s["space_id"] for s in p["spaces"]]
+
+
+def plan_runs(p: dict, store: Store | None = None) -> list[dict]:
     """[the rooms with photos, as one walk] + [one per LiDAR item] + [one per video item], each
     when present. Each run: tier, title (stage name prefix), label (output prefix), space_ids
     (the rooms it reports on: for a whole-home run every room), for photos the folder of each
-    room, for a whole-home run its item ({name, files})."""
+    room, for a whole-home run its item ({name, files}).
+    With `store`, LiDAR zips are opened to recognise RoomPlan captures (engine tier "roomplan",
+    one run each, plus a combined run per session of two or more; see the module docstring)."""
     runs: list[dict] = []
     photos = [s for s in p["spaces"] if s["kind"] == "photos" and s["files"]]
     if photos:
@@ -149,12 +197,53 @@ def plan_runs(p: dict) -> list[dict]:
                    for i, s in enumerate(photos, 1)}
         runs.append({"tier": "photos", "engine_tier": "photo", "label": "photos", "title": TITLES["photos"],
                      "space_ids": [s["space_id"] for s in photos], "folders": folders})
+    titles: set[str] = set()
+
+    def unique(title: str, item: str) -> str:
+        t, k = title, 2
+        if t in titles:
+            t = f"{title} ({item})"
+        while t in titles:
+            t, k = f"{title} ({item} {k})", k + 1
+        titles.add(t)
+        return t
     for kind, cap in present(p):
         items = capture_items(cap)
+        rp_runs = []
         for i, it in enumerate(items, 1):
-            runs.append({"tier": kind, "engine_tier": kind,
-                         "label": f"whole_home_{kind}" + (f"_{i}" if len(items) > 1 else ""),
-                         "title": run_title(kind, i, len(items), it["name"]), "item": it,
+            info = None
+            if kind == "lidar" and not it.get("loose"):
+                info = roomplan_info(store, p["project_id"], it["files"][0])
+            if info is not None:
+                rooms = info["rooms"]
+                if len(rooms) == 1:
+                    title = f"Room (RoomPlan): {rooms[0]}"
+                elif rooms:
+                    title = f"Whole home (RoomPlan: {', '.join(rooms[:3])}{', ...' if len(rooms) > 3 else ''})"
+                else:
+                    title = f"Whole home (RoomPlan: {it['name']})"
+                run = {"tier": kind, "engine_tier": "roomplan", "label": f"roomplan_{i}",
+                       "title": unique(title, it["name"]), "item": it, "roomplan": info,
+                       "space_ids": _roomplan_spaces(p, rooms), "folders": {}, "whole_home": True}
+                rp_runs.append(run)
+            else:
+                run = {"tier": kind, "engine_tier": kind,
+                       "label": f"whole_home_{kind}" + (f"_{i}" if len(items) > 1 else ""),
+                       "title": unique(run_title(kind, i, len(items), it["name"]), it["name"]), "item": it,
+                       "space_ids": [s["space_id"] for s in p["spaces"]], "folders": {}, "whole_home": True}
+            runs.append(run)
+        # one combined run per RoomPlan session of two or more zips in one world frame
+        groups: dict = {}
+        for r in rp_runs:
+            if r["roomplan"]["merged"] and not r["roomplan"]["error"] and r["roomplan"]["rooms"]:
+                groups.setdefault(r["roomplan"]["session"], []).append(r)
+        groups = {k: g for k, g in groups.items() if len(g) > 1}
+        for n, g in enumerate(groups.values(), 1):
+            k = sum(len(r["roomplan"]["rooms"]) for r in g)
+            runs.append({"tier": kind, "engine_tier": "roomplan",
+                         "label": "roomplan_home" + (f"_{n}" if len(groups) > 1 else ""),
+                         "title": unique(f"Whole home (RoomPlan: {k} rooms)", f"session {n}"),
+                         "items": [r["item"] for r in g], "combined": True,
                          "space_ids": [s["space_id"] for s in p["spaces"]], "folders": {}, "whole_home": True})
     return runs
 
@@ -187,7 +276,7 @@ def materialise(store: Store, p: dict, work: Path, lite: bool = False) -> list[d
     whole-home capture -> {stored name: path}).
     `lite`: for verify, a zipped LiDAR export is extracted without its frames."""
     work = Path(work)
-    runs = plan_runs(p)
+    runs = plan_runs(p, store)
     spaces = {s["space_id"]: s for s in p["spaces"]}
     for r in runs:
         r["files"] = {}
@@ -213,15 +302,28 @@ def materialise(store: Store, p: dict, work: Path, lite: bool = False) -> list[d
                                                         encoding="utf-8")
             r["path"] = root
             continue
-        # one whole-home item: a clip, a zipped LiDAR export, or a LiDAR export's loose files
-        sid, d, it = capture_id(r["tier"]), work / r["label"], r["item"]
+        sid, d = capture_id(r["tier"]), work / r["label"]
         d.mkdir(parents=True, exist_ok=True)
         r["files"][sid] = {}
+        if r.get("combined"):  # several RoomPlan zips, one folder each: the engine reads them as one
+            for j, it in enumerate(r["items"], 1):
+                z = it["files"][0]
+                src = store.file_path(p["project_id"], sid, z["sha256"])
+                try:
+                    _extract_zip(src, d / f"{j:02d}_{safe_name(Path(z['name']).stem)}", False)
+                except (zipfile.BadZipFile, ValueError, OSError, NotImplementedError, RuntimeError) as e:
+                    r["error"] = f"{z['name']}: cannot unzip ({e})"
+                r["files"][sid][z["name"]] = src
+            r["path"] = d
+            continue
+        # one whole-home item: a clip, a zipped LiDAR export, or a LiDAR export's loose files
+        it = r["item"]
         if r["tier"] == "lidar" and not it.get("loose"):
             z = it["files"][0]
             src = store.file_path(p["project_id"], sid, z["sha256"])
             try:
-                _extract_zip(src, d, lite)
+                # a RoomPlan zip is small (capture.json and keyframes): verify reads it whole
+                _extract_zip(src, d, lite and r["engine_tier"] != "roomplan")
             except (zipfile.BadZipFile, ValueError, OSError, NotImplementedError, RuntimeError) as e:
                 r["error"] = f"{z['name']}: cannot unzip ({e})"
             r["files"][sid][z["name"]] = src
@@ -315,6 +417,10 @@ def verify_item(kind: str, run: dict) -> list[dict]:
     it = run["item"]
     names = [f["name"] for f in it["files"]]
     paths = run["files"].get(capture_id(kind), {})
+    if run.get("engine_tier") == "roomplan":
+        if run.get("error"):
+            return [finding("retake", "roomplan export", run["error"])]
+        return _from_cq(_guard(cq.check_roomplan, "roomplan check", Path(run["path"])), names)
     if kind == "video":
         return _from_cq(_guard(cq.check_video, "video check", paths[names[0]]), names)
     from roomscan.frontends.lidar_stray import find_stray_root
@@ -342,8 +448,11 @@ def verify_captures(cap: dict, runs: list[dict]) -> list[dict]:
     extra = [f["name"] for f in extra_files(cap)]
     blocks = []
     for r in runs:
+        if r.get("combined"):  # its zips are checked one by one
+            continue
         fs = verify_item(kind, r)
-        blocks.append({"kind": kind, "item": r["item"]["name"], "name": r["title"], "findings": fs})
+        blocks.append({"kind": kind, "item": r["item"]["name"], "name": r["title"], "findings": fs,
+                       "_advice": "roomplan" if r.get("engine_tier") == "roomplan" else kind})
     if not blocks:
         what = "video" if kind == "video" else "LiDAR scan (.zip)"
         blocks.append({"kind": kind, "item": None, "name": TITLES[kind], "findings": [
@@ -353,7 +462,7 @@ def verify_captures(cap: dict, runs: list[dict]) -> list[dict]:
                                              f"are ignored", extra))
     for b in blocks:
         b["status"] = worst(f["level"] for f in b["findings"])
-        b["advice"] = RETAKE_ADVICE[kind] if b["status"] != "ok" else None
+        b["advice"] = RETAKE_ADVICE[b.pop("_advice", kind)] if b["status"] != "ok" else None
     return blocks
 
 

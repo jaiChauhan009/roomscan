@@ -60,10 +60,11 @@ def _summary(res: dict, out: Path, seconds: float) -> str:
 
 
 @app.command()
-def run(capture: Path = typer.Argument(..., help="Stray Scanner folder, video file, folder of per-room photo folders, "
-                                                 "or a .zip of one of these"),
+def run(capture: Path = typer.Argument(..., help="Stray Scanner folder, RoomPlan capture (our iOS app's .zip "
+                                                 "with capture.json), video file, folder of per-room photo "
+                                                 "folders, or a .zip of one of these"),
         out: Path = typer.Option(None, "--out", "-o", help="Output folder (default runs/<capture name>)"),
-        tier: str = typer.Option("auto", help="auto | lidar | video | photo"),
+        tier: str = typer.Option("auto", help="auto | roomplan | lidar | video | photo"),
         stride: int = typer.Option(5, help="LiDAR: use every Nth frame"),
         drift: str = typer.Option("loop", help="Drift correction: off | loop | heading | loop+heading"),
         no_damage: bool = typer.Option(False, "--no-damage", help="Skip damage detection"),
