@@ -89,8 +89,9 @@ uv run python bench/calibrate.py --write  # refit the 90 % intervals per tier
 uv run python bench/calibrate.py --eval-only
 ```
 
+Latest: full rerun on the final code, 3 October 2026, all 16 captures in about 37 min on the laptop (cached model outputs), then a refit: held-out coverage LiDAR 0.95, video 0.93, photo 0.92.
 See [bench/README.md](../bench/README.md) for the captures, metrics and gates, and
-[report.md](report.md) §6-8 for the results.
+[report.md](report.md) for the results.
 
 ## 5. Capture checks before a run
 

@@ -1,0 +1,54 @@
+{
+  "total_seconds": 136.79,
+  "stages": [
+    {
+      "name": "load",
+      "status": "done",
+      "seconds": 119.87,
+      "gate": "ok",
+      "note": "128 frames"
+    },
+    {
+      "name": "drift",
+      "status": "done",
+      "seconds": 1.21,
+      "gate": "ok",
+      "note": "0 loop closure(s)"
+    },
+    {
+      "name": "fuse",
+      "status": "done",
+      "seconds": 0.12,
+      "gate": "ok",
+      "note": "718,943 points"
+    },
+    {
+      "name": "layout",
+      "status": "done",
+      "seconds": 2.15,
+      "gate": "ok",
+      "note": "2 room(s), 54 walls (45 without wall evidence)"
+    },
+    {
+      "name": "openings",
+      "status": "done",
+      "seconds": 0.31,
+      "gate": "ok",
+      "note": "9 opening(s)"
+    },
+    {
+      "name": "damage",
+      "status": "done",
+      "seconds": 12.62,
+      "gate": "ok",
+      "note": "0 region(s)"
+    },
+    {
+      "name": "export",
+      "status": "done",
+      "seconds": 0.04,
+      "gate": "ok",
+      "note": "every measurement has a 90 % interval"
+    }
+  ]
+}

@@ -3,11 +3,11 @@
 # Fitted on bench/reports/benchmark.json, run untagged. Truth: laser_scanner (ARKitScenes visit 422386, Faro scans 173436, 173438, 173439, 173440), laser_scanner (ARKitScenes visit 460419, Faro scans 176333, 176336), laser_scanner (ARKitScenes visit 469272, Faro scans 189578, 189581, 189582), laser_scanner (ARKitScenes visit 470811, Faro scans 203839, 203840, 203843, 203844), lidar_reference.
 # Report with held-out coverage: bench/reports/calibration.md.
 lidar:
-  wall_length:    {inflate: 2.0, abs: 0.008, rel: 0.002, scale: 5.07}
-  ceiling_height: {inflate: 2.0, abs: 0.006, rel: 0.001, scale: 5.07}
-  opening_width:  {inflate: 1.5, abs: 0.01, rel: 0.0, scale: 5.07}
-  opening_height: {inflate: 1.5, abs: 0.03, rel: 0.0, scale: 5.07}
-  area:           {inflate: 2.0, abs: 0.05, rel: 0.004, scale: 5.07}
+  wall_length:    {inflate: 2.0, abs: 0.008, rel: 0.002, scale: 2.909}
+  ceiling_height: {inflate: 2.0, abs: 0.006, rel: 0.001, scale: 2.909}
+  opening_width:  {inflate: 1.5, abs: 0.01, rel: 0.0, scale: 2.909}
+  opening_height: {inflate: 1.5, abs: 0.03, rel: 0.0, scale: 2.909}
+  area:           {inflate: 2.0, abs: 0.05, rel: 0.004, scale: 2.909}
   damage:         {inflate: 1.0, abs: 0.01, rel: 0.25}
 video:
   wall_length:    {inflate: 2.0, abs: 0.03, rel: 0.02, scale: 6.931}
@@ -23,12 +23,6 @@ photo:
   opening_height: {inflate: 1.5, abs: 0.08, rel: 0.06, scale: 5.225}
   area:           {inflate: 2.0, abs: 0.3, rel: 0.1, scale: 10.927}
   damage:         {inflate: 1.0, abs: 0.03, rel: 0.45}
-# RoomPlan tier (frontends/roomplan.py): Apple RoomPlan's own estimate, read from our iOS app's
-# capture.json. UNCALIBRATED: no RoomPlan capture with tape / laser truth yet, so scale is 1.0
-# (not fitted by bench/calibrate.py). Priors: RoomPlan's typical error ~1-3 cm per wall and ~1 %
-# on the sides of a room of ordinary size. The raw sigma comes from RoomPlan's per-item
-# confidence (roomplan.CONF_SIGMA: high 0.01, medium 0.03, low 0.08 m), so medium / low items get
-# wider intervals. Refit with bench/calibrate.py once truth exists.
 roomplan:
   wall_length:    {inflate: 1.0, abs: 0.01, rel: 0.004, scale: 1.0}
   ceiling_height: {inflate: 1.0, abs: 0.01, rel: 0.004, scale: 1.0}

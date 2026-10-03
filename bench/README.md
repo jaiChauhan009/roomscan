@@ -43,9 +43,9 @@ Source: `reports/`; see [`../docs/report.md`](../docs/report.md) §8 for the ful
 
 | Tier | Truth | Result |
 |---|---|---|
-| LiDAR | laser (4 rooms) | footprint 0.6-7.6 %; median wall error 3-13 cm; ceilings 2/4 within 1.5 cm (after round 4) |
+| LiDAR | laser (4 rooms) | footprint 0.6-7.1 %; median wall error 3-13 cm; ceilings 2/4 within 1.5 cm; interval coverage 0.95 held out |
 | LiDAR | repeat scan | shared walls agree to 1.7 cm (median) |
 | Video / photo | our LiDAR | far from the gates without a typed length or the marker; intervals still cover the reference (held-out coverage 0.93 / 0.92) |
 | Damage | synthetic | PASS: both classes found, extents within 16 %, 0 false positives |
 
-The committed `benchmark.md` predates the split-room fix `f83f66c` and fix-loop round 4. A rerun and refit are pending.
+The committed reports are from the final rerun and refit (3 October 2026): 16 captures on the final code, with LiDAR held-out coverage 0.95.

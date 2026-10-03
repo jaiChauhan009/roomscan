@@ -1,0 +1,47 @@
+{
+  "total_seconds": 625.43,
+  "stages": [
+    {
+      "name": "load+depth",
+      "status": "done",
+      "seconds": 6.11,
+      "gate": "ok",
+      "note": "48 frames"
+    },
+    {
+      "name": "room_fit",
+      "status": "done",
+      "seconds": 4.1,
+      "gate": null,
+      "note": null
+    },
+    {
+      "name": "stitch",
+      "status": "done",
+      "seconds": 580.09,
+      "gate": "ok",
+      "note": "6 room(s), 24 walls (2 without wall evidence)"
+    },
+    {
+      "name": "openings",
+      "status": "done",
+      "seconds": 5.49,
+      "gate": "ok",
+      "note": "14 opening(s)"
+    },
+    {
+      "name": "damage",
+      "status": "done",
+      "seconds": 28.87,
+      "gate": "ok",
+      "note": "1 region(s)"
+    },
+    {
+      "name": "export",
+      "status": "done",
+      "seconds": 0.72,
+      "gate": "ok",
+      "note": "every measurement has a 90 % interval"
+    }
+  ]
+}

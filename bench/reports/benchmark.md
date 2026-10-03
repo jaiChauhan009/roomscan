@@ -6,30 +6,30 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 
 | capture | tier | rooms | footprint m2 | room overlap m2 | wall time s | stages |
 |---|---|---|---|---|---|---|
-| apt_lidar_a | lidar | 9 | 55.7384 | 0.0 | 195.0 | load 0.39, drift 29.1, fuse 0.44, layout 13.83, openings 7.34, damage 141.58, export 0.11 |
-| apt_lidar_b | lidar | 7 | 46.4266 | 0.0 | 138.3 | load 0.32, drift 10.29, fuse 0.24, layout 9.67, openings 2.96, damage 113.92, export 0.08 |
-| room_lidar | lidar | 2 | 10.6173 | 0.0 | 45.8 | load 0.34, drift 3.3, fuse 0.06, layout 1.65, openings 0.55, damage 39.5, export 0.0 |
-| apt_video_b | video | 2 | 13.8668 | 0.0 | 200.4 | load 180.23, drift 1.39, fuse 0.14, layout 2.59, openings 0.43, damage 15.04, export 0.02 |
-| apt_photo_a | photo | 7 | 116.7447 | 0.0 | 239.6 | load+depth 2.06, room_fit 2.76, stitch 185.09, openings 2.34, damage 46.67 |
-| arkit_42446532 | lidar | 2 | 11.5177 | 0.0 | 37.2 | load 0.08, drift 9.22, fuse 0.09, layout 1.34, openings 0.51, damage 25.6, export 0.01 |
-| arkit_44358446 | lidar | 1 | 9.9893 | 0 | 38.3 | load 0.07, drift 10.65, fuse 0.05, layout 0.45, openings 0.32, damage 26.5, export 0.0 |
-| arkit_47332890 | lidar | 1 | 14.4731 | 0 | 41.5 | load 0.05, drift 4.3, fuse 0.08, layout 1.22, openings 0.27, damage 35.43, export 0.0 |
-| arkit_47331988 | lidar | 1 | 11.6543 | 0 | 73.3 | load 0.06, drift 8.17, fuse 0.07, layout 0.66, openings 0.4, damage 63.78, export 0.0 |
-| own_lidar_1 | lidar | 4 | 60.8168 | 0.026 | 99.7 | load 0.27, drift 12.24, fuse 0.3, layout 5.21, openings 2.38, damage 78.99, export 0.01 |
-| own_video_1 | video | 1 | 3.2668 | 0 | 1680.2 | load 1652.51, drift 0.0, fuse 8.15, layout 0.72, openings 0.37, damage 17.73, export 0.02 |
-| own_photos_1 | photo | 6 | 80.5701 | 0.0 | 378.1 | load+depth 37.13, room_fit 3.39, stitch 303.72, openings 4.09, damage 29.31 |
-| own_lidar_2 | lidar | 4 | 34.9424 | 0.0 | 72.5 | load 0.24, drift 3.55, fuse 8.73, layout 2.98, openings 1.24, damage 55.39, export 0.01 |
-| own_lidar_3 | lidar | 1 | 13.6256 | 0 | 38.8 | load 1.13, drift 2.01, fuse 4.11, layout 0.67, openings 0.45, damage 30.23, export 0.0 |
-| own_video_iphone | video | 1 | 8.0807 | 0 | 697.5 | load 666.85, drift 4.52, fuse 14.06, layout 1.41, openings 0.49, damage 9.41, export 0.01 |
-| own_photos_iphone | photo | 5 | 108.6974 | 0.0 | 194.5 | load+depth 24.21, room_fit 2.65, stitch 148.36, openings 2.15, damage 16.72 |
+| apt_lidar_a | lidar | 9 | 55.7384 | 0.0 | 188.2 | load 0.47, drift 24.32, fuse 0.37, layout 11.19, openings 5.37, damage 141.23, export 0.14 |
+| apt_lidar_b | lidar | 7 | 46.4266 | 0.0 | 127.4 | load 0.38, drift 8.79, fuse 0.2, layout 7.86, openings 2.71, damage 105.91, export 0.11 |
+| room_lidar | lidar | 2 | 10.6173 | 0.0 | 47.5 | load 0.48, drift 3.8, fuse 0.09, layout 1.9, openings 0.64, damage 39.9, export 0.01 |
+| apt_video_b | video | 2 | 13.8668 | 0.0 | 136.8 | load 119.87, drift 1.21, fuse 0.12, layout 2.15, openings 0.31, damage 12.62, export 0.04 |
+| apt_photo_a | photo | 7 | 116.7447 | 0.0 | 205.1 | load+depth 2.26, room_fit 2.48, stitch 155.78, openings 1.86, damage 42.22 |
+| arkit_42446532 | lidar | 1 | 11.5762 | 0 | 29.9 | load 0.13, drift 7.8, fuse 0.09, layout 0.98, openings 0.36, damage 20.17, export 0.0 |
+| arkit_44358446 | lidar | 1 | 9.9893 | 0 | 35.8 | load 0.11, drift 10.44, fuse 0.05, layout 0.69, openings 0.41, damage 23.87, export 0.0 |
+| arkit_47332890 | lidar | 1 | 14.4731 | 0 | 41.2 | load 0.06, drift 4.41, fuse 0.09, layout 0.98, openings 0.28, damage 34.92, export 0.0 |
+| arkit_47331988 | lidar | 1 | 11.6543 | 0 | 88.8 | load 2.08, drift 11.24, fuse 0.08, layout 0.87, openings 0.41, damage 73.67, export 0.02 |
+| own_lidar_1 | lidar | 4 | 60.8168 | 0.026 | 122.8 | load 0.58, drift 17.7, fuse 0.44, layout 11.12, openings 3.64, damage 88.65, export 0.04 |
+| own_video_1 | video | 1 | 3.2668 | 0 | 171.0 | load 152.19, drift 0.0, fuse 0.22, layout 1.04, openings 0.39, damage 16.39, export 0.03 |
+| own_photos_1 | photo | 6 | 80.5701 | 0.0 | 625.4 | load+depth 6.11, room_fit 4.1, stitch 580.09, openings 5.49, damage 28.87 |
+| own_lidar_2 | lidar | 4 | 34.9424 | 0.0 | 76.2 | load 0.46, drift 6.93, fuse 0.31, layout 6.75, openings 2.28, damage 58.49, export 0.03 |
+| own_lidar_3 | lidar | 1 | 13.6256 | 0 | 47.6 | load 0.33, drift 4.08, fuse 0.12, layout 10.18, openings 0.68, damage 31.82, export 0.0 |
+| own_video_iphone | video | 1 | 8.0807 | 0 | 109.3 | load 83.87, drift 7.96, fuse 0.65, layout 2.72, openings 0.9, damage 11.72, export 0.02 |
+| own_photos_iphone | photo | 5 | 108.6974 | 0.0 | 180.4 | load+depth 2.5, room_fit 5.06, stitch 151.35, openings 3.23, damage 17.65 |
 
 ## apt_video_b (tier video) vs lidar_reference
 
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 59, pass_fraction 0.034, median_abs_err_m 0.3718, median_rel_err 0.2772, max_abs_err_m 1.1677 |
-| opening_width | FAIL | n_scored 16, ok 0, off 2, missed 8, phantom 6, pass_fraction 0.0 |
-| calibration | PASS | n 28, coverage_of_90pct_intervals 0.929 |
+| opening_width | FAIL | n_scored 16, ok 0, off 2, missed 7, phantom 7, pass_fraction 0.0 |
+| calibration | FAIL | n 28, coverage_of_90pct_intervals 1.0 |
 | footprint | FAIL | gt_m2 46.4266, pred_m2 13.8668, rel_err -0.7013, in_ci False |
 | adjacency | FAIL | gt 4, found 0 |
 | no_room_overlap | PASS |  |
@@ -40,11 +40,11 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 68, pass_fraction 0.0, median_abs_err_m 1.4072, median_rel_err 0.5947, max_abs_err_m 4.6259 |
-| ceiling_height | FAIL | n 9, n_ok 1, max_abs_err_m 0.8097, gate_m 0.015 |
+| ceiling_height | FAIL | n 9, n_ok 1, max_abs_err_m 0.803, gate_m 0.015 |
 | opening_width | FAIL | n_scored 28, ok 0, off 5, missed 12, phantom 11, pass_fraction 0.0 |
-| calibration | PASS | n 40, coverage_of_90pct_intervals 0.925 |
+| calibration | PASS | n 40, coverage_of_90pct_intervals 0.9 |
 | footprint | FAIL | gt_m2 55.7384, pred_m2 116.7447, rel_err 1.0945, in_ci True |
-| adjacency | FAIL | gt 6, found 0 |
+| adjacency | FAIL | gt 5, found 0 |
 | no_room_overlap | PASS |  |
 | rooms_found | FAIL | gt 9, pred 7, matched 7 |
 
@@ -52,19 +52,19 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 
 | gate | result | numbers |
 |---|---|---|
-| wall_length | FAIL | n 4, pass_fraction 0.0, median_abs_err_m 1.4837, median_rel_err 0.406, max_abs_err_m 2.2775 |
-| ceiling_height | FAIL | n 1, n_ok 0, max_abs_err_m 0.0536, gate_m 0.015 |
-| calibration | FAIL | n 5, coverage_of_90pct_intervals 0.2 |
-| footprint | FAIL | gt_m2 12.466, pred_m2 11.5177, rel_err -0.0761, in_ci False |
+| wall_length | FAIL | n 4, pass_fraction 0.0, median_abs_err_m 0.0474, median_rel_err 0.0131, max_abs_err_m 2.2773 |
+| ceiling_height | FAIL | n 1, n_ok 0, max_abs_err_m 0.0293, gate_m 0.015 |
+| calibration | PASS | n 5, coverage_of_90pct_intervals 0.8 |
+| footprint | FAIL | gt_m2 12.466, pred_m2 11.5762, rel_err -0.0714, in_ci False |
 | no_room_overlap | PASS |  |
-| rooms_found | PASS | gt 1, pred 2, matched 1 |
+| rooms_found | PASS | gt 1, pred 1, matched 1 |
 
 ## arkit_44358446 (tier lidar) vs laser_scanner (ARKitScenes visit 460419, Faro scans 176333, 176336)
 
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 4, pass_fraction 0.0, median_abs_err_m 0.1035, median_rel_err 0.0316, max_abs_err_m 1.9363 |
-| ceiling_height | FAIL | n 1, n_ok 0, max_abs_err_m 0.0171, gate_m 0.015 |
+| ceiling_height | PASS | n 1, n_ok 1, max_abs_err_m 0.0081, gate_m 0.015 |
 | calibration | FAIL | n 5, coverage_of_90pct_intervals 1.0 |
 | footprint | FAIL | gt_m2 10.244, pred_m2 9.9893, rel_err -0.0249, in_ci True |
 | no_room_overlap | PASS |  |
@@ -75,8 +75,8 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 4, pass_fraction 0.0, median_abs_err_m 0.1301, median_rel_err 0.0316, max_abs_err_m 1.3464 |
-| ceiling_height | FAIL | n 1, n_ok 0, max_abs_err_m 0.022, gate_m 0.015 |
-| calibration | PASS | n 5, coverage_of_90pct_intervals 0.8 |
+| ceiling_height | FAIL | n 1, n_ok 0, max_abs_err_m 0.0166, gate_m 0.015 |
+| calibration | FAIL | n 5, coverage_of_90pct_intervals 1.0 |
 | footprint | PASS | gt_m2 14.392, pred_m2 14.4731, rel_err 0.0056, in_ci True |
 | no_room_overlap | PASS |  |
 | rooms_found | PASS | gt 1, pred 1, matched 1 |
@@ -86,7 +86,7 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 4, pass_fraction 0.5, median_abs_err_m 0.0327, median_rel_err 0.01, max_abs_err_m 0.0483 |
-| ceiling_height | PASS | n 1, n_ok 1, max_abs_err_m 0.0102, gate_m 0.015 |
+| ceiling_height | PASS | n 1, n_ok 1, max_abs_err_m 0.0092, gate_m 0.015 |
 | calibration | FAIL | n 5, coverage_of_90pct_intervals 1.0 |
 | footprint | FAIL | gt_m2 11.891, pred_m2 11.6543, rel_err -0.0199, in_ci True |
 | no_room_overlap | PASS |  |
@@ -97,8 +97,8 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 31, pass_fraction 0.0, median_abs_err_m 1.199, median_rel_err 0.408, max_abs_err_m 1.9911 |
-| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.0678, gate_m 0.015 |
-| opening_width | FAIL | n_scored 13, ok 0, off 1, missed 11, phantom 1, pass_fraction 0.0 |
+| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.0765, gate_m 0.015 |
+| opening_width | FAIL | n_scored 12, ok 0, off 1, missed 10, phantom 1, pass_fraction 0.0 |
 | calibration | FAIL | n 6, coverage_of_90pct_intervals 0.667 |
 | footprint | FAIL | gt_m2 60.8168, pred_m2 3.2668, rel_err -0.9463, in_ci False |
 | adjacency | FAIL | gt 2, found 0 |
@@ -110,9 +110,9 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 31, pass_fraction 0.129, median_abs_err_m 0.8536, median_rel_err 0.287, max_abs_err_m 2.8094 |
-| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.9966, gate_m 0.015 |
-| opening_width | FAIL | n_scored 19, ok 0, off 3, missed 9, phantom 7, pass_fraction 0.0 |
-| calibration | PASS | n 23, coverage_of_90pct_intervals 0.957 |
+| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.9879, gate_m 0.015 |
+| opening_width | FAIL | n_scored 19, ok 0, off 1, missed 10, phantom 8, pass_fraction 0.0 |
+| calibration | PASS | n 21, coverage_of_90pct_intervals 0.905 |
 | footprint | FAIL | gt_m2 60.8168, pred_m2 80.5701, rel_err 0.3248, in_ci True |
 | adjacency | FAIL | gt 2, found 0 |
 | no_room_overlap | PASS |  |
@@ -123,8 +123,8 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 31, pass_fraction 0.065, median_abs_err_m 0.2084, median_rel_err 0.0716, max_abs_err_m 0.3763 |
-| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 1.9497, gate_m 0.015 |
-| opening_width | FAIL | n_scored 14, ok 0, off 1, missed 11, phantom 2, pass_fraction 0.0 |
+| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 1.941, gate_m 0.015 |
+| opening_width | FAIL | n_scored 13, ok 0, off 1, missed 10, phantom 2, pass_fraction 0.0 |
 | calibration | PASS | n 6, coverage_of_90pct_intervals 0.833 |
 | footprint | FAIL | gt_m2 60.8168, pred_m2 8.0807, rel_err -0.8671, in_ci False |
 | adjacency | FAIL | gt 2, found 0 |
@@ -136,9 +136,9 @@ Regenerate with `python bench/run_all.py`. Gates are defined in `bench/gates.yam
 | gate | result | numbers |
 |---|---|---|
 | wall_length | FAIL | n 31, pass_fraction 0.032, median_abs_err_m 1.5174, median_rel_err 0.4965, max_abs_err_m 2.7824 |
-| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.842, gate_m 0.015 |
-| opening_width | FAIL | n_scored 21, ok 0, off 0, missed 12, phantom 9, pass_fraction 0.0 |
-| calibration | FAIL | n 20, coverage_of_90pct_intervals 1.0 |
+| ceiling_height | FAIL | n 4, n_ok 0, max_abs_err_m 0.8359, gate_m 0.015 |
+| opening_width | FAIL | n_scored 19, ok 0, off 1, missed 10, phantom 8, pass_fraction 0.0 |
+| calibration | PASS | n 21, coverage_of_90pct_intervals 0.952 |
 | footprint | FAIL | gt_m2 60.8168, pred_m2 108.6974, rel_err 0.7873, in_ci True |
 | adjacency | FAIL | gt 2, found 1 |
 | no_room_overlap | PASS |  |

@@ -72,15 +72,15 @@ Every number comes from the reports above. Details and caveats are in [docs/repo
 | Area | Result |
 |---|---|
 | All three tiers | photos, video and LiDAR each produce the same output contract: per-room and stitched plan, walls, ceilings, openings, damage, concealed-damage flags with the rule that fired, scope items, a 90 % interval on every number, JSON to the schema, rendered plan, Excel |
-| LiDAR vs laser truth (4 public ARKitScenes rooms) | footprint within 0.6-7.6 %; median wall error 3-13 cm; ceilings 2 of 4 within 1.5 cm (fix-loop round 4) |
+| LiDAR vs laser truth (4 public ARKitScenes rooms) | footprint within 0.6-7.1 %; median wall error 3-13 cm; ceilings 2 of 4 within 1.5 cm (fix-loop round 4) |
 | Repeatability, our iPhone 16 Pro | the same room scanned twice: shared walls agree to 1.7 cm (median) |
-| Interval honesty (held-out coverage, target 0.90) | LiDAR 0.85, video 0.93, photo 0.92 |
+| Interval honesty (held-out coverage, target 0.90) | LiDAR 0.95, video 0.93, photo 0.92 (final refit; LiDAR 90 % range on a 3 m wall ±6.8 cm) |
 | Synthetic damage benchmark | stain and crack both found with the right class, extents within 16 %, 0 false positives: PASS |
 | Fix loop | 4 rounds, each declared before the fix; rounds 2 and 4 hit every declared number |
 | Tests | Python: 218 passed, 2 skipped (HEIC on Windows), plus RoomPlan / marker / server / web suites; iOS: device build and simulator unit, UI and end-to-end tests green on GitHub Actions ([docs/testing.md](docs/testing.md)) |
 | iOS app | RoomPlan live guided scan (automatic walls, doors, windows, live area), room-by-room upload, photos, video, live results; RoomPlan tier on the back end tested end to end on the cloud (synthetic rooms exact); not yet run on a real iPhone |
 | Live system | Vercel front end + Google Cloud back end; jobs keep running with the tab closed; report emailed; tested end to end on real captures |
-| Known gaps | photo / video accuracy far from the gates without a typed length or the A4 marker; head-to-head vs a consumer app and real staged damage still need the iPhone; benchmark to rerun after round 4 |
+| Known gaps | photo / video accuracy far from the gates without a typed length or the A4 marker; head-to-head vs a consumer app and real staged damage still need the iPhone |
 
 ## Use it
 

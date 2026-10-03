@@ -31,6 +31,19 @@
         "07_room_9": 1.4,
         "08_room_5": 0.394,
         "09_room_4": 1.4
+      },
+      "scale": {
+        "source": "model",
+        "rooms": {
+          "01_room_2": "model",
+          "02_room_8": "model",
+          "04_room_7": "model",
+          "05_room_6": "model",
+          "07_room_9": "model",
+          "08_room_5": "model",
+          "09_room_4": "model"
+        },
+        "marker": {}
       }
     }
   },
@@ -38,10 +51,10 @@
     "footprint_area": {
       "value": 116.7447,
       "ci90": [
-        51.6346,
-        181.8548
+        0.0,
+        274.1818
       ],
-      "sigma": 39.58303,
+      "sigma": 95.71227,
       "unit": "m2",
       "lower_bound": null,
       "note": null
@@ -49,10 +62,10 @@
     "bbox": {
       "value": 25.5011,
       "ci90": [
-        11.6097,
-        39.3925
+        14.5287,
+        36.4735
       ],
-      "sigma": 8.44512,
+      "sigma": 6.67056,
       "unit": "m",
       "lower_bound": null,
       "note": null
@@ -155,10 +168,10 @@
       "floor_area": {
         "value": 32.797,
         "ci90": [
-          1.5089,
-          64.0852
+          0.0,
+          108.4522
         ],
-        "sigma": 19.02132,
+        "sigma": 45.99379,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -166,10 +179,10 @@
       "perimeter": {
         "value": 23.7472,
         "ci90": [
-          9.173,
-          38.3214
+          12.2355,
+          35.2589
         ],
-        "sigma": 8.86022,
+        "sigma": 6.99844,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -177,10 +190,10 @@
       "ceiling_height": {
         "value": 2.2539,
         "ci90": [
-          0.9123,
-          3.5956
+          1.1942,
+          3.3136
         ],
-        "sigma": 0.81563,
+        "sigma": 0.64424,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -200,10 +213,10 @@
           "length": {
             "value": 7.5016,
             "ci90": [
-              1.4958,
-              13.5074
+              2.7578,
+              12.2454
             ],
-            "sigma": 3.65115,
+            "sigma": 2.88394,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -211,10 +224,10 @@
           "height": {
             "value": 2.2539,
             "ci90": [
-              0.9123,
-              3.5956
+              1.1942,
+              3.3136
             ],
-            "sigma": 0.81563,
+            "sigma": 0.64424,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -222,10 +235,10 @@
           "area": {
             "value": 16.9081,
             "ci90": [
-              2.4377,
-              31.3785
+              0.0,
+              51.8978
             ],
-            "sigma": 8.79715,
+            "sigma": 21.27163,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -248,9 +261,9 @@
             "value": 4.372,
             "ci90": [
               0.0,
-              10.0315
+              8.8423
             ],
-            "sigma": 3.4406,
+            "sigma": 2.71763,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -258,10 +271,10 @@
           "height": {
             "value": 2.2539,
             "ci90": [
-              0.9123,
-              3.5956
+              1.1942,
+              3.3136
             ],
-            "sigma": 0.81563,
+            "sigma": 0.64424,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -270,9 +283,9 @@
             "value": 8.9242,
             "ci90": [
               0.0,
-              19.4869
+              34.465
             ],
-            "sigma": 6.42148,
+            "sigma": 15.52721,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -296,10 +309,10 @@
           "length": {
             "value": 7.5016,
             "ci90": [
-              1.4958,
-              13.5074
+              2.7578,
+              12.2454
             ],
-            "sigma": 3.65115,
+            "sigma": 2.88394,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -307,10 +320,10 @@
           "height": {
             "value": 2.2539,
             "ci90": [
-              0.9123,
-              3.5956
+              1.1942,
+              3.3136
             ],
-            "sigma": 0.81563,
+            "sigma": 0.64424,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -318,10 +331,10 @@
           "area": {
             "value": 12.7566,
             "ci90": [
-              0.8677,
-              24.6455
+              0.0,
+              41.5042
             ],
-            "sigma": 7.22775,
+            "sigma": 17.4768,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -346,9 +359,9 @@
             "value": 4.372,
             "ci90": [
               0.0,
-              10.0315
+              8.8423
             ],
-            "sigma": 3.4406,
+            "sigma": 2.71763,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -356,10 +369,10 @@
           "height": {
             "value": 2.2539,
             "ci90": [
-              0.9123,
-              3.5956
+              1.1942,
+              3.3136
             ],
-            "sigma": 0.81563,
+            "sigma": 0.64424,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -368,9 +381,9 @@
             "value": 1.9856,
             "ci90": [
               0.0,
-              10.3368
+              22.179
             ],
-            "sigma": 5.07705,
+            "sigma": 12.27638,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -392,10 +405,10 @@
           "width": {
             "value": 0.6,
             "ci90": [
-              0.0,
-              1.3409
+              0.0148,
+              1.1852
             ],
-            "sigma": 0.4504,
+            "sigma": 0.35576,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -403,10 +416,10 @@
           "height": {
             "value": 1.55,
             "ci90": [
-              0.1282,
-              2.9718
+              0.427,
+              2.673
             ],
-            "sigma": 0.86437,
+            "sigma": 0.68274,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -415,9 +428,9 @@
             "value": 0.3,
             "ci90": [
               0.0,
-              1.3178
+              1.1039
             ],
-            "sigma": 0.61874,
+            "sigma": 0.48873,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -433,10 +446,10 @@
           "width": {
             "value": 2.185,
             "ci90": [
-              0.6372,
-              3.7328
+              0.9624,
+              3.4076
             ],
-            "sigma": 0.94096,
+            "sigma": 0.74324,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -444,10 +457,10 @@
           "height": {
             "value": 1.9,
             "ci90": [
-              0.3075,
-              3.4925
+              0.6421,
+              3.1579
             ],
-            "sigma": 0.96817,
+            "sigma": 0.76473,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -456,9 +469,9 @@
             "value": 0.05,
             "ci90": [
               0.0,
-              1.0493
+              0.8393
             ],
-            "sigma": 0.6075,
+            "sigma": 0.47985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -474,10 +487,10 @@
           "width": {
             "value": 3.5767,
             "ci90": [
-              1.1653,
-              5.988
+              1.672,
+              5.4813
             ],
-            "sigma": 1.46597,
+            "sigma": 1.15793,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -485,10 +498,10 @@
           "height": {
             "value": 2.2,
             "ci90": [
-              0.4506,
-              3.9494
+              0.8182,
+              3.5818
             ],
-            "sigma": 1.06353,
+            "sigma": 0.84006,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -497,9 +510,9 @@
             "value": 0.05,
             "ci90": [
               0.0,
-              1.0493
+              0.8393
             ],
-            "sigma": 0.6075,
+            "sigma": 0.47985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -515,10 +528,10 @@
           "area": {
             "value": 16.9081,
             "ci90": [
-              2.4377,
-              31.3785
+              0.0,
+              51.8978
             ],
-            "sigma": 8.79715,
+            "sigma": 21.27163,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -532,9 +545,9 @@
             "value": 8.9242,
             "ci90": [
               0.0,
-              19.4869
+              34.465
             ],
-            "sigma": 6.42148,
+            "sigma": 15.52721,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -547,10 +560,10 @@
           "area": {
             "value": 12.7566,
             "ci90": [
-              0.8677,
-              24.6455
+              0.0,
+              41.5042
             ],
-            "sigma": 7.22775,
+            "sigma": 17.4768,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -564,9 +577,9 @@
             "value": 1.9856,
             "ci90": [
               0.0,
-              10.3368
+              22.179
             ],
-            "sigma": 5.07705,
+            "sigma": 12.27638,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -579,10 +592,10 @@
           "area": {
             "value": 32.797,
             "ci90": [
-              1.5089,
-              64.0852
+              0.0,
+              108.4522
             ],
-            "sigma": 19.02132,
+            "sigma": 45.99379,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -595,10 +608,10 @@
           "area": {
             "value": 32.797,
             "ci90": [
-              1.5089,
-              64.0852
+              0.0,
+              108.4522
             ],
-            "sigma": 19.02132,
+            "sigma": 45.99379,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -631,9 +644,9 @@
         "value": 24.4547,
         "ci90": [
           0.0,
-          69.7616
+          134.0073
         ],
-        "sigma": 27.54385,
+        "sigma": 66.60139,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -641,10 +654,10 @@
       "perimeter": {
         "value": 19.8957,
         "ci90": [
-          1.5436,
-          38.2479
+          5.3999,
+          34.3916
         ],
-        "sigma": 11.157,
+        "sigma": 8.8126,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -652,10 +665,10 @@
       "ceiling_height": {
         "value": 2.4035,
         "ci90": [
-          0.9871,
-          3.82
+          1.2847,
+          3.5224
         ],
-        "sigma": 0.86113,
+        "sigma": 0.68018,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -676,9 +689,9 @@
             "value": 5.5081,
             "ci90": [
               0.0,
-              16.6614
+              14.3178
             ],
-            "sigma": 6.78058,
+            "sigma": 5.35578,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -686,10 +699,10 @@
           "height": {
             "value": 2.4035,
             "ci90": [
-              0.9871,
-              3.82
+              1.2847,
+              3.5224
             ],
-            "sigma": 0.86113,
+            "sigma": 0.68018,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -698,9 +711,9 @@
             "value": 13.2388,
             "ci90": [
               0.0,
-              33.6107
+              62.4984
             ],
-            "sigma": 12.38491,
+            "sigma": 29.94687,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -723,9 +736,9 @@
             "value": 4.4398,
             "ci90": [
               0.0,
-              14.9445
+              12.7372
             ],
-            "sigma": 6.38624,
+            "sigma": 5.04431,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -733,10 +746,10 @@
           "height": {
             "value": 2.4035,
             "ci90": [
-              0.9871,
-              3.82
+              1.2847,
+              3.5224
             ],
-            "sigma": 0.86113,
+            "sigma": 0.68018,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -745,9 +758,9 @@
             "value": 10.6712,
             "ci90": [
               0.0,
-              29.4073
+              55.9752
             ],
-            "sigma": 11.39039,
+            "sigma": 27.54211,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -770,9 +783,9 @@
             "value": 5.5081,
             "ci90": [
               0.0,
-              16.6614
+              14.3178
             ],
-            "sigma": 6.78058,
+            "sigma": 5.35578,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -780,10 +793,10 @@
           "height": {
             "value": 2.4035,
             "ci90": [
-              0.9871,
-              3.82
+              1.2847,
+              3.5224
             ],
-            "sigma": 0.86113,
+            "sigma": 0.68018,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -792,9 +805,9 @@
             "value": 11.6388,
             "ci90": [
               0.0,
-              31.4636
+              59.5754
             ],
-            "sigma": 12.05228,
+            "sigma": 29.14257,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -819,9 +832,9 @@
             "value": 4.4398,
             "ci90": [
               0.0,
-              14.9445
+              12.7372
             ],
-            "sigma": 6.38624,
+            "sigma": 5.04431,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -829,10 +842,10 @@
           "height": {
             "value": 2.4035,
             "ci90": [
-              0.9871,
-              3.82
+              1.2847,
+              3.5224
             ],
-            "sigma": 0.86113,
+            "sigma": 0.68018,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -841,9 +854,9 @@
             "value": 10.6712,
             "ci90": [
               0.0,
-              29.4073
+              55.9752
             ],
-            "sigma": 11.39039,
+            "sigma": 27.54211,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -864,9 +877,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -874,10 +887,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -886,9 +899,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -905,9 +918,9 @@
             "value": 13.2388,
             "ci90": [
               0.0,
-              33.6107
+              62.4984
             ],
-            "sigma": 12.38491,
+            "sigma": 29.94687,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -921,9 +934,9 @@
             "value": 10.6712,
             "ci90": [
               0.0,
-              29.4073
+              55.9752
             ],
-            "sigma": 11.39039,
+            "sigma": 27.54211,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -937,9 +950,9 @@
             "value": 11.6388,
             "ci90": [
               0.0,
-              31.4636
+              59.5754
             ],
-            "sigma": 12.05228,
+            "sigma": 29.14257,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -953,9 +966,9 @@
             "value": 10.6712,
             "ci90": [
               0.0,
-              29.4073
+              55.9752
             ],
-            "sigma": 11.39039,
+            "sigma": 27.54211,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -969,9 +982,9 @@
             "value": 24.4547,
             "ci90": [
               0.0,
-              69.7616
+              134.0073
             ],
-            "sigma": 27.54385,
+            "sigma": 66.60139,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -985,9 +998,9 @@
             "value": 24.4547,
             "ci90": [
               0.0,
-              69.7616
+              134.0073
             ],
-            "sigma": 27.54385,
+            "sigma": 66.60139,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1019,10 +1032,10 @@
       "floor_area": {
         "value": 11.7417,
         "ci90": [
-          0.3379,
-          23.1454
+          0.0,
+          39.316
         ],
-        "sigma": 6.93278,
+        "sigma": 16.76356,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -1030,10 +1043,10 @@
       "perimeter": {
         "value": 15.4448,
         "ci90": [
-          5.5966,
-          25.293
+          7.666,
+          23.2236
         ],
-        "sigma": 5.9871,
+        "sigma": 4.72904,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1041,10 +1054,10 @@
       "ceiling_height": {
         "value": 2.4416,
         "ci90": [
-          1.006,
-          3.8773
+          1.3076,
+          3.5756
         ],
-        "sigma": 0.8728,
+        "sigma": 0.6894,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1064,10 +1077,10 @@
           "length": {
             "value": 5.6409,
             "ci90": [
-              2.5227,
-              8.759
+              3.1779,
+              8.1038
             ],
-            "sigma": 1.89564,
+            "sigma": 1.49731,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1075,10 +1088,10 @@
           "height": {
             "value": 2.4416,
             "ci90": [
-              1.006,
-              3.8773
+              1.3076,
+              3.5756
             ],
-            "sigma": 0.8728,
+            "sigma": 0.6894,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1086,10 +1099,10 @@
           "area": {
             "value": 13.7729,
             "ci90": [
-              3.2921,
-              24.2537
+              0.0,
+              39.1156
             ],
-            "sigma": 6.3717,
+            "sigma": 15.40684,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1112,9 +1125,9 @@
             "value": 2.0815,
             "ci90": [
               0.0,
-              7.3402
+              6.2352
             ],
-            "sigma": 3.19698,
+            "sigma": 2.5252,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1122,10 +1135,10 @@
           "height": {
             "value": 2.4416,
             "ci90": [
-              1.006,
-              3.8773
+              1.3076,
+              3.5756
             ],
-            "sigma": 0.8728,
+            "sigma": 0.6894,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1134,9 +1147,9 @@
             "value": 5.0823,
             "ci90": [
               0.0,
-              14.6938
+              28.3231
             ],
-            "sigma": 5.84323,
+            "sigma": 14.129,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1158,10 +1171,10 @@
           "length": {
             "value": 5.6409,
             "ci90": [
-              2.5227,
-              8.759
+              3.1779,
+              8.1038
             ],
-            "sigma": 1.89564,
+            "sigma": 1.49731,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1169,10 +1182,10 @@
           "height": {
             "value": 2.4416,
             "ci90": [
-              1.006,
-              3.8773
+              1.3076,
+              3.5756
             ],
-            "sigma": 0.8728,
+            "sigma": 0.6894,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1180,10 +1193,10 @@
           "area": {
             "value": 8.9344,
             "ci90": [
-              1.9244,
-              15.9444
+              0.0,
+              25.8847
             ],
-            "sigma": 4.26165,
+            "sigma": 10.30473,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1209,9 +1222,9 @@
             "value": 2.0815,
             "ci90": [
               0.0,
-              7.3402
+              6.2352
             ],
-            "sigma": 3.19698,
+            "sigma": 2.5252,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1219,10 +1232,10 @@
           "height": {
             "value": 2.4416,
             "ci90": [
-              1.006,
-              3.8773
+              1.3076,
+              3.5756
             ],
-            "sigma": 0.8728,
+            "sigma": 0.6894,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1231,9 +1244,9 @@
             "value": 5.0823,
             "ci90": [
               0.0,
-              14.6938
+              28.3231
             ],
-            "sigma": 5.84323,
+            "sigma": 14.129,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1253,10 +1266,10 @@
           "width": {
             "value": 1.905,
             "ci90": [
-              0.5232,
-              3.2868
+              0.8135,
+              2.9965
             ],
-            "sigma": 0.84006,
+            "sigma": 0.66354,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1264,10 +1277,10 @@
           "height": {
             "value": 1.7,
             "ci90": [
-              0.2069,
-              3.1931
+              0.5207,
+              2.8793
             ],
-            "sigma": 0.9077,
+            "sigma": 0.71697,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1276,9 +1289,9 @@
             "value": 0.25,
             "ci90": [
               0.0,
-              1.262
+              1.0493
             ],
-            "sigma": 0.61523,
+            "sigma": 0.48595,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1295,9 +1308,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -1305,10 +1318,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1317,9 +1330,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1335,10 +1348,10 @@
           "area": {
             "value": 13.7729,
             "ci90": [
-              3.2921,
-              24.2537
+              0.0,
+              39.1156
             ],
-            "sigma": 6.3717,
+            "sigma": 15.40684,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1352,9 +1365,9 @@
             "value": 5.0823,
             "ci90": [
               0.0,
-              14.6938
+              28.3231
             ],
-            "sigma": 5.84323,
+            "sigma": 14.129,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1367,10 +1380,10 @@
           "area": {
             "value": 8.9344,
             "ci90": [
-              1.9244,
-              15.9444
+              0.0,
+              25.8847
             ],
-            "sigma": 4.26165,
+            "sigma": 10.30473,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1384,9 +1397,9 @@
             "value": 5.0823,
             "ci90": [
               0.0,
-              14.6938
+              28.3231
             ],
-            "sigma": 5.84323,
+            "sigma": 14.129,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1399,10 +1412,10 @@
           "area": {
             "value": 11.7417,
             "ci90": [
-              0.3379,
-              23.1454
+              0.0,
+              39.316
             ],
-            "sigma": 6.93278,
+            "sigma": 16.76356,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1415,10 +1428,10 @@
           "area": {
             "value": 11.7417,
             "ci90": [
-              0.3379,
-              23.1454
+              0.0,
+              39.316
             ],
-            "sigma": 6.93278,
+            "sigma": 16.76356,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1451,9 +1464,9 @@
         "value": 5.5456,
         "ci90": [
           0.0,
-          15.8079
+          30.3598
         ],
-        "sigma": 6.23882,
+        "sigma": 15.08555,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -1461,10 +1474,10 @@
       "perimeter": {
         "value": 9.7858,
         "ci90": [
-          0.0,
-          21.7763
+          0.3149,
+          19.2568
         ],
-        "sigma": 7.28948,
+        "sigma": 5.75775,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1472,10 +1485,10 @@
       "ceiling_height": {
         "value": 2.5588,
         "ci90": [
-          1.064,
-          4.0536
+          1.3781,
+          3.7395
         ],
-        "sigma": 0.90875,
+        "sigma": 0.71779,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1496,9 +1509,9 @@
             "value": 1.7835,
             "ci90": [
               0.0,
-              12.5705
+              10.3038
             ],
-            "sigma": 6.55784,
+            "sigma": 5.17985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1506,10 +1519,10 @@
           "height": {
             "value": 2.5588,
             "ci90": [
-              1.064,
-              4.0536
+              1.3781,
+              3.7395
             ],
-            "sigma": 0.90875,
+            "sigma": 0.71779,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1518,9 +1531,9 @@
             "value": 4.5636,
             "ci90": [
               0.0,
-              23.7781
+              51.0245
             ],
-            "sigma": 11.68125,
+            "sigma": 28.24542,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1542,10 +1555,10 @@
           "length": {
             "value": 3.1094,
             "ci90": [
-              1.33,
-              4.8888
+              1.7039,
+              4.5149
             ],
-            "sigma": 1.08178,
+            "sigma": 0.85447,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1553,10 +1566,10 @@
           "height": {
             "value": 2.5588,
             "ci90": [
-              1.064,
-              4.0536
+              1.3781,
+              3.7395
             ],
-            "sigma": 0.90875,
+            "sigma": 0.71779,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1565,9 +1578,9 @@
             "value": 1.7838,
             "ci90": [
               0.0,
-              4.3863
+              8.0767
             ],
-            "sigma": 1.58218,
+            "sigma": 3.82573,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1592,9 +1605,9 @@
             "value": 1.7835,
             "ci90": [
               0.0,
-              12.5705
+              10.3038
             ],
-            "sigma": 6.55784,
+            "sigma": 5.17985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1602,10 +1615,10 @@
           "height": {
             "value": 2.5588,
             "ci90": [
-              1.064,
-              4.0536
+              1.3781,
+              3.7395
             ],
-            "sigma": 0.90875,
+            "sigma": 0.71779,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1614,9 +1627,9 @@
             "value": 2.9636,
             "ci90": [
               0.0,
-              22.0041
+              49.0039
             ],
-            "sigma": 11.5755,
+            "sigma": 27.98971,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1640,10 +1653,10 @@
           "length": {
             "value": 3.1094,
             "ci90": [
-              1.33,
-              4.8888
+              1.7039,
+              4.5149
             ],
-            "sigma": 1.08178,
+            "sigma": 0.85447,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1651,10 +1664,10 @@
           "height": {
             "value": 2.5588,
             "ci90": [
-              1.064,
-              4.0536
+              1.3781,
+              3.7395
             ],
-            "sigma": 0.90875,
+            "sigma": 0.71779,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1662,10 +1675,10 @@
           "area": {
             "value": 7.9565,
             "ci90": [
-              1.6324,
-              14.2805
+              0.0,
+              23.2481
             ],
-            "sigma": 3.84464,
+            "sigma": 9.2964,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1685,10 +1698,10 @@
           "width": {
             "value": 2.6267,
             "ci90": [
-              0.8096,
-              4.4437
+              1.1914,
+              4.0619
             ],
-            "sigma": 1.10467,
+            "sigma": 0.87255,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1696,10 +1709,10 @@
           "height": {
             "value": 2.35,
             "ci90": [
-              0.5193,
-              4.1807
+              0.904,
+              3.796
             ],
-            "sigma": 1.11293,
+            "sigma": 0.87907,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1708,9 +1721,9 @@
             "value": 0.05,
             "ci90": [
               0.0,
-              1.0493
+              0.8393
             ],
-            "sigma": 0.6075,
+            "sigma": 0.47985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1727,9 +1740,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -1737,10 +1750,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1749,9 +1762,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1768,9 +1781,9 @@
             "value": 4.5636,
             "ci90": [
               0.0,
-              23.7781
+              51.0245
             ],
-            "sigma": 11.68125,
+            "sigma": 28.24542,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1784,9 +1797,9 @@
             "value": 1.7838,
             "ci90": [
               0.0,
-              4.3863
+              8.0767
             ],
-            "sigma": 1.58218,
+            "sigma": 3.82573,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1800,9 +1813,9 @@
             "value": 2.9636,
             "ci90": [
               0.0,
-              22.0041
+              49.0039
             ],
-            "sigma": 11.5755,
+            "sigma": 27.98971,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1815,10 +1828,10 @@
           "area": {
             "value": 7.9565,
             "ci90": [
-              1.6324,
-              14.2805
+              0.0,
+              23.2481
             ],
-            "sigma": 3.84464,
+            "sigma": 9.2964,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1832,9 +1845,9 @@
             "value": 5.5456,
             "ci90": [
               0.0,
-              15.8079
+              30.3598
             ],
-            "sigma": 6.23882,
+            "sigma": 15.08555,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1848,9 +1861,9 @@
             "value": 5.5456,
             "ci90": [
               0.0,
-              15.8079
+              30.3598
             ],
-            "sigma": 6.23882,
+            "sigma": 15.08555,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1883,9 +1896,9 @@
         "value": 19.6693,
         "ci90": [
           0.0,
-          45.6381
+          82.4623
         ],
-        "sigma": 15.78751,
+        "sigma": 38.17439,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -1893,10 +1906,10 @@
       "perimeter": {
         "value": 17.8717,
         "ci90": [
-          3.4782,
-          32.2652
+          6.5027,
+          29.2407
         ],
-        "sigma": 8.75037,
+        "sigma": 6.91167,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1904,10 +1917,10 @@
       "ceiling_height": {
         "value": 2.8522,
         "ci90": [
-          0.1246,
-          5.5798
+          0.6977,
+          5.0067
         ],
-        "sigma": 1.65823,
+        "sigma": 1.30979,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -1927,10 +1940,10 @@
           "length": {
             "value": 5.0093,
             "ci90": [
-              2.2287,
-              7.7899
+              2.813,
+              7.2056
             ],
-            "sigma": 1.69044,
+            "sigma": 1.33523,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1938,10 +1951,10 @@
           "height": {
             "value": 2.8522,
             "ci90": [
-              0.1246,
-              5.5798
+              0.6977,
+              5.0067
             ],
-            "sigma": 1.65823,
+            "sigma": 1.30979,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1950,9 +1963,9 @@
             "value": 8.7502,
             "ci90": [
               0.0,
-              19.0192
+              33.5807
             ],
-            "sigma": 6.24292,
+            "sigma": 15.09546,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -1977,9 +1990,9 @@
             "value": 3.9266,
             "ci90": [
               0.0,
-              14.7519
+              12.4772
             ],
-            "sigma": 6.58118,
+            "sigma": 5.19828,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1987,10 +2000,10 @@
           "height": {
             "value": 2.8522,
             "ci90": [
-              0.1246,
-              5.5798
+              0.6977,
+              5.0067
             ],
-            "sigma": 1.65823,
+            "sigma": 1.30979,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -1999,9 +2012,9 @@
             "value": 11.1993,
             "ci90": [
               0.0,
-              39.0545
+              78.5534
             ],
-            "sigma": 16.93426,
+            "sigma": 40.94725,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2023,10 +2036,10 @@
           "length": {
             "value": 5.0093,
             "ci90": [
-              2.2287,
-              7.7899
+              2.813,
+              7.2056
             ],
-            "sigma": 1.69044,
+            "sigma": 1.33523,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2034,10 +2047,10 @@
           "height": {
             "value": 2.8522,
             "ci90": [
-              0.1246,
-              5.5798
+              0.6977,
+              5.0067
             ],
-            "sigma": 1.65823,
+            "sigma": 1.30979,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2045,10 +2058,10 @@
           "area": {
             "value": 12.6874,
             "ci90": [
-              0.355,
-              25.0199
+              0.0,
+              42.5074
             ],
-            "sigma": 7.49738,
+            "sigma": 18.12876,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2073,9 +2086,9 @@
             "value": 3.9266,
             "ci90": [
               0.0,
-              14.7519
+              12.4772
             ],
-            "sigma": 6.58118,
+            "sigma": 5.19828,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2083,10 +2096,10 @@
           "height": {
             "value": 2.8522,
             "ci90": [
-              0.1246,
-              5.5798
+              0.6977,
+              5.0067
             ],
-            "sigma": 1.65823,
+            "sigma": 1.30979,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2095,9 +2108,9 @@
             "value": 11.1993,
             "ci90": [
               0.0,
-              39.0545
+              78.5534
             ],
-            "sigma": 16.93426,
+            "sigma": 40.94725,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2117,10 +2130,10 @@
           "width": {
             "value": 2.5755,
             "ci90": [
-              0.7891,
-              4.3618
+              1.1645,
+              3.9864
             ],
-            "sigma": 1.086,
+            "sigma": 0.8578,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2128,10 +2141,10 @@
           "height": {
             "value": 2.15,
             "ci90": [
-              0.4273,
-              3.8727
+              0.7893,
+              3.5107
             ],
-            "sigma": 1.0473,
+            "sigma": 0.82723,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2140,9 +2153,9 @@
             "value": 0.7,
             "ci90": [
               0.0,
-              1.7983
+              1.5675
             ],
-            "sigma": 0.66772,
+            "sigma": 0.52741,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2159,9 +2172,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -2169,10 +2182,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2181,9 +2194,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2200,9 +2213,9 @@
             "value": 8.7502,
             "ci90": [
               0.0,
-              19.0192
+              33.5807
             ],
-            "sigma": 6.24292,
+            "sigma": 15.09546,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2216,9 +2229,9 @@
             "value": 11.1993,
             "ci90": [
               0.0,
-              39.0545
+              78.5534
             ],
-            "sigma": 16.93426,
+            "sigma": 40.94725,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2231,10 +2244,10 @@
           "area": {
             "value": 12.6874,
             "ci90": [
-              0.355,
-              25.0199
+              0.0,
+              42.5074
             ],
-            "sigma": 7.49738,
+            "sigma": 18.12876,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2248,9 +2261,9 @@
             "value": 11.1993,
             "ci90": [
               0.0,
-              39.0545
+              78.5534
             ],
-            "sigma": 16.93426,
+            "sigma": 40.94725,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2264,9 +2277,9 @@
             "value": 19.6693,
             "ci90": [
               0.0,
-              45.6381
+              82.4623
             ],
-            "sigma": 15.78751,
+            "sigma": 38.17439,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2280,9 +2293,9 @@
             "value": 19.6693,
             "ci90": [
               0.0,
-              45.6381
+              82.4623
             ],
-            "sigma": 15.78751,
+            "sigma": 38.17439,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2314,10 +2327,10 @@
       "floor_area": {
         "value": 18.1553,
         "ci90": [
-          3.0847,
-          33.2259
+          0.0,
+          54.5962
         ],
-        "sigma": 9.162,
+        "sigma": 22.15384,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -2325,10 +2338,10 @@
       "perimeter": {
         "value": 17.3638,
         "ci90": [
-          7.0622,
-          27.6654
+          9.2269,
+          25.5007
         ],
-        "sigma": 6.26274,
+        "sigma": 4.94676,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -2336,10 +2349,10 @@
       "ceiling_height": {
         "value": 1.9411,
         "ci90": [
-          0.7529,
-          3.1294
+          1.0026,
+          2.8797
         ],
-        "sigma": 0.72236,
+        "sigma": 0.57057,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -2359,10 +2372,10 @@
           "length": {
             "value": 5.1708,
             "ci90": [
-              2.304,
-              8.0375
+              2.9064,
+              7.4351
             ],
-            "sigma": 1.74282,
+            "sigma": 1.3766,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2370,10 +2383,10 @@
           "height": {
             "value": 1.9411,
             "ci90": [
-              0.7529,
-              3.1294
+              1.0026,
+              2.8797
             ],
-            "sigma": 0.72236,
+            "sigma": 0.57057,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2381,10 +2394,10 @@
           "area": {
             "value": 10.0372,
             "ci90": [
-              2.2474,
-              17.827
+              0.0,
+              28.873
             ],
-            "sigma": 4.73572,
+            "sigma": 11.45103,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2407,9 +2420,9 @@
             "value": 3.5112,
             "ci90": [
               0.0,
-              8.0412
+              7.0893
             ],
-            "sigma": 2.75398,
+            "sigma": 2.17529,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2417,10 +2430,10 @@
           "height": {
             "value": 1.9411,
             "ci90": [
-              0.7529,
-              3.1294
+              1.0026,
+              2.8797
             ],
-            "sigma": 0.72236,
+            "sigma": 0.57057,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2429,9 +2442,9 @@
             "value": 6.8157,
             "ci90": [
               0.0,
-              14.5875
+              25.6081
             ],
-            "sigma": 4.72482,
+            "sigma": 11.42468,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2453,10 +2466,10 @@
           "length": {
             "value": 5.1708,
             "ci90": [
-              2.304,
-              8.0375
+              2.9064,
+              7.4351
             ],
-            "sigma": 1.74282,
+            "sigma": 1.3766,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2464,10 +2477,10 @@
           "height": {
             "value": 1.9411,
             "ci90": [
-              0.7529,
-              3.1294
+              1.0026,
+              2.8797
             ],
-            "sigma": 0.72236,
+            "sigma": 0.57057,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2475,10 +2488,10 @@
           "area": {
             "value": 5.3682,
             "ci90": [
-              0.7924,
-              9.944
+              0.0,
+              16.4325
             ],
-            "sigma": 2.78181,
+            "sigma": 6.72644,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2504,9 +2517,9 @@
             "value": 3.5112,
             "ci90": [
               0.0,
-              8.0412
+              7.0893
             ],
-            "sigma": 2.75398,
+            "sigma": 2.17529,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2514,10 +2527,10 @@
           "height": {
             "value": 1.9411,
             "ci90": [
-              0.7529,
-              3.1294
+              1.0026,
+              2.8797
             ],
-            "sigma": 0.72236,
+            "sigma": 0.57057,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2526,9 +2539,9 @@
             "value": 6.8157,
             "ci90": [
               0.0,
-              14.5875
+              25.6081
             ],
-            "sigma": 4.72482,
+            "sigma": 11.42468,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2548,10 +2561,10 @@
           "width": {
             "value": 1.98,
             "ci90": [
-              0.5534,
-              3.4066
+              0.8532,
+              3.1068
             ],
-            "sigma": 0.86726,
+            "sigma": 0.68502,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2559,10 +2572,10 @@
           "height": {
             "value": 1.55,
             "ci90": [
-              0.1282,
-              2.9718
+              0.427,
+              2.673
             ],
-            "sigma": 0.86437,
+            "sigma": 0.68274,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2571,9 +2584,9 @@
             "value": 0.05,
             "ci90": [
               0.0,
-              1.0493
+              0.8393
             ],
-            "sigma": 0.6075,
+            "sigma": 0.47985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2590,9 +2603,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -2600,10 +2613,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2612,9 +2625,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2630,10 +2643,10 @@
           "area": {
             "value": 10.0372,
             "ci90": [
-              2.2474,
-              17.827
+              0.0,
+              28.873
             ],
-            "sigma": 4.73572,
+            "sigma": 11.45103,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2647,9 +2660,9 @@
             "value": 6.8157,
             "ci90": [
               0.0,
-              14.5875
+              25.6081
             ],
-            "sigma": 4.72482,
+            "sigma": 11.42468,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2662,10 +2675,10 @@
           "area": {
             "value": 5.3682,
             "ci90": [
-              0.7924,
-              9.944
+              0.0,
+              16.4325
             ],
-            "sigma": 2.78181,
+            "sigma": 6.72644,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2679,9 +2692,9 @@
             "value": 6.8157,
             "ci90": [
               0.0,
-              14.5875
+              25.6081
             ],
-            "sigma": 4.72482,
+            "sigma": 11.42468,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2694,10 +2707,10 @@
           "area": {
             "value": 18.1553,
             "ci90": [
-              3.0847,
-              33.2259
+              0.0,
+              54.5962
             ],
-            "sigma": 9.162,
+            "sigma": 22.15384,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2710,10 +2723,10 @@
           "area": {
             "value": 18.1553,
             "ci90": [
-              3.0847,
-              33.2259
+              0.0,
+              54.5962
             ],
-            "sigma": 9.162,
+            "sigma": 22.15384,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2746,9 +2759,9 @@
         "value": 4.3811,
         "ci90": [
           0.0,
-          12.7955
+          24.7272
         ],
-        "sigma": 5.11545,
+        "sigma": 12.36921,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -2756,10 +2769,10 @@
       "perimeter": {
         "value": 8.7695,
         "ci90": [
-          0.0319,
-          17.5071
+          1.8679,
+          15.6711
         ],
-        "sigma": 5.31195,
+        "sigma": 4.19576,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -2767,10 +2780,10 @@
       "ceiling_height": {
         "value": 2.0351,
         "ci90": [
-          0.8009,
-          3.2692
+          1.0603,
+          3.0099
         ],
-        "sigma": 0.75029,
+        "sigma": 0.59263,
         "unit": "m",
         "lower_bound": null,
         "note": null
@@ -2791,9 +2804,9 @@
             "value": 1.5401,
             "ci90": [
               0.0,
-              8.145
+              6.7572
             ],
-            "sigma": 4.0154,
+            "sigma": 3.17165,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2801,10 +2814,10 @@
           "height": {
             "value": 2.0351,
             "ci90": [
-              0.8009,
-              3.2692
+              1.0603,
+              3.0099
             ],
-            "sigma": 0.75029,
+            "sigma": 0.59263,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2813,9 +2826,9 @@
             "value": 3.1343,
             "ci90": [
               0.0,
-              12.8026
+              26.5123
             ],
-            "sigma": 5.87774,
+            "sigma": 14.21246,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2838,9 +2851,9 @@
             "value": 2.8446,
             "ci90": [
               0.0,
-              6.4986
+              5.7308
             ],
-            "sigma": 2.22136,
+            "sigma": 1.75459,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2848,10 +2861,10 @@
           "height": {
             "value": 2.0351,
             "ci90": [
-              0.8009,
-              3.2692
+              1.0603,
+              3.0099
             ],
-            "sigma": 0.75029,
+            "sigma": 0.59263,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2860,9 +2873,9 @@
             "value": 2.3571,
             "ci90": [
               0.0,
-              7.7685
+              15.4419
             ],
-            "sigma": 3.2898,
+            "sigma": 7.95479,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2887,9 +2900,9 @@
             "value": 1.5401,
             "ci90": [
               0.0,
-              8.145
+              6.7572
             ],
-            "sigma": 4.0154,
+            "sigma": 3.17165,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2897,10 +2910,10 @@
           "height": {
             "value": 2.0351,
             "ci90": [
-              0.8009,
-              3.2692
+              1.0603,
+              3.0099
             ],
-            "sigma": 0.75029,
+            "sigma": 0.59263,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2909,9 +2922,9 @@
             "value": 1.5343,
             "ci90": [
               0.0,
-              10.9867
+              24.3904
             ],
-            "sigma": 5.74652,
+            "sigma": 13.89515,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2936,9 +2949,9 @@
             "value": 2.8446,
             "ci90": [
               0.0,
-              6.4986
+              5.7308
             ],
-            "sigma": 2.22136,
+            "sigma": 1.75459,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2946,10 +2959,10 @@
           "height": {
             "value": 2.0351,
             "ci90": [
-              0.8009,
-              3.2692
+              1.0603,
+              3.0099
             ],
-            "sigma": 0.75029,
+            "sigma": 0.59263,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2958,9 +2971,9 @@
             "value": 5.7891,
             "ci90": [
               0.0,
-              12.4772
+              21.961
             ],
-            "sigma": 4.06597,
+            "sigma": 9.83157,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -2980,10 +2993,10 @@
           "width": {
             "value": 2.08,
             "ci90": [
-              0.595,
-              3.565
+              0.9071,
+              3.2529
             ],
-            "sigma": 0.90277,
+            "sigma": 0.71307,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -2991,10 +3004,10 @@
           "height": {
             "value": 1.65,
             "ci90": [
-              0.181,
-              3.119
+              0.4897,
+              2.8103
             ],
-            "sigma": 0.89305,
+            "sigma": 0.70539,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3003,9 +3016,9 @@
             "value": 0.05,
             "ci90": [
               0.0,
-              1.0493
+              0.8393
             ],
-            "sigma": 0.6075,
+            "sigma": 0.47985,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3022,9 +3035,9 @@
             "value": 0.8,
             "ci90": [
               0.0,
-              3.3618
+              2.8235
             ],
-            "sigma": 1.55739,
+            "sigma": 1.23014,
             "unit": "m",
             "lower_bound": null,
             "note": "entry door at the capture standpoint; width assumed 0.80 m, not measured"
@@ -3032,10 +3045,10 @@
           "height": {
             "value": 2.0,
             "ci90": [
-              0.3561,
-              3.6439
+              0.7015,
+              3.2985
             ],
-            "sigma": 0.99939,
+            "sigma": 0.78939,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3044,9 +3057,9 @@
             "value": 0.0,
             "ci90": [
               0.0,
-              0.9987
+              0.7889
             ],
-            "sigma": 0.60718,
+            "sigma": 0.47959,
             "unit": "m",
             "lower_bound": null,
             "note": null
@@ -3063,9 +3076,9 @@
             "value": 3.1343,
             "ci90": [
               0.0,
-              12.8026
+              26.5123
             ],
-            "sigma": 5.87774,
+            "sigma": 14.21246,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3079,9 +3092,9 @@
             "value": 2.3571,
             "ci90": [
               0.0,
-              7.7685
+              15.4419
             ],
-            "sigma": 3.2898,
+            "sigma": 7.95479,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3095,9 +3108,9 @@
             "value": 1.5343,
             "ci90": [
               0.0,
-              10.9867
+              24.3904
             ],
-            "sigma": 5.74652,
+            "sigma": 13.89515,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3111,9 +3124,9 @@
             "value": 5.7891,
             "ci90": [
               0.0,
-              12.4772
+              21.961
             ],
-            "sigma": 4.06597,
+            "sigma": 9.83157,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3127,9 +3140,9 @@
             "value": 4.3811,
             "ci90": [
               0.0,
-              12.7955
+              24.7272
             ],
-            "sigma": 5.11545,
+            "sigma": 12.36921,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3143,9 +3156,9 @@
             "value": 4.3811,
             "ci90": [
               0.0,
-              12.7955
+              24.7272
             ],
-            "sigma": 5.11545,
+            "sigma": 12.36921,
             "unit": "m2",
             "lower_bound": null,
             "note": null
@@ -3341,9 +3354,9 @@
         "value": 11.1993,
         "ci90": [
           0.0,
-          34.6581
+          67.9229
         ],
-        "sigma": 14.26152,
+        "sigma": 34.48455,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3400,10 +3413,10 @@
       "quantity": {
         "value": 8.7502,
         "ci90": [
-          1.6745,
-          15.8259
+          0.0,
+          25.8593
         ],
-        "sigma": 4.3016,
+        "sigma": 10.40131,
         "unit": "m2",
         "lower_bound": null,
         "note": null
@@ -3482,10 +3495,10 @@
     "02_room_8 / 05_room_6: fitted rooms overlapped by 2.28 m; 02_room_8 moved, relative position unreliable"
   ],
   "timing_s": {
-    "load+depth": 2.06,
-    "room_fit": 2.76,
-    "stitch": 185.09,
-    "openings": 2.34,
-    "damage": 46.67
+    "load+depth": 2.26,
+    "room_fit": 2.48,
+    "stitch": 155.78,
+    "openings": 1.86,
+    "damage": 42.22
   }
 }

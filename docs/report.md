@@ -21,19 +21,19 @@ Companion documents:
 
 | What | Result | Source |
 |---|---|---|
-| LiDAR footprint vs laser truth (4 public rooms, Faro scans) | within **0.6-7.6 %** (one room passes the gate outright at +0.6 %) | [benchmark.md](../bench/reports/benchmark.md), [tech_report.md](tech_report.md) |
+| LiDAR footprint vs laser truth (4 public rooms, Faro scans) | within **0.6-7.1 %** (one room passes the gate outright at +0.6 %) | [benchmark.md](../bench/reports/benchmark.md), [tech_report.md](tech_report.md) |
 | LiDAR walls vs laser | median error **3-13 cm** per room | same |
 | LiDAR ceilings vs laser (after fix-loop round 4) | **2 of 4** rooms within 1.5 cm; every room within **0.22 cm of its declared prediction** | [fixloop/round4](../fixloop/round4/README.md) |
 | LiDAR repeatability, our iPhone 16 Pro | the same room scanned twice: shared walls agree to **1.7 cm** (median), **5 mm** on the clean wall | [benchmark.md](../bench/reports/benchmark.md) |
 | Drift correction | loop residual on the sample's scan B **0.169 → 0.026 m**; walls sharper with it on (ablation) | benchmark.md |
-| Honest intervals (held-out coverage, target 0.90) | video **0.93**, photo **0.92**, LiDAR 0.85 | [calibration.md](../bench/reports/calibration.md) |
+| Honest intervals (held-out coverage, target 0.90) | LiDAR **0.95**, video **0.93**, photo **0.92**; LiDAR's 90 % range on a 3 m wall tightened from ±11.8 cm to **±6.8 cm** after the refit | [calibration.md](../bench/reports/calibration.md) |
 | Damage (synthetic staged, two classes) | both found with the right class, extents within 16 %, **0 false positives: PASS** | [synth_damage.md](../bench/reports/synth_damage.md) |
 | RoomPlan tier (our iOS app's scans), synthetic | exact: 12.00 m² and 9.00 m² rooms, 2.60 m ceilings, live on the cloud | [testing.md](testing.md) |
 | Fix loop | 4 rounds declared before each fix; rounds 2 and 4 met **every** declared number | [fixloop/](../fixloop/README.md) |
 
 ### Gates that pass
 
-- Interval calibration at the video and photo tiers (coverage ≥ 0.90 held out).
+- Interval calibration at all three tiers: held-out coverage LiDAR 0.95, video 0.93, photo 0.92 (target 0.90).
 - Photo-tier stitch with **no room overlaps**.
 - Drift accountability: correction on/off ablation reported, with a measurable gain.
 - Synthetic damage: found, classified and sized within 30 %, no phantoms.
@@ -127,12 +127,12 @@ What could **not** be tested without a device, and is reported as open, not clai
 
 | Tier | Truth | Headline numbers | Source |
 |---|---|---|---|
-| LiDAR | laser (4 public ARKitScenes rooms, Faro scans) | footprint −7.6 / −2.5 / +0.6 / −2.0 %; median wall error 3-13 cm per room (the 1 cm gate fails); ceilings −2.93 / −0.81 / −1.66 / −0.92 cm, 2 of 4 within the 1.5 cm gate | [tech_report.md §1](tech_report.md), [fixloop/round4/after/summary.md](../fixloop/round4/after/summary.md) |
+| LiDAR | laser (4 public ARKitScenes rooms, Faro scans) | footprint −7.1 / −2.5 / +0.6 / −2.0 %; median wall error 3-13 cm per room (the 1 cm gate fails); ceilings −2.93 / −0.81 / −1.66 / −0.92 cm, 2 of 4 within the 1.5 cm gate | [tech_report.md §1](tech_report.md), [fixloop/round4/after/summary.md](../fixloop/round4/after/summary.md) |
 | LiDAR | self-consistency, own iPhone 16 Pro | repeat scan of one room: walls seen by both scans agree to 1.7 cm median (2 walls, max 3.0 cm) | [bench/reports/benchmark.md](../bench/reports/benchmark.md) |
 | LiDAR | self-consistency, sample flat (2 scans) | point clouds agree to 7 mm median, but the scans split the flat into 9 vs 7 rooms; the repeatability gate fails | [fixloop/round2/README.md](../fixloop/round2/README.md), benchmark.md |
 | Video | our own LiDAR output (not a laser) | finds 1-2 rooms; footprint −70 % (sample), −87 % and −95 % (own clips) | benchmark.md |
 | Photo | our own LiDAR output (not a laser) | footprint +109 % (sample proxy), +32 % (moto g45), +79 % (iPhone via WhatsApp); no metric scale without a tape length or marker | benchmark.md |
-| All | held-out interval coverage (target 0.90) | LiDAR 0.85, video 0.93, photo 0.92 (wall lengths) | [bench/reports/calibration.md](../bench/reports/calibration.md) |
+| All | held-out interval coverage (target 0.90) | LiDAR 0.95, video 0.93, photo 0.92 (wall lengths; final refit, 3 October 2026) | [bench/reports/calibration.md](../bench/reports/calibration.md) |
 
 ---
 
@@ -353,14 +353,12 @@ Every measurement has `sigma = scale · sqrt((k·raw)² + abs² + (rel·value)²
 
 | Tier | Truth | Samples (rooms) | Coverage at scale 1 | Fitted scale | Held-out coverage | 90 % on a 3 m wall |
 |---|---|---|---|---|---|---|
-| LiDAR | laser | 20 (4) | 0.20 | 5.07 | 0.85 | ±0.118 m |
+| LiDAR | laser | 20 (4) | 0.25 | 2.909 | 0.95 | ±0.068 m |
 | video | own LiDAR | 40 (4) | 0.23 | 6.931 | 0.93 | ±0.773 m |
 | photo | own LiDAR | 83 (15) | 0.36 | 5.225 | 0.92 | ±1.362 m |
 | photo area | own LiDAR | 15 (15) | 0.27 | 10.927 | 0.93 | ±18.9 m² on 10 m² |
 
-**Stale.**
-- The LiDAR scale was fitted while laser room 42446532 was still split in two (before `f83f66c`) and before the
-  round-4 ceiling fix. [tech_report.md §7](tech_report.md) expects it to fall to about 3.5 after a refit; the refit has not been run.
+**Final refit (3 October 2026).** The full benchmark was rerun on the final code (split-room fix `f83f66c` and fix-loop round 4 included) and refitted: the LiDAR scale fell from 5.07 to 2.909, as tech_report §7 expected, and held-out coverage rose to 0.95.
 - With the priors alone, coverage was 0.20-0.36: confident but wrong on thin input. Calibration is what makes the intervals honest.
 
 ### 6.4 Repeatability
@@ -434,14 +432,13 @@ Each round has the same steps:
 ## 8. Results and scores
 
 Source: [bench/reports/benchmark.md](../bench/reports/benchmark.md) (16 captures) unless noted.
-- The committed benchmark ran before `f83f66c` (the split-room fix) and round 4.
-- Those rows are updated from [tech_report.md](tech_report.md) and [fixloop/round4/after/summary.md](../fixloop/round4/after/summary.md), and marked.
+- The benchmark was rerun on the final code on 3 October 2026 (16 captures, split-room fix and round 4 included).
 
 **LiDAR vs laser (ARKitScenes).**
 
 | Room | Footprint error | Median wall error | Ceiling error (after round 4) | Coverage | Rooms found |
 |---|---|---|---|---|---|
-| 42446532 | −7.6 % | 1.484 m in the committed run; **0.047 m after `f83f66c`** (no longer split) | −2.93 cm | 0.2 (stale) | 2 vs 1 in the committed run, 1 now |
+| 42446532 | −7.1 % | 0.047 m | −2.93 cm | 0.8 | 1/1 |
 | 44358446 | −2.5 % | 0.104 m | −0.81 cm (pass) | 1.0 | 1/1 |
 | 47332890 | +0.6 % (pass) | 0.130 m | −1.66 cm | 0.8 | 1/1 |
 | 47331988 | −2.0 % | 0.033 m (2 of 4 walls within the gate) | −0.92 cm (pass) | 1.0 | 1/1 |
@@ -527,7 +524,6 @@ Opening-width pass fraction is 0.0 on every video and photo set.
 3. **Uploads:** move them to object storage (S3 / R2), and delete raw uploads after the job.
 4. **Hardening:** authentication (a shared token, see [deploy.md §F](deploy.md)) and rate limits.
 5. **Jobs:** a worker queue for more than one concurrent job.
-6. **Benchmark:** rerun the full benchmark and refit the intervals after round 4. The LiDAR scale 5.07 is stale.
 
 ---
 
@@ -542,8 +538,6 @@ Opening-width pass fraction is 0.0 on every video and photo set.
 **No iPhone needed:**
 1. Fill the tape form of our own flat ([tape_form_own_flat.md](tape_form_own_flat.md)) and add it as ground truth.
    That gives the video and photo tiers a real truth.
-2. Rerun `bench/run_all.py`, then `bench/calibrate.py --write`. Update benchmark.md, calibration.md,
-   device_matrix.md and the compliance matrix (round 4, deployment).
 3. Test the −1 % scale bias per frame against the laser (fix-loop round 5).
 4. Wire the A4 marker into the photo and video tiers.
 5. Investigate the cloud stitch speed. Set up UptimeRobot on `/api/health`.

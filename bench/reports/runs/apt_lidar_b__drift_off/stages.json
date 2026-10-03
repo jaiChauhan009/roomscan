@@ -1,0 +1,47 @@
+{
+  "total_seconds": 18.33,
+  "stages": [
+    {
+      "name": "load",
+      "status": "done",
+      "seconds": 0.38,
+      "gate": "ok",
+      "note": "1051 frames"
+    },
+    {
+      "name": "drift",
+      "status": "done",
+      "seconds": 0.0,
+      "gate": "ok",
+      "note": "off"
+    },
+    {
+      "name": "fuse",
+      "status": "done",
+      "seconds": 0.32,
+      "gate": "ok",
+      "note": "1,220,407 points"
+    },
+    {
+      "name": "layout",
+      "status": "done",
+      "seconds": 12.17,
+      "gate": "warn",
+      "note": "7 room(s), 82 walls (38 without wall evidence); rooms overlap by 0.11 m2"
+    },
+    {
+      "name": "openings",
+      "status": "done",
+      "seconds": 4.47,
+      "gate": "ok",
+      "note": "13 opening(s)"
+    },
+    {
+      "name": "export",
+      "status": "done",
+      "seconds": 0.09,
+      "gate": "ok",
+      "note": "every measurement has a 90 % interval"
+    }
+  ]
+}
