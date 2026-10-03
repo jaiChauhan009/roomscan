@@ -9,6 +9,8 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
 | Capture route (Route 2: stock tools + one-page protocol) | `docs/capture_protocol.md`, `scripts/walkin.py` | protocol page; hand-off on a USB-C drive, one command for every tier | done; not yet followed by a non-engineer |
+| Capture route (Route 1: own iOS app, dev build) | `ios/`, `.github/workflows/ios.yml`, `docs/ios_app.md` | RoomPlan live guided scan with keyframes, room-by-room upload, photos, video, live results; `.ipa` built by CI (release `ios-latest`), installed with Sideloadly in about 10 min | partial: builds and passes simulator unit, UI and end-to-end tests; not yet run on an iPhone; a TestFlight build needs a paid Apple Developer account |
+| RoomPlan tier (scans from our app) | `src/roomscan/frontends/roomplan.py`, `server/capture.py` | same output contract; damage on frames ray-cast against RoomPlan surfaces; per-room and combined runs (`tests/test_roomplan.py`, `tests/test_server_roomplan.py`) | partial: exact on synthetic rooms, live on the cloud; no real capture or truth yet; interval scale uncalibrated |
 | Photo tier: 2-8 stills per room, folder per room, any iPhone 15+ | `src/roomscan/frontends/photos.py` | `fixloop/*/runs/apt_photo_a/` | partial: runs and stitches; accuracy far from gate |
 | Photo tier produces the stitched whole-property plan | `photos.py` (look-back stitching), `export/render.py` | `runs/apt_photo_a/plan.png` | partial: one plan, no overlaps; 2 of 7 links by photo match, rest by capture order (flagged) |
 | Video tier: handheld clip, any iPhone 15+ | `src/roomscan/frontends/video.py` | `runs/apt_video_b/` | partial: runs; 1 of 6 rooms on the sample clip |
@@ -51,7 +53,7 @@ or a gate failing), **missing** (not done). Reasons for partial / missing are gi
 
 | Requirement | File | Artifact | Status |
 |---|---|---|---|
-| Two rooms, LiDAR tier vs a consumer app, dimension table, ≥ 70 % win or tie | `bench/head_to_head.py`, `bench/app_exports/TEMPLATE.yaml`, `docs/iphone_session.md` | tool tested on synthetic and sample data | partial: tooling done; the data needs an iPhone (magicplan recommended: its free tier exports a floor plan) |
+| Two rooms, LiDAR tier vs a consumer app, dimension table, ≥ 70 % win or tie | `bench/head_to_head.py`, `bench/app_exports/TEMPLATE.yaml`, `docs/iphone_session.md` | tool tested on synthetic and sample data | partial: tooling done; magicplan export of our flat captured (`bench/app_exports/magicplan_own_flat.yaml` + PDF: 3 rooms, 66.92 m²); scoring needs tape truth of the same rooms |
 
 ## Part 4: fix loop
 

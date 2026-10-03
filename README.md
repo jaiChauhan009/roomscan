@@ -20,7 +20,7 @@ How to capture: [docs/capture_protocol.md](docs/capture_protocol.md) (one page).
 |---|---|
 | **Web app (front end, Vercel)** | **https://roomscan-web-rose.vercel.app** |
 | API (back end, Google Cloud VM, HTTPS) | https://34-14-174-240.sslip.io (health: [`/api/health`](https://34-14-174-240.sslip.io/api/health), interactive API: [`/docs`](https://34-14-174-240.sslip.io/docs)) |
-| iOS capture app (RoomPlan live scan, in progress) | `ios/` on branch `ios-app`; builds published at [releases/ios-latest](https://github.com/jaiChauhan009/roomscan/releases/tag/ios-latest) when ready |
+| iOS capture app (RoomPlan live scan, like magicplan) | [`ios/`](ios/README.md); install file: [roomscan-unsigned.ipa](https://github.com/jaiChauhan009/roomscan/releases/download/ios-latest/roomscan-unsigned.ipa) (Sideloadly from Windows, see [docs/ios_app.md](docs/ios_app.md)) |
 
 How to use it from a phone:
 1. Open the site and, optionally, enter an email for the report.
@@ -39,7 +39,7 @@ so the official path is the local command line below, which needs no network aft
 |---|---|---|
 | **Back end** (FastAPI API, job queue, email) | [`server/`](server/) | [server/README.md](server/README.md) |
 | **Web front end** (Vercel) | [`web/`](web/) | [web/README.md](web/README.md) |
-| **iOS capture app** (RoomPlan live scan; branch `ios-app`) | `ios/` | `ios/README.md` |
+| **iOS capture app** (RoomPlan live scan, CI-built `.ipa`) | [`ios/`](ios/) | [ios/README.md](ios/README.md), [docs/ios_app.md](docs/ios_app.md) |
 | **Engine** (photos / video / LiDAR → plan) | [`src/roomscan/`](src/roomscan/) | [docs/architecture.md](docs/architecture.md) |
 | **Benchmark** | [`bench/`](bench/) | [bench/README.md](bench/README.md) |
 | **Fix loop** | [`fixloop/`](fixloop/) | [fixloop/README.md](fixloop/README.md) |
@@ -62,6 +62,8 @@ so the official path is the local command line below, which needs no network aft
 | [docs/raw_data.md](docs/raw_data.md) | Raw benchmark data: what it is, where it comes from, checksums (`bench/raw_data.sha256`) |
 | [docs/worklog.md](docs/worklog.md), [docs/design_qa.md](docs/design_qa.md) | Build log by stage; design decisions and their reasons |
 | [server/README.md](server/README.md) | Web API reference |
+| [docs/testing.md](docs/testing.md) | **How to run every test** (engine, back end, web, iOS app on the simulator, live system, benchmark) and the latest results |
+| [docs/ios_app.md](docs/ios_app.md) | iOS app: screens, install with Sideloadly, how to scan, `capture.json` format, CI and simulator tests |
 
 ## What we achieved (summary)
 
@@ -75,7 +77,8 @@ Every number comes from the reports above. Details and caveats are in [docs/repo
 | Interval honesty (held-out coverage, target 0.90) | LiDAR 0.85, video 0.93, photo 0.92 |
 | Synthetic damage benchmark | stain and crack both found with the right class, extents within 16 %, 0 false positives: PASS |
 | Fix loop | 4 rounds, each declared before the fix; rounds 2 and 4 hit every declared number |
-| Tests | 218 passed, 2 skipped (HEIC on Windows); server, web and marker tests included |
+| Tests | Python: 218 passed, 2 skipped (HEIC on Windows), plus RoomPlan / marker / server / web suites; iOS: device build and simulator unit, UI and end-to-end tests green on GitHub Actions ([docs/testing.md](docs/testing.md)) |
+| iOS app | RoomPlan live guided scan (automatic walls, doors, windows, live area), room-by-room upload, photos, video, live results; RoomPlan tier on the back end tested end to end on the cloud (synthetic rooms exact); not yet run on a real iPhone |
 | Live system | Vercel front end + Google Cloud back end; jobs keep running with the tab closed; report emailed; tested end to end on real captures |
 | Known gaps | photo / video accuracy far from the gates without a typed length or the A4 marker; head-to-head vs a consumer app and real staged damage still need the iPhone; benchmark to rerun after round 4 |
 

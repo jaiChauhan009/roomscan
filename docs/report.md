@@ -126,6 +126,29 @@ results of each run as soon as that run finishes.
 - Full table: [device_matrix.md](device_matrix.md). Its accuracy table predates the 16-capture benchmark and round 4;
   use section 8 for current numbers.
 
+### 3.1 Our own iOS app (Route 1, added late)
+
+After the borrowed-iPhone session we also built a native app: `ios/`, Swift, iOS 17+, no third-party packages.
+- **Build and install without a Mac:**
+  - GitHub Actions macOS runners build it into `roomscan-unsigned.ipa` (release `ios-latest`);
+  - it is installed from Windows with Sideloadly and a free Apple ID (7-day signing).
+- **Scanning:** it uses Apple RoomPlan, the technology behind magicplan's Auto-Scan.
+  - The live guided scan finds walls, doors and windows automatically.
+  - A live panel shows the walls, doors, windows, area and size.
+  - Each room is uploaded as soon as it is scanned.
+  - Keyframes with poses are saved for our damage stage.
+- **Same structure as the web app:** email, rooms with photos, video, check, compute, live results.
+- **Back end:** a new RoomPlan tier turns the app's `capture.json` into the same output contract.
+  - It is exact on synthetic rooms and live on the cloud (Kitchen 12.00 m², Hall 9.00 m², ceilings 2.60 m).
+- **Tests:** CI runs unit, UI (screenshots) and end-to-end tests against the deployed back end on the iOS Simulator, all green.
+- **Not done:** it has **not yet been run on a real iPhone**, because we no longer had one when it was finished.
+- See [ios_app.md](ios_app.md) and [testing.md](testing.md).
+
+**magicplan for the head-to-head.** A magicplan Auto-Scan of our flat was exported:
+- 3 rooms, 66.92 m² in total; our LiDAR run says 60.8 m², with the rooms divided differently;
+- it is stored in `bench/app_exports/magicplan_own_flat.yaml` with the PDF;
+- the comparison needs tape measurements of the same rooms to say which is closer.
+
 ---
 
 ## 4. System overview
