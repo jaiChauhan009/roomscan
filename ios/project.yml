@@ -15,7 +15,9 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: RoomscanCapture
-    scheme: {}
+    scheme:
+      testTargets: [RoomscanCaptureTests, RoomscanCaptureUITests]
+      gatherCoverageData: false
     info:
       path: Info.plist
       properties:
@@ -37,3 +39,26 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_BITCODE: NO
+  RoomscanCaptureTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [RoomscanCaptureTests]
+    dependencies:
+      - target: RoomscanCapture
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.roomscan.capture.tests
+  RoomscanCaptureUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [RoomscanCaptureUITests]
+    dependencies:
+      - target: RoomscanCapture
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.roomscan.capture.uitests
+        TEST_TARGET_NAME: RoomscanCapture

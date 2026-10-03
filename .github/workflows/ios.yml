@@ -64,3 +64,61 @@ jobs:
             gh release create ios-latest ios/roomscan-unsigned.ipa --prerelease --target "$GITHUB_SHA" \
               --title "roomscan iOS (latest)" --notes "$NOTES"
           fi
+
+  test-simulator:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          echo "Using $X"; sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Pick a simulator
+        id: sim
+        run: python3 ios/ci/pick_simulator.py >> $GITHUB_OUTPUT
+      - name: Unit and UI tests
+        run: |
+          cd ios
+          set +e
+          xcodebuild test -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphonesimulator \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO > test.log 2>&1
+          status=$?
+          grep -E "error:|Test Case .* (passed|failed|skipped)|expected failure|\*\* TEST" test.log | head -150
+          exit $status
+      - name: Test summary
+        if: always()
+        run: |
+          cd ios
+          if [ ! -d TestResults.xcresult ]; then
+            echo "### No test results (build failed?)" >> $GITHUB_STEP_SUMMARY
+            grep -A4 "error:" test.log | head -60 | sed 's/^/    /' >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          xcrun xcresulttool get test-results tests --path TestResults.xcresult > tests.json || true
+          python3 ci/test_summary.py tests.json >> $GITHUB_STEP_SUMMARY
+      - name: Export screenshots
+        if: always()
+        run: |
+          cd ios
+          mkdir -p screenshots
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path screenshots || true
+          fi
+          ls -la screenshots | head -40
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simulator-screenshots
+          path: ios/screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simulator-test-log
+          path: |
+            ios/test.log
+            ios/tests.json
