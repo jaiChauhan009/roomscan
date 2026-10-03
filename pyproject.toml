@@ -30,6 +30,7 @@ ml = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=8.0",
+    "pytest-xdist>=3.8.0",
 ]
 server = [
     "fastapi>=0.142.2",
@@ -53,3 +54,5 @@ python-preference = "managed"
 [tool.pytest.ini_options]
 # the repository root, so tests can import the web server package (server/)
 pythonpath = ["."]
+# only tests/ (ios/ci/test_summary.py is a CI script, not a test)
+testpaths = ["tests"]

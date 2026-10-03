@@ -299,7 +299,7 @@ Back-end VM details:
 
 ### 6.1 Unit and integration tests
 
-- **Full suite:** 218 passed, 2 skipped.
+- **Full suite (final code):** 257 passed, 2 skipped; 1 min 15 s with 4 parallel workers (`pytest -n 4`).
   - The 2 skips are the HEIC tests: Windows Application Control blocks the `pillow_heif` DLL on the development laptop.
     The Linux server image decodes HEIC.
   - Server and web tests pass.

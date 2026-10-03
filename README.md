@@ -77,7 +77,7 @@ Every number comes from the reports above. Details and caveats are in [docs/repo
 | Interval honesty (held-out coverage, target 0.90) | LiDAR 0.95, video 0.93, photo 0.92 (final refit; LiDAR 90 % range on a 3 m wall ±6.8 cm) |
 | Synthetic damage benchmark | stain and crack both found with the right class, extents within 16 %, 0 false positives: PASS |
 | Fix loop | 4 rounds, each declared before the fix; rounds 2 and 4 hit every declared number |
-| Tests | Python: 218 passed, 2 skipped (HEIC on Windows), plus RoomPlan / marker / server / web suites; iOS: device build and simulator unit, UI and end-to-end tests green on GitHub Actions ([docs/testing.md](docs/testing.md)) |
+| Tests | Python: **257 passed, 2 skipped** (HEIC on Windows) in 1 min 15 s with 4 workers; iOS: device build and simulator unit, UI and end-to-end tests green on GitHub Actions ([docs/testing.md](docs/testing.md)) |
 | iOS app | RoomPlan live guided scan (automatic walls, doors, windows, live area), room-by-room upload, photos, video, live results; RoomPlan tier on the back end tested end to end on the cloud (synthetic rooms exact); not yet run on a real iPhone |
 | Live system | Vercel front end + Google Cloud back end; jobs keep running with the tab closed; report emailed; tested end to end on real captures |
 | Known gaps | photo / video accuracy far from the gates without a typed length or the A4 marker; head-to-head vs a consumer app and real staged damage still need the iPhone |

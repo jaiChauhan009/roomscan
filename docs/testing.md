@@ -8,7 +8,8 @@ latest results. Results and scores are explained in [report.md](report.md).
 ```bash
 uv sync --extra ml --extra server --extra dev
 uv run python scripts/fetch_weights.py                 # once: model weights
-uv run --extra dev pytest -q                           # everything (~30 files)
+uv run --extra dev pytest -q -n 4                      # everything, 4 parallel workers (~1-2 min)
+uv run --extra dev pytest -q                           # everything, one process (~4 min)
 uv run --extra dev pytest -q tests/test_server.py      # one area
 ```
 
@@ -26,12 +27,11 @@ uv run --extra dev pytest -q tests/test_server.py      # one area
 | Back end (FastAPI) | `test_server.py` (projects, uploads, verify, run, cache, several videos and scans, email, retry of failed runs), `test_server_roomplan.py` |
 | Web front end | `test_web_static.py` (module imports and element ids; headless smoke at 360 px against `web/dev/mock_server.py`) |
 
-**Latest results (3 October 2026):**
-- Full suite: 218 passed, 2 skipped (before the RoomPlan and marker merges).
-- After the merges:
-  - RoomPlan, server, web, marker, known-sizes, contract and stages: 71 passed, 1 skipped.
-  - RoomPlan + contract + geometry, after the room-id fix: 50 passed.
-- The HEIC tests skip on the Windows development laptop, because Application Control blocks the `pillow_heif` DLL. The Linux server image decodes HEIC.
+**Latest results (3 October 2026, final code):**
+- **Full suite: 257 passed, 2 skipped**.
+  - 1 min 15 s with `-n 4` (pytest-xdist, one worker per test file);
+  - 3 min 47 s in one process.
+- The 2 skips are the HEIC tests. Windows Application Control blocks the `pillow_heif` DLL on the development laptop; the Linux server image decodes HEIC.
 
 ## 2. iOS app (no Mac needed)
 
