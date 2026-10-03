@@ -59,8 +59,8 @@ final class BackendTests: XCTestCase {
         let lidar = runs.first { ($0["tier"] as? String) == "lidar" } ?? runs.first ?? [:]
         var rooms: [[String: Any]] = []
         if (lidar["status"] as? String) == "done" {
-            let path = (lidar["outputs"] as? [String: Any])?["result_json"] as? String
-                ?? (try api.jobFileURL(jid, (lidar["prefix"] as? String ?? "") + "result.json").absoluteString)
+            let fallback = try api.jobFileURL(jid, (lidar["prefix"] as? String ?? "") + "result.json").absoluteString
+            let path = (lidar["outputs"] as? [String: Any])?["result_json"] as? String ?? fallback
             let data = try await api.download(path)
             rooms = (try JSONSerialization.jsonObject(with: data) as? [String: Any])?["rooms"] as? [[String: Any]] ?? []
         }
