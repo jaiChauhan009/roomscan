@@ -178,3 +178,24 @@ Memory: a job peaks at ~4 GB (8 GB for long videos); 16 GB is comfortable.
   rejects `/api/*` requests (except `/api/health`) without `Authorization: Bearer <token>`,
   and the front end asks for the token once and keeps it in `localStorage` (not in
   `env.js`). Rate limiting per IP would be the next step.
+
+## G. Back end on an Oracle Cloud "Always Free" ARM VM (free, always on)
+
+Hugging Face now requires PRO for Docker Spaces. Oracle's Always Free tier gives an Ampere
+(ARM) VM of up to 4 OCPU / 24 GB RAM at no cost, never sleeping. Every dependency has an
+aarch64 wheel (open3d 0.20 needs glibc >= 2.35: the image's Debian bookworm has 2.36).
+
+1. Create the VM: **Compute > Instances > Create instance**. Image **Canonical Ubuntu 24.04**
+   (or 22.04), shape **Ampere VM.Standard.A1.Flex, 4 OCPU, 24 GB**, a public IPv4 address,
+   **Save private key**. ("Out of capacity" is common: retry later, or another availability
+   domain.)
+2. Open the ports: the instance's subnet **Security List > Add Ingress Rules**: source
+   `0.0.0.0/0`, TCP, destination ports `80,443`.
+3. `ssh -i <key> ubuntu@<public-ip> 'bash -s' < deploy/oracle/setup.sh`. It builds the image
+   on the VM (~15-25 min), runs it with automatic restart, and serves HTTPS at
+   `https://<ip-with-dashes>.sslip.io` through Caddy. Re-run it to update.
+4. Point `web/env.js` at that URL. Email: add the SMTP variables to `/etc/roomscan.env` on the
+   VM and re-run the script.
+
+Idle reclamation: Oracle may reclaim an Always Free VM whose CPU stays under ~20 % for 7 days.
+Upgrading the account to Pay As You Go (still free within the Always Free limits) stops that.
