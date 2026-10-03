@@ -1,0 +1,33 @@
+# magicplan export of our own flat (head-to-head, brief Part 3). Typed from magicplan_own_flat.pdf
+# (magicplan "Report", 3 October 2026). Values exactly as the PDF shows them; nothing derived.
+# Room names are provisional (magicplan named all three "Living Room"): rename them to the
+# names used in bench/ground_truth/own_flat.yaml once the tape truth exists, and fix the
+# wall order (left of the entry door, clockwise) against it.
+app: magicplan
+version: ""                   # to fill from the App Store page
+plan: free
+mode: Auto-Scan (LiDAR, Apple RoomPlan)
+device: ""                    # iPhone model used (Settings > General > About)
+ios: ""
+date: "2026-10-03"
+capture: own_lidar_1          # our capture of the same flat (to confirm it is the same rooms)
+export_file:
+  - magicplan_own_flat.pdf
+notes: >
+  Total 66.92 m2, 3 rooms (31.96, 11.67, 23.32 m2). magicplan reports a bounding width x length
+  per room and wall segments split at windows/doors; walls below are the outer segment totals the
+  PDF prints. Opening widths are not printed separately in the PDF, so openings are left empty.
+  Room 2 and room 3 are L-shaped in the PDF; their notch segments are listed in order.
+rooms:
+  - name: magicplan_room_1    # PDF: Living Room 31.96 m2, 3.30 x 9.84, perimeter 26.21
+    walls: [3.28, 9.84, 3.28, 9.84]
+    ceiling_height: 2.65
+    openings: []
+  - name: magicplan_room_2    # PDF: Living Room 11.67 m2, 3.44 x 4.34, perimeter 15.55
+    walls: [3.44, 4.34, 1.19, 1.39, 2.24, 2.89]
+    ceiling_height: 2.65
+    openings: []
+  - name: magicplan_room_3    # PDF: Living Room 23.32 m2, 4.63 x 6.55, perimeter 22.32
+    walls: [2.74, 0.73, 1.33, 0.94, 0.71, 4.66, 1.40, 3.22, 6.55]
+    ceiling_height: 2.46
+    openings: []
