@@ -37,7 +37,7 @@ Companion documents:
 - Photo-tier stitch with **no room overlaps**.
 - Drift accountability: correction on/off ablation reported, with a measurable gain.
 - Synthetic damage: found, classified and sized within 30 %, no phantoms.
-- Footprint within ±3 % on one laser room (+0.6 %); the others are within 7.6 %.
+- Footprint within ±3 % on one laser room (+0.6 %); the others are within 7.1 %.
 - Ceilings within 1.5 cm on 2 of 4 laser rooms.
 
 ### Photos and video: plain vs assisted
