@@ -1,0 +1,59 @@
+name: iOS app
+
+on:
+  push:
+    branches: [ios-app]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          echo "Using $X"; sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Build (device, unsigned)
+        run: |
+          cd ios
+          set -o pipefail
+          xcodebuild -project RoomscanCapture.xcodeproj -scheme RoomscanCapture -sdk iphoneos \
+            -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD" || true
+          test -d build/Build/Products/Release-iphoneos/RoomscanCapture.app || { grep -B2 -A6 "error:" build.log | head -200; exit 1; }
+      - name: Package .ipa
+        run: |
+          cd ios
+          rm -rf Payload && mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/RoomscanCapture.app Payload/
+          zip -qry roomscan-unsigned.ipa Payload
+          ls -la roomscan-unsigned.ipa
+          echo "### roomscan-unsigned.ipa: $(du -h roomscan-unsigned.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roomscan-unsigned-ipa
+          path: ios/roomscan-unsigned.ipa
+      - name: Publish release ios-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Unsigned build of ${GITHUB_SHA::7} from branch ${GITHUB_REF_NAME}. Install with Sideloadly (see docs/ios_app.md)."
+          if gh release view ios-latest >/dev/null 2>&1; then
+            gh release upload ios-latest ios/roomscan-unsigned.ipa --clobber
+            gh release edit ios-latest --notes "$NOTES" --target "$GITHUB_SHA"
+          else
+            gh release create ios-latest ios/roomscan-unsigned.ipa --prerelease --target "$GITHUB_SHA" \
+              --title "roomscan iOS (latest)" --notes "$NOTES"
+          fi
