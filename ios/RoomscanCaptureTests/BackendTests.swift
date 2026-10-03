@@ -64,15 +64,8 @@ final class BackendTests: XCTestCase {
             let data = try await api.download(path)
             rooms = (try JSONSerialization.jsonObject(with: data) as? [String: Any])?["rooms"] as? [[String: Any]] ?? []
         }
-        if rooms.isEmpty {
-            // The backend's roomscan.roomplan/1 reader is being added in parallel: until it lands
-            // the server treats the zip as a broken Stray Scanner export.
-            let opts = XCTExpectedFailure.Options()
-            opts.isStrict = false
-            XCTExpectFailure("backend does not read roomscan.roomplan/1 zips yet (run: \(lidar["status"] ?? "?"), \(lidar["error"] ?? job["error"] ?? "no error"))", options: opts)
-            XCTFail("no rooms in the LiDAR run result (job \(job["status"] ?? "?"))")
-            return
-        }
+        XCTAssertFalse(rooms.isEmpty, "no rooms in the LiDAR run result (job \(job["status"] ?? "?"), run \(lidar["status"] ?? "?"): \(lidar["error"] ?? job["error"] ?? "no error"))")
+        guard !rooms.isEmpty else { return }
         XCTAssertEqual(rooms.count, 1)
         let area = (rooms[0]["floor_area"] as? [String: Any])?["value"] as? Double
         XCTAssertEqual(try XCTUnwrap(area), 12, accuracy: 0.6)

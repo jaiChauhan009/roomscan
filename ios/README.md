@@ -46,7 +46,7 @@ Sideloadly from Windows with a free Apple ID (7-day expiry): see
 ## Tests
 
 The `test-simulator` CI job runs the unit tests, the live-backend tests (skipped when the server
-is unreachable; the RoomPlan end-to-end check is an expected failure until the backend reads
-`roomscan.roomplan/1`) and the UI test; results are in the run summary, screenshots in the
+is unreachable; the RoomPlan end-to-end check uploads a synthetic 4 × 3 m room and expects one
+room of ≈ 12 m²) and the UI test; results are in the run summary, screenshots in the
 artifact `simulator-screenshots`. RoomPlan, the camera and the keyframes need a real iPhone with
 LiDAR and are not covered.

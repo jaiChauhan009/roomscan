@@ -133,8 +133,7 @@ The `test-simulator` CI job runs on the iOS Simulator (no LiDAR, no camera):
   keeping EXIF;
 - backend tests against the live server (skipped if unreachable): create a project, add a room,
   upload a JPEG; upload a synthetic roomplan zip to the LiDAR list, verify, run, poll, and expect
-  one room of ≈ 12 m². Until the backend reads `roomscan.roomplan/1`, that last check is marked
-  as an expected failure;
+  one room of ≈ 12 m² (the backend's "Room (RoomPlan): <name>" run);
 - a UI test that walks the screens and saves screenshots (artifact `simulator-screenshots`).
 
 Everything that needs the real device (RoomPlan scanning, keyframes, StructureBuilder merging,
