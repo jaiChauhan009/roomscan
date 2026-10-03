@@ -1,5 +1,6 @@
 // roomscan web app: project (rooms + optional whole-home videos and / or LiDAR scans), uploads,
 // verify, run, job polling, results.
+import { shrinkPhoto } from "./shrink.js";
 import { API_BASE, setApiBase } from "../config.js";
 import { api, ApiError, CAP_SID, CAP_KINDS, capKindOf } from "./api.js";
 import { files, kv, requestPersistence } from "./store.js";
@@ -153,7 +154,8 @@ async function addFiles(space, fileList) {
     return;
   }
   try {
-    for (const f of ok) await files.add(state.pid, space.space_id, f);
+    // photos: shrunk to 2048 px in the browser first (EXIF kept), 4-5x less to upload
+    for (const f of ok) await files.add(state.pid, space.space_id, space.kind === "photos" ? await shrinkPhoto(f) : f);
   } catch (e) {
     banner("Could not keep the files on this device (storage full or private browsing?). " + explain(e));
   }

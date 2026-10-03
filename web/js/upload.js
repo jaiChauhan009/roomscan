@@ -9,6 +9,8 @@ import { api, uploadFile, ApiError } from "./api.js";
 import { sha256Blob } from "./sha256.js";
 import { files } from "./store.js";
 
+const UPLOAD_WORKERS = 3;
+
 export class Uploader {
   constructor({ getPid, onFileUploaded, onChange }) {
     this.getPid = getPid;
@@ -19,7 +21,8 @@ export class Uploader {
     this.backoff = 0;
     this.retryAt = 0;
     this.lastError = null;
-    this._wake = null;
+    this._wakers = new Set();
+    this.inflight = new Set();            // record ids being uploaded by a worker
     this.server = new Map();              // sid -> Set(sha256) known on server
     this.paused = new Set();              // sids being deleted
     addEventListener("online", () => this.kick());
@@ -31,55 +34,67 @@ export class Uploader {
   }
 
   kick() {
-    if (this._wake) { const w = this._wake; this._wake = null; w(); }
+    for (const w of [...this._wakers]) w();
     if (!this.running) this._loop();
   }
 
   _sleep(ms) {
     return new Promise((resolve) => {
-      const t = setTimeout(() => { this._wake = null; resolve(); }, ms);
-      this._wake = () => { clearTimeout(t); resolve(); };
+      const wake = () => { clearTimeout(t); this._wakers.delete(wake); resolve(); };
+      const t = setTimeout(wake, ms);
+      this._wakers.add(wake);
     });
   }
 
+  /** The oldest pending record no worker has taken; taken here (no await after the filter). */
   async _next() {
     const all = await files.all();
-    return all
-      .filter((r) => r.state === "pending" && r.blob && !this.paused.has(r.sid))
+    const rec = all
+      .filter((r) => r.state === "pending" && r.blob && !this.paused.has(r.sid) && !this.inflight.has(r.id))
       .sort((a, b) => a.added - b.added)[0] || null;
+    if (rec) this.inflight.add(rec.id);
+    return rec;
   }
 
+  // UPLOAD_WORKERS files at a time: a single request at a time leaves a slow uplink idle
+  // between files (hash, IndexedDB, round trips)
   async _loop() {
     this.running = true;
     try {
-      for (;;) {
-        const pid = this.getPid();
-        if (!pid) break;
-        const rec = await this._next();
-        if (!rec) break;
-        try {
-          await this._one(pid, rec);
-          this.backoff = 0;
-          this.lastError = null;
-          this.retryAt = 0;
-        } catch (e) {
-          const retryable = !(e instanceof ApiError) || e.network || e.status >= 500 || e.status === 429 || e.status === 408;
-          this.progress.delete(rec.sid);
-          if (retryable) {
-            this.backoff = Math.min(this.backoff ? this.backoff * 2 : 1000, 60000);
-            this.lastError = e.message;
-            this.retryAt = Date.now() + this.backoff;
-            this.onChange();
-            await this._sleep(this.backoff);
-            this.retryAt = 0;
-          } else {
-            await files.patch(rec.id, { state: "error", error: e.message || String(e) });
-          }
-        }
-        this.onChange();
-      }
+      await Promise.all(Array.from({ length: UPLOAD_WORKERS }, () => this._worker()));
     } finally {
       this.running = false;
+      this.onChange();
+    }
+  }
+
+  async _worker() {
+    for (;;) {
+      const pid = this.getPid();
+      if (!pid) break;
+      const rec = await this._next();
+      if (!rec) break;
+      try {
+        await this._one(pid, rec);
+        this.backoff = 0;
+        this.lastError = null;
+        this.retryAt = 0;
+      } catch (e) {
+        const retryable = !(e instanceof ApiError) || e.network || e.status >= 500 || e.status === 429 || e.status === 408;
+        this.progress.delete(rec.sid);
+        if (retryable) {
+          this.backoff = Math.min(this.backoff ? this.backoff * 2 : 1000, 60000);
+          this.lastError = e.message;
+          this.retryAt = Date.now() + this.backoff;
+          this.onChange();
+          await this._sleep(this.backoff);
+          this.retryAt = 0;
+        } else {
+          await files.patch(rec.id, { state: "error", error: e.message || String(e) });
+        }
+      } finally {
+        this.inflight.delete(rec.id);
+      }
       this.onChange();
     }
   }
