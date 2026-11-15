@@ -8,10 +8,12 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import shutil
+import tempfile
 
 
 def command(*args: str) -> str:
-    return subprocess.check_output(args, text=True)
+    return subprocess.check_output(args, text=True, timeout=120)
 
 
 def main() -> int:
@@ -31,8 +33,13 @@ def main() -> int:
     artifacts = json.loads(command('gh', 'api', f'repos/{args.repo}/actions/runs/{run_id}/artifacts'))
     for artifact in artifacts['artifacts']:
         if not artifact['expired']:
-            command('gh', 'run', 'download', run_id, '--repo', args.repo,
-                    '--name', artifact['name'], '--dir', str(destination / artifact['name']))
+            print(f"Downloading {artifact['name']}...", flush=True)
+            # gh refuses to extract over existing files. Download into a fresh directory
+            # so re-running collection after an interruption is safe and repeatable.
+            with tempfile.TemporaryDirectory(prefix='roomscan-artifact-') as temporary:
+                command('gh', 'run', 'download', run_id, '--repo', args.repo,
+                        '--name', artifact['name'], '--dir', temporary)
+                shutil.copytree(temporary, destination / artifact['name'], dirs_exist_ok=True)
     source_files = command('git', 'ls-tree', '-r', '--name-only', run['headSha'], '--',
                            'ios', '.github/workflows/ios-validation.yml').splitlines()
     inputs = {}

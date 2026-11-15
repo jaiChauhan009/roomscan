@@ -27,7 +27,7 @@ PYTHONPATH=src .venv/bin/python scripts/synthetic_roomplan.py --run
 
 The fixture generator writes merged, shuffled/noisy/no-floor, separate-frame and single-room captures, synthetic JPEGs and local JSON/PNG/SVG reports under `runs/synthetic-roomplan`. Eight seeded randomized cases rotate/translate the entire world and shuffle walls, checking room area, ceiling height, footprint and adjacency. These test the existing processing engine, not the Swift runtime.
 
-Native XCTest cases cover an L-shaped boundary, missing walls, area far from origin and empty home export. Run them with the existing iOS Xcode/CI scheme. Device validation must still check encoding memory pressure, scan cancellation, multi-room registration, preview gestures and real LiDAR accuracy. No device speedup or accuracy improvement has been measured here.
+Native XCTest cases cover an L-shaped boundary, missing walls, area far from origin and empty home export. They now run through GitHub Actions; see the verified CI results below. Device validation must still check encoding memory pressure, scan cancellation, multi-room registration, preview gestures and real LiDAR accuracy. No device speedup or accuracy improvement has been measured.
 
 ## Local validation (2026-11-15)
 
@@ -35,7 +35,7 @@ Native XCTest cases cover an L-shaped boundary, missing walls, area far from ori
 - Fixture pipeline completed: merged 21.00 m², noisy/no-floor 20.98 m², separate frames 21.00 m², single room 12.00 m². The merged PNG was visually inspected.
 - `git diff --check` and environment dependency checks passed.
 - This Linux smoke run used Python 3.12 (available on this host), NumPy 1.26.4 and OpenCV 4.11 in an isolated `.venv`. It is not a locked Python 3.11 release-environment validation. No heavy ML packages were needed for these RoomPlan processing tests.
-- Xcode build, native XCTest and physical-device performance/accuracy tests were not run on this Linux host.
+- Native Xcode compilation and XCTest execution were performed subsequently on GitHub macOS runners (details below). Physical-device performance/accuracy tests remain unexecuted.
 
 ## Capture-quality and sensor-data follow-up
 
@@ -63,7 +63,7 @@ Apple references:
 
 - **29 processing tests passed in 31.99 s**, including optional depth attachment backward compatibility.
 - All **19 Swift files** parsed without syntax errors using tree-sitter-swift. This does **not** type-check Apple SDK calls or replace an Xcode build.
-- Native tests were added for tracking/thermal decisions, padded depth-buffer packing, invalid depth values, scaled intrinsics and ZIP metadata/files. These XCTest cases remain unexecuted here.
+- Native tests were added for tracking/thermal decisions, padded depth-buffer packing, invalid depth values, scaled intrinsics and ZIP metadata/files. These XCTest cases passed on the GitHub simulator runner (details below).
 - Regenerate clearly marked synthetic RGB/depth/confidence samples with:
 
 ```sh
@@ -74,9 +74,33 @@ Synthetic depth is a flat 2 m plane for format tests only; it is not a real LiDA
 
 ## What is still needed for release quality
 
-1. Build and run native tests in Xcode/macOS or the existing GitHub Actions workflow, then install on a physical LiDAR iPhone/iPad. Syntax parsing cannot establish SDK compatibility.
+1. Sign and install the validated build on a physical LiDAR iPhone/iPad. Native compilation and simulator tests have passed, but sensor behavior still requires real devices. Add iPad simulator coverage and more supported iOS versions to the CI matrix before release.
 2. Collect consented device scans with laser/tape reference measurements: rectangular and L-shaped rooms, connected rooms, open plans, glass/mirrors, dark walls, clutter and low light. Repeat each capture on multiple LiDAR device generations and iPad orientations. Include the RoomPlan geometry, exported RGB/depth/confidence, device/OS version, and reference lengths with measurement uncertainty.
 3. Set acceptance targets before tuning: wall-length error percentiles, area error, registration drift across rooms, repeatability, missing openings, build time, frame retention, peak memory and sustained thermal behavior. Compare against magicplan/RoomScan on the same rooms and route. No measured head-to-head result exists yet.
 4. Profile with Instruments (Allocations, Time Profiler, Energy Log and thermal states), including long sessions, camera denial, calls/backgrounding, full storage and failed exports.
 5. Add durable offline room-library recovery, measurement correction and editing, and deliberate room joining/relocalization workflows. The current app still depends on a server project to start scanning, and its scanned-room list is held in memory. ZIP/media files survive independently, but the list is not automatically restored.
 6. If raw geometry is required beyond RoomPlan, build and evaluate a separate ARKit/Metal capture mode for confidence-filtered voxel fusion and mesh export. It must have its own session lifecycle; launching it over RoomPlan's live session is not a valid shortcut. Raw depth attachments alone do not implement reconstruction, curved-wall support or textured meshes.
+
+
+## Verified GitHub Actions results
+
+Final native validation: https://github.com/jaiChauhan009/roomscan/actions/runs/43680950825
+
+Tested application commit: `d4db70394083c51a2849dcb448e70072a3fae342` on `codex/native-lidar-validation`.
+
+- Release build for generic iOS devices: **passed**, iPhone/iPad device families, deployment target iOS 17. The IPA is unsigned.
+- Simulator: **15 passed, 0 failed, 0 skipped** — 14 unit tests and one offline synthetic-room UI test on iPhone 16 / iOS 26.2 / arm64, built on macOS 15.8.2 with Xcode 16.4.
+- The live backend test class and original network-dependent screen tour are intentionally excluded from this validation workflow. They are not counted as passed tests.
+- Synthetic 2D/3D screenshots were downloaded and visually inspected. The SceneKit preview accepts the remaining layout space, keeps the header visible, and constrains camera framing by the smaller viewport dimension. The UI test verifies header visibility and the 3D view's position beneath it.
+- Recorder concurrency warnings were addressed by synchronous scoped record reads and a narrowly scoped immutable camera-buffer owner. A pre-existing Swift 6 isolation warning remains in the compiled but excluded `BackendTests` class; this is not a complete Swift 6 language-mode migration. Xcode also reports its unused App Intents metadata notice.
+- No App Store/TestFlight release was published, and no AWS resources were allocated.
+
+Collect or refresh the saved evidence from the repository root:
+
+```sh
+python scripts/collect_ios_validation.py --run-id 43680950825
+```
+
+This records the GitHub run/job metadata, SHA-256 hashes of 28 tested source files, and hashes of seven output files under `runs/ios-validation/43680950825/manifest.json`. Outputs include the unsigned IPA, device build log, native test log, machine-readable test results and two screenshots. Downloads use a temporary directory so collection is safe to retry. GitHub artifacts expire after three days; the downloaded local copies remain available.
+
+These results establish that the tested code compiles and that its synthetic geometry/export/preview tests pass. They do not establish real LiDAR accuracy, physical-device thermal performance, on-device memory limits or multi-room tracking quality.
