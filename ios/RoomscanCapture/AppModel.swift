@@ -38,9 +38,10 @@ final class AppModel: ObservableObject {
     @Published var uploads: [UploadItem] = [] { didSet { saveUploads() } }
     @Published private(set) var library = ScanLibrary()
     @Published var packingRooms = 0
+    @Published var libraryError: String? = nil
     private var libraryReadable = true
     private var uploadsReadable = true
-    private var connectingProject = false
+    @Published private(set) var connectingProject = false
     var localStorageReady: Bool { libraryReadable }
     static var libraryFile: URL { documentsDir.appendingPathComponent("scan-library.json") }
     private var libraryStore: AtomicJSONStore<ScanLibrary> { AtomicJSONStore(url: Self.libraryFile) }
@@ -138,15 +139,19 @@ final class AppModel: ObservableObject {
 
     private func persistLibrary() {
         guard libraryReadable else { return }
-        do { try libraryStore.save(library) }
-        catch { self.error = "Could not save the local scan library: \(error.localizedDescription). Keep the app open and free storage." }
+        do { try libraryStore.save(library); libraryError = nil }
+        catch {
+            libraryError = "Could not save the local scan library: \(error.localizedDescription). Keep the app open and free storage."
+            self.error = libraryError
+        }
     }
 
     func connectProject() async {
         guard projectId == nil, libraryReadable, !connectingProject else { return }
         connectingProject = true
-        busy = "Creating project…"
-        defer { busy = nil; connectingProject = false }
+        // Connection runs independently of local capture; an offline server must not
+        // cover the scan button with a blocking progress overlay.
+        defer { connectingProject = false }
         do {
             let pid = try await api.createProject()
             projectId = pid
@@ -240,10 +245,23 @@ final class AppModel: ObservableObject {
     func nextFrameIndex() -> Int { frameCounter += 1; return frameCounter }
     var framesDir: String { sessionDir + "/frames" }
 
-    func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord], sessionId: String? = nil) {
+    @discardableResult
+    func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord], sessionId: String? = nil) -> Bool {
+        guard libraryReadable, let index = library.selectedIndex else { return false }
         let r = ScannedRoom(name: name, captured: room, sessionId: sessionId ?? arSessionId, frames: frames)
-        lidarRooms.append(r)
+        var next = library
+        next.properties[index].rooms.append(r)
+        do {
+            // Do not dismiss the capture review until its geometry is durably saved.
+            try libraryStore.save(next)
+            library = next
+            libraryError = nil
+        } catch {
+            libraryError = "The room could not be saved. Keep this review open and free storage, then try Save again. \(error.localizedDescription)"
+            return false
+        }
         packRoom(r)
+        return true
     }
 
     private func recoverPendingRoomExports() {

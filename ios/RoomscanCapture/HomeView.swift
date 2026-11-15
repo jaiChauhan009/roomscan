@@ -32,13 +32,15 @@ struct HomeView: View {
                                 Task { await model.selectProperty(property.id) }
                             }
                         }
-                    }.disabled(model.packingRooms > 0)
+                    }.disabled(model.packingRooms > 0 || model.connectingProject)
                     Button("Start a new property") { Task { await model.newProject() } }
-                        .disabled(model.packingRooms > 0)
+                        .disabled(model.packingRooms > 0 || model.connectingProject)
                     if model.projectId == nil {
                         Text("Rooms are saved on this device. Connect when ready to upload and compute reports.")
                             .font(.caption)
                         Button("Connect this property") { Task { await model.connectProject() } }
+                            .disabled(model.connectingProject)
+                        if model.connectingProject { Text("Connecting… You can scan rooms while waiting.").font(.caption) }
                     }
                 }
 

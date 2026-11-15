@@ -41,6 +41,7 @@ struct SavedRoomView: View {
         if let saved = model.lidarRooms.first(where: { $0.id == roomId }) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    if let error = model.libraryError { Text(error).foregroundStyle(.red) }
                     PlanPreview(room: saved.plan).frame(height: 350)
                     ForEach(saved.plan.reviewIssues) { issue in
                         Text(issue.message).font(.callout).foregroundStyle(.orange)

@@ -404,9 +404,10 @@ struct ScanScreen: View {
             if let (room, frames) = ctl.result {
                 ScanReview(room: PlanRoom(room), frameCount: frames.count,
                            depthCount: frames.filter { $0.depth != nil }.count,
+                           saveError: model.libraryError,
                            save: {
-                    model.addLidarRoom(name: roomName, room: room, frames: frames,
-                                       sessionId: captureSessionID ?? model.arSessionId)
+                    guard model.addLidarRoom(name: roomName, room: room, frames: frames,
+                                            sessionId: captureSessionID ?? model.arSessionId) else { return }
                     ctl.accept()
                     reviewing = false
                 }, discard: { ctl.cancel(); reviewing = false })
@@ -419,6 +420,7 @@ private struct ScanReview: View {
     let room: PlanRoom
     let frameCount: Int
     let depthCount: Int
+    let saveError: String?
     let save: () -> Void
     let discard: () -> Void
     var body: some View {
@@ -434,6 +436,7 @@ private struct ScanReview: View {
                 }
                 PlanPreview(room: room)
                 Text("\(frameCount) photos · \(depthCount) LiDAR depth frames").font(.caption)
+                if let saveError { Text(saveError).font(.callout).foregroundStyle(.red) }
                 Button("Save room", action: save).buttonStyle(.borderedProminent)
                 Button("Rescan this room", role: .destructive, action: discard)
             }
