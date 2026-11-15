@@ -425,16 +425,17 @@ private struct ScanReview: View {
         NavigationStack {
             VStack(spacing: 16) {
                 Text(RoomStats(room).summary).font(.headline)
-                if room.floorWorld == nil && room.wallOutline == nil {
-                    Text("The wall boundary is incomplete. The area is approximate; rescan if a wall is missing.")
-                        .foregroundStyle(.orange)
+                ForEach(room.reviewIssues) { issue in
+                    Text(issue.message).font(.callout).foregroundStyle(.orange)
                 }
-                let low = room.walls.filter { $0.confidence == "low" }.count
-                if low > 0 { Text("\(low) wall(s) have low confidence. Check their shape before saving.").foregroundStyle(.orange) }
+                if !room.reviewIssues.isEmpty {
+                    Text("Wall numbers appear on the 2D plan. Orange walls need closer review.")
+                        .font(.caption)
+                }
                 PlanPreview(room: room)
                 Text("\(frameCount) photos · \(depthCount) LiDAR depth frames").font(.caption)
                 Button("Save room", action: save).buttonStyle(.borderedProminent)
-                Button("Discard and scan again", role: .destructive, action: discard)
+                Button("Rescan this room", role: .destructive, action: discard)
             }
             .padding().navigationTitle("Review room")
         }

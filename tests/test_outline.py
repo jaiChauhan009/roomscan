@@ -7,6 +7,41 @@ from synth import furnished_room
 from roomscan.geometry.layout import _fill_slots, _settle, _square_corners, _vertices, extract_layout
 from roomscan.geometry.pointcloud import Cloud
 
+
+def _deep_recess():
+    segs = _raster_segs([(0, 0), (1.4, 0), (1.4, 1.05), (2.6, 1.05),
+                         (2.6, 0), (4, 0), (4, 3), (0, 3)])
+    cloud = furnished_room([(1.4, 2.6, 0, 1.05, 1.8)])
+    for s in segs:
+        s['_nrm'] = cloud.normals[:, [0, 2]]
+    return segs, cloud
+
+
+def test_deep_furniture_recess_requires_upper_wall_evidence():
+    from roomscan.geometry.layout import _bridge_observed_wall
+    segs, cloud = _deep_recess()
+    out = _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6)
+    assert len(out) == 4
+    assert Polygon(_vertices(out)).area == pytest.approx(12, abs=.04)
+
+
+def test_real_recess_without_a_wall_behind_it_is_preserved():
+    from roomscan.geometry.layout import _bridge_observed_wall
+    segs, cloud = _deep_recess()
+    keep = ~((np.abs(cloud.points[:, 2]) < .06) & (cloud.points[:, 0] > 1.4)
+             & (cloud.points[:, 0] < 2.6))
+    cloud = Cloud(cloud.points[keep], cloud.normals[keep], cloud.weight[keep])
+    for s in segs:
+        s['_nrm'] = cloud.normals[:, [0, 2]]
+    out = _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6)
+    assert len(out) == 8
+
+
+def test_recess_without_observed_ceiling_is_not_filled():
+    from roomscan.geometry.layout import _bridge_observed_wall
+    segs, cloud = _deep_recess()
+    assert _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, None) is segs
+
 WARDROBE = (1.4, 2.6, 0.0, 0.6, 1.8)  # 1.2 m wide, 0.6 m deep, 1.8 m tall, against the z = 0 wall
 
 

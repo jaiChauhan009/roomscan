@@ -41,7 +41,11 @@ struct PlanPreview: View {
                     for (i, edge) in segments.enumerated() {
                         var line = Path()
                         line.move(to: project(edge.0)); line.addLine(to: project(edge.1))
-                        context.stroke(line, with: .color(room.walls[i].confidence == "low" ? .orange : .primary), lineWidth: 3)
+                        context.stroke(line, with: .color(room.walls[i].confidence != "high" ? .orange : .primary), lineWidth: 3)
+                        if interactive {
+                            let midpoint = (edge.0 + edge.1) / 2
+                            context.draw(Text("\(i + 1)").font(.caption2.bold()), at: project(midpoint))
+                        }
                     }
                     for surface in room.doors + room.openings + room.windows {
                         let edge = PlanRoom.ends(surface)

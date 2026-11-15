@@ -26,7 +26,20 @@ struct HomeView: View {
 
                 Section("Your property") {
                     LabeledContent("Project", value: model.projectId.map { String($0.prefix(12)) } ?? "–")
-                    Button("Start a new project") { Task { await model.newProject() } }
+                    Menu("Saved properties") {
+                        ForEach(model.library.properties) { property in
+                            Button("\(property.name) · \(property.rooms.count) rooms") {
+                                Task { await model.selectProperty(property.id) }
+                            }
+                        }
+                    }.disabled(model.packingRooms > 0)
+                    Button("Start a new property") { Task { await model.newProject() } }
+                        .disabled(model.packingRooms > 0)
+                    if model.projectId == nil {
+                        Text("Rooms are saved on this device. Connect when ready to upload and compute reports.")
+                            .font(.caption)
+                        Button("Connect this property") { Task { await model.connectProject() } }
+                    }
                 }
 
                 extraSections
@@ -105,13 +118,13 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(model.projectId == nil || (model.captureFiles["lidar"]?.count ?? 0) >= 5)
+            .disabled(!model.localStorageReady)
             .accessibilityIdentifier("scan")
             ForEach(model.lidarRooms) { r in
                 let s = r.stats
                 VStack(alignment: .leading, spacing: 2) {
                     NavigationLink {
-                        PlanPreview(room: r.plan).padding().navigationTitle(r.name)
+                        SavedRoomView(roomId: r.id)
                     } label: {
                         Label(r.name, systemImage: "viewfinder").font(.headline)
                     }
@@ -119,8 +132,10 @@ struct HomeView: View {
                     Text(s.counts + " · \(r.frames.count) photos").font(.caption).foregroundStyle(.secondary)
                     if let uid = model.roomUpload[r.id], let u = model.uploads.first(where: { $0.id == uid }) {
                         UploadRow(item: u)
-                    } else {
+                    } else if r.zipPath == nil {
                         Text("Packing…").font(.caption)
+                    } else {
+                        Text("Saved on this device").font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -128,7 +143,7 @@ struct HomeView: View {
                 Button("Share the whole scan (.zip)") { Task { if let u = await model.homeZip() { share = ShareTarget(url: u) } } }
             }
         } header: { Text("Whole home: LiDAR scan").font(.headline).foregroundStyle(.primary) } footer: {
-            Text("One room at a time: follow the on-screen guidance, open the doors, good light. Each room uploads as soon as you tap Done (up to 5).")
+            Text("Scan and share offline. Use good light and include the wall tops. When connected, up to five rooms upload automatically; all saved rooms are included when sharing the whole scan.")
         }
     }
 

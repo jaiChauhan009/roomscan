@@ -146,6 +146,7 @@ struct NamedRoom {
     var name: String
     var room: PlanRoom
     var frames: [FrameRecord]
+    var referenceMeasurements: [WallReferenceMeasurement] = []
 }
 
 // MARK: - capture.json ("roomscan.roomplan/1")
@@ -164,7 +165,7 @@ private func surfaceJSON(_ s: PlanSurface, door: Bool) -> J {
     return .obj(kv)
 }
 
-func roomJSON(_ r: PlanRoom, name: String, index: Int) -> J {
+func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenceMeasurement] = []) -> J {
     let walls: [J] = r.walls.map { w in
         let (a, b) = PlanRoom.ends(w)
         return .obj([
@@ -202,6 +203,7 @@ func roomJSON(_ r: PlanRoom, name: String, index: Int) -> J {
         ("floor", floor),
         ("objects", .arr(objects)),
         ("section_labels", .arr(r.sections.map { .str($0) })),
+        ("reference_measurements", .arr(references.filter(\.isValid).map(\.json))),
     ])
 }
 
@@ -241,7 +243,8 @@ func captureJSON(rooms: [NamedRoom], merged: Bool, sessionId: String, capturedAt
         ("units", .str("m")),
         ("coordinate_frame", .str("arkit_world_y_up")),
         ("merged", .bool(merged)),
-        ("rooms", .arr(rooms.enumerated().map { roomJSON($0.element.room, name: $0.element.name, index: $0.offset) })),
+        ("rooms", .arr(rooms.enumerated().map { roomJSON($0.element.room, name: $0.element.name, index: $0.offset,
+                                                       references: $0.element.referenceMeasurements) })),
         ("frames", .arr(frames)),
     ])
 }

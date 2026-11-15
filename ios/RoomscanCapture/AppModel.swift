@@ -36,8 +36,30 @@ final class AppModel: ObservableObject {
     @Published var spaces: [Space] = []
     @Published var captureFiles: [String: [String]] = [:]     // kind -> file names on the server
     @Published var uploads: [UploadItem] = [] { didSet { saveUploads() } }
-    @Published var lidarRooms: [ScannedRoom] = []
-    @Published var roomUpload: [UUID: UUID] = [:]             // scanned room -> upload item
+    @Published private(set) var library = ScanLibrary()
+    @Published var packingRooms = 0
+    private var libraryReadable = true
+    private var uploadsReadable = true
+    private var connectingProject = false
+    var localStorageReady: Bool { libraryReadable }
+    static var libraryFile: URL { documentsDir.appendingPathComponent("scan-library.json") }
+    private var libraryStore: AtomicJSONStore<ScanLibrary> { AtomicJSONStore(url: Self.libraryFile) }
+    var lidarRooms: [ScannedRoom] {
+        get { library.selectedIndex.map { library.properties[$0].rooms } ?? [] }
+        set {
+            guard let i = library.selectedIndex else { return }
+            library.properties[i].rooms = newValue
+            persistLibrary()
+        }
+    }
+    var roomUpload: [UUID: UUID] {
+        get { library.selectedIndex.map { library.properties[$0].roomUploads } ?? [:] }
+        set {
+            guard let i = library.selectedIndex else { return }
+            library.properties[i].roomUploads = newValue
+            persistLibrary()
+        }
+    }
     @Published var verifyResult: JSONObject? = nil
     @Published var jobId: String? { didSet { UserDefaults.standard.set(jobId, forKey: "jobId") } }
     @Published var busy: String? = nil
@@ -61,37 +83,85 @@ final class AppModel: ObservableObject {
         email = d.string(forKey: "email") ?? ""
         projectId = d.string(forKey: "projectId")
         jobId = d.string(forKey: "jobId")
-        if let data = try? Data(contentsOf: AppModel.uploadsFile),
-           var items = try? JSONDecoder().decode([UploadItem].self, from: data) {
-            for i in items.indices where items[i].state == .uploading { items[i].state = .queued; items[i].progress = 0 }
-            uploads = items
+        do {
+            if var items = try AtomicJSONStore<[UploadItem]>(url: Self.uploadsFile).load() {
+                for i in items.indices where items[i].state == .uploading { items[i].state = .queued; items[i].progress = 0 }
+                uploads = items
+            }
+        } catch {
+            uploadsReadable = false
+            self.error = "The upload queue could not be recovered. Its files have been preserved; saved room geometry remains separate."
+        }
+        do {
+            library = try (libraryStore.load() ?? ScanLibrary(projectId: projectId)).validated()
+            projectId = library.selectedIndex.flatMap { library.properties[$0].projectId }
+        } catch {
+            libraryReadable = false
+            self.error = "Could not recover the local scan library. Its files have been preserved: \(error.localizedDescription)"
         }
     }
 
     // MARK: project
 
     func bootstrap() async {
-        if projectId == nil { await newProject() } else { await refresh() }
+        guard libraryReadable else { return }
+        recoverPendingRoomExports()
+        if projectId == nil { await connectProject() } else { await refresh() }
+        queueSavedRooms()
         pump()
     }
 
     func newProject() async {
+        guard libraryReadable, packingRooms == 0, !connectingProject else { return }
+        let property = LocalScanProperty(name: "Property \(library.properties.count + 1)")
+        library.properties.append(property)
+        library.selectedId = property.id
+        projectId = nil
+        spaces = []; captureFiles = [:]; verifyResult = nil; jobId = nil
+        arSession.pause(); arSessionId = UUID().uuidString.lowercased()
+        persistLibrary()
+        await connectProject()
+    }
+
+    func selectProperty(_ id: UUID) async {
+        guard libraryReadable, packingRooms == 0, !connectingProject,
+              library.properties.contains(where: { $0.id == id }) else { return }
+        library.selectedId = id
+        projectId = library.selectedIndex.flatMap { library.properties[$0].projectId }
+        spaces = []; captureFiles = [:]; verifyResult = nil; jobId = nil
+        arSession.pause(); arSessionId = UUID().uuidString.lowercased()
+        persistLibrary()
+        recoverPendingRoomExports()
+        if projectId != nil { await refresh() }
+        queueSavedRooms()
+    }
+
+    private func persistLibrary() {
+        guard libraryReadable else { return }
+        do { try libraryStore.save(library) }
+        catch { self.error = "Could not save the local scan library: \(error.localizedDescription). Keep the app open and free storage." }
+    }
+
+    func connectProject() async {
+        guard projectId == nil, libraryReadable, !connectingProject else { return }
+        connectingProject = true
         busy = "Creating project…"
-        defer { busy = nil }
+        defer { busy = nil; connectingProject = false }
         do {
             let pid = try await api.createProject()
             projectId = pid
-            spaces = []; captureFiles = [:]; lidarRooms = []; roomUpload = [:]
-            verifyResult = nil; jobId = nil
-            uploads.removeAll { $0.state == .done || $0.pid != pid }
+            if let i = library.selectedIndex { library.properties[i].projectId = pid }
             error = nil
-        } catch { self.error = "Could not create a project: \(error.localizedDescription)" }
+            persistLibrary()
+            queueSavedRooms()
+        } catch { self.error = "Scanning and sharing are available offline. Could not connect this property: \(error.localizedDescription)" }
     }
 
     func refresh() async {
         guard let pid = projectId else { return }
         do {
             let p = try await api.project(pid)
+            guard projectId == pid else { return }
             spaces = (p["spaces"] as? [JSONObject] ?? []).map { s in
                 let sz = s["sizes"] as? JSONObject ?? [:]
                 return Space(id: s["space_id"] as? String ?? "", name: s["name"] as? String ?? "",
@@ -105,7 +175,15 @@ final class AppModel: ObservableObject {
             captureFiles = cf
             error = nil
         } catch let e as APIError where e.status == 404 {
-            await newProject()  // the server forgot the project (results expire): start a new one
+            guard projectId == pid else { return }
+            // Server expiry must never discard locally saved rooms or switch properties.
+            projectId = nil
+            if let i = library.selectedIndex {
+                library.properties[i].projectId = nil
+                library.properties[i].roomUploads = [:]
+            }
+            persistLibrary()
+            await connectProject()
         } catch { self.error = error.localizedDescription }
     }
 
@@ -165,23 +243,68 @@ final class AppModel: ObservableObject {
     func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord], sessionId: String? = nil) {
         let r = ScannedRoom(name: name, captured: room, sessionId: sessionId ?? arSessionId, frames: frames)
         lidarRooms.append(r)
-        guard let pid = projectId else { return }
-        let n = lidarRooms.count
-        let zipName = "\(stamp())-room\(n).roomscan.zip"
+        packRoom(r)
+    }
+
+    private func recoverPendingRoomExports() {
+        guard packingRooms == 0 else { return }
+        for room in lidarRooms where room.zipPath == nil { packRoom(room) }
+    }
+
+    func setWallReference(roomId: UUID, reference: WallReferenceMeasurement) {
+        guard reference.isValid, let index = lidarRooms.firstIndex(where: { $0.id == roomId }),
+              lidarRooms[index].plan.walls.contains(where: { $0.id == reference.wallId }) else { return }
+        var rooms = lidarRooms
+        var references = rooms[index].referenceMeasurements ?? []
+        references.removeAll { $0.wallId == reference.wallId }
+        references.append(reference)
+        rooms[index].referenceMeasurements = references
+        lidarRooms = rooms
+    }
+
+    private func packRoom(_ r: ScannedRoom) {
+        let propertyID = library.selectedId
+        let zipName = "\(r.id.uuidString.lowercased()).roomscan.zip"
         let rel = "\(sessionDir)/\(zipName)"
         let dst = documentsDir.appendingPathComponent(rel)
+        packingRooms += 1
         Task.detached(priority: .userInitiated) {
             do {
                 try FileManager.default.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try RoomPlanExport.roomZip(r, to: dst)
                 await MainActor.run {
-                    let item = UploadItem(pid: pid, target: "captures/lidar", path: rel, name: zipName, label: "LiDAR: \(name)")
-                    self.roomUpload[r.id] = item.id
-                    self.enqueue(item)
+                    if let p = self.library.properties.firstIndex(where: { $0.id == propertyID }),
+                       let i = self.library.properties[p].rooms.firstIndex(where: { $0.id == r.id }) {
+                        self.library.properties[p].rooms[i].zipPath = rel
+                        self.persistLibrary()
+                    }
+                    self.packingRooms -= 1
+                    self.queueSavedRooms()
                 }
             } catch {
-                await MainActor.run { self.error = "Could not pack \(name): \(error.localizedDescription)" }
+                await MainActor.run {
+                    self.packingRooms -= 1
+                    self.error = "Room geometry is kept locally, but could not pack \(r.name): \(error.localizedDescription)"
+                }
             }
+        }
+    }
+
+    private func queueSavedRooms() {
+        guard uploadsReadable, let pid = projectId else { return }
+        for room in lidarRooms where roomUpload[room.id] == nil {
+            // The server accepts five capture files. Further rooms remain in the local
+            // library and are included in the whole-property share export.
+            guard roomUpload.count < 5 else { break }
+            guard let path = room.zipPath else { continue }
+            guard FileManager.default.fileExists(atPath: documentsDir.appendingPathComponent(path).path) else {
+                self.error = "The saved ZIP for \(room.name) is missing. Its geometry remains available for sharing."
+                continue
+            }
+            let item = UploadItem(pid: pid, target: "captures/lidar", path: path,
+                                  name: (path as NSString).lastPathComponent, label: "LiDAR: \(room.name)")
+            enqueue(item)
+            roomUpload[room.id] = item.id
         }
     }
 
@@ -206,7 +329,9 @@ final class AppModel: ObservableObject {
 
     static var uploadsFile: URL { documentsDir.appendingPathComponent("uploads.json") }
     private func saveUploads() {
-        if let d = try? JSONEncoder().encode(uploads) { try? d.write(to: AppModel.uploadsFile) }
+        guard uploadsReadable else { return }
+        do { try AtomicJSONStore<[UploadItem]>(url: Self.uploadsFile).save(uploads) }
+        catch { self.error = "Could not save the upload queue: \(error.localizedDescription)" }
     }
 
     private func save(_ data: Data, _ rel: String) throws {

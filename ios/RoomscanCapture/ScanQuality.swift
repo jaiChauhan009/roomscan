@@ -34,3 +34,32 @@ struct ScanHealth: Equatable {
         return nil
     }
 }
+
+struct RoomReviewIssue: Identifiable, Equatable {
+    var id: String
+    var message: String
+}
+
+extension PlanRoom {
+    var reviewIssues: [RoomReviewIssue] {
+        var issues: [RoomReviewIssue] = []
+        if wallOutline == nil {
+            issues.append(RoomReviewIssue(id: "boundary", message:
+                "The wall boundary does not close. Check the room corners and any missing wall, even if a floor is visible."))
+        }
+        let weak = walls.indices.filter { walls[$0].confidence != "high" }
+        if !weak.isEmpty {
+            issues.append(RoomReviewIssue(id: "confidence", message:
+                "Check walls \(weak.map { String($0 + 1) }.joined(separator: ", ")). Their scan confidence is limited."))
+        }
+        if floorWorld == nil {
+            issues.append(RoomReviewIssue(id: "floor", message:
+                "No floor boundary was captured. Include the floor edges when rescanning."))
+        }
+        if walls.contains(where: { !$0.dimensions.x.isFinite || !$0.dimensions.y.isFinite
+            || $0.dimensions.x <= 0 || $0.dimensions.y <= 0 }) {
+            issues.append(RoomReviewIssue(id: "dimensions", message: "A wall has invalid dimensions. Rescan this room."))
+        }
+        return issues
+    }
+}

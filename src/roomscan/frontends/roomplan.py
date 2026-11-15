@@ -180,6 +180,7 @@ class RPRoom:
     objects: list[dict]
     section_labels: list[str]
     capture: str  # name of the capture (folder) it came from
+    reference_measurements: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -341,10 +342,33 @@ def parse_capture(root: Path, notes: list[str]) -> tuple[dict, list[RPRoom], lis
                 obj["yaw"] = round(_num(o["yaw"], f"{where}.objects[{k}].yaw"), 4)
             objects.append(obj)
         labels = [str(s) for s in _list(r, "section_labels", where) if str(s).strip()]
+        references = []
+        wall_by_id = {w.uid: w for w in walls}
+        for j, reference in enumerate(_list(r, "reference_measurements", where)):
+            ref_where = f"{where}.reference_measurements[{j}]"
+            if not isinstance(reference, dict):
+                raise InputError(f"capture.json: {ref_where} must be an object")
+            metres = _num(reference.get('metres'), f'{ref_where}.metres', positive=True, allow_zero=False)
+            uncertainty = _num(reference.get('uncertainty_metres'), f'{ref_where}.uncertainty_metres',
+                               positive=True, allow_zero=False)
+            source = reference.get('source')
+            if not .05 <= metres <= 100 or uncertainty >= metres or source not in ('tape', 'laser'):
+                raise InputError(f"capture.json: {ref_where} requires a tape/laser length in metres and smaller positive uncertainty")
+            wall_id = str(reference.get('wall_id') or '')
+            entry = {'wall_id': wall_id, 'metres': metres, 'uncertainty_metres': uncertainty,
+                     'source': source, 'recorded_at': str(reference.get('recorded_at') or '')}
+            if wall_id in wall_by_id:
+                difference = wall_by_id[wall_id].length - metres
+                entry['scan_difference_m'] = round(difference, 4)
+                if abs(difference) > max(.05, 3 * uncertainty):
+                    notes.append(f"{name}: wall {wall_id} differs from its {source} reference by {difference:+.3f} m; review the scan")
+            else:
+                notes.append(f"{name}: reference wall {wall_id} is not in this capture; measurement retained without a comparison")
+            references.append(entry)
         rooms.append(RPRoom(name=name, index=int(r.get("index", i)) if isinstance(r.get("index", i), int) else i,
                             story=int(r.get("story") or 0) if isinstance(r.get("story") or 0, int) else 0,
                             walls=walls, openings=ops, floor_poly=floor_poly, floor_y=floor_y, objects=objects,
-                            section_labels=labels, capture=root.name))
+                            section_labels=labels, capture=root.name, reference_measurements=references))
     by_index = {r.index: k for k, r in enumerate(rooms)}
     frames: list[RPFrame] = []
     missing = bad_size = 0
@@ -660,7 +684,8 @@ def build_layout(rp: RoomPlanCapture) -> Built:
                      "section_labels": r.section_labels, "capture": r.capture,
                      "outline": "floor_polygon" if r.floor_poly is not None else
                      ("walls" if ch is not None else "convex_hull"),
-                     "objects": r.objects, "_k": k, "_heights": [w.height for w, _ in seq]})
+                     "objects": r.objects, "reference_measurements": r.reference_measurements,
+                     "_k": k, "_heights": [w.height for w, _ in seq]})
     if rooms:
         allp = np.concatenate([r.polygon for r in rooms])
         lo, hi = allp.min(0) - 0.5, allp.max(0) + 0.5

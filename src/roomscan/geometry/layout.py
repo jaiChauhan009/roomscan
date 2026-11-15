@@ -505,6 +505,72 @@ def _overlaps(new: list[dict], old: list[dict], others: np.ndarray | None, frame
     return any(added.contains(Point(x, y)) for x, y in centers)
 
 
+def _bridge_observed_wall(segs: list[dict], ab: np.ndarray, cloud: Cloud, floor_y: float,
+                          ceiling_h: float | None, others=None, frame=None) -> list[dict]:
+    """Remove a furniture recess only when an upper wall closes its mouth.
+
+    Floor masks cannot distinguish an alcove from furniture. Require a measured ceiling,
+    inward-facing points in its upper wall band, and evidence across 85% of the proposed
+    wall. Never bridge another room or infer a wall from its rectangular bounding box.
+    """
+    if ceiling_h is None:
+        return segs
+    out = list(segs)
+    changed = True
+    while changed and len(out) >= 8:
+        changed = False
+        for i in range(len(out)):
+            rot = out[i:] + out[:i]
+            a, b, c, d, e = rot[:5]
+            if not (a["orient"] == c["orient"] == e["orient"] in ("H", "V")
+                    and b["orient"] == d["orient"] in ("H", "V")
+                    and a["orient"] != b["orient"]
+                    and abs(a["coord"] - e["coord"]) <= 0.12):
+                continue
+            v = _vertices(rot)
+            axis = 1 if a["orient"] == "H" else 0
+            along = 1 - axis
+            direction = v[1] - v[0]
+            inward = np.array([-direction[1], direction[0]]) / max(np.linalg.norm(direction), 1e-9)
+            baseline = (a["coord"] + e["coord"]) / 2
+            depth = (c["coord"] - baseline) * inward[axis]
+            if not 0.03 < depth <= 1.5:
+                continue
+            if (v[1, along] - v[0, along]) * (v[5, along] - v[4, along]) <= 0:
+                continue
+            lo, hi = sorted([v[0, along], v[5, along]])
+            if hi - lo < 0.4:
+                continue
+            height = cloud.points[:, 1] - floor_y
+            normals = a["_nrm"]
+            mask = ((ab[:, along] >= lo) & (ab[:, along] <= hi)
+                    & (np.abs(ab[:, axis] - baseline) < 0.06)
+                    & (height >= ceiling_h - 0.6) & (height <= ceiling_h - 0.08)
+                    & (np.abs(cloud.normals[:, 1]) < WALL_T) & (normals @ inward > 0.8))
+            if mask.sum() < 30:
+                continue
+            values = ab[mask, axis]
+            coord = float(np.median(values))
+            plane = mask & (np.abs(ab[:, axis] - coord) < 0.025)
+            # Fraction of spatial bins, rather than point count/viewing time.
+            bins = int(np.ceil((hi - lo) / 0.05))
+            observed = np.unique(np.clip(((ab[plane, along] - lo) / 0.05).astype(int), 0, bins - 1))
+            if len(observed) / bins < 0.85:
+                continue
+            merged = {**a, "coord": coord, "len": hi - lo, "support": int(plane.sum()),
+                      "coverage": len(observed) / bins,
+                      "sigma": max(float(np.std(ab[plane, axis])) / np.sqrt(plane.sum()), 0.002)}
+            candidate = [merged] + rot[5:]
+            if not _outline_ok(candidate) or _overlaps(candidate, out, others, frame):
+                continue
+            if Polygon(_vertices(candidate)).area <= Polygon(_vertices(out)).area:
+                continue
+            out = candidate
+            changed = True
+            break
+    return out
+
+
 def _revert(segs: list[dict], i: int) -> list[dict]:
     """The outline with edge i back where the raster put it, as an edge without evidence."""
     out = list(segs)
@@ -651,6 +717,7 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
         settled = _settle(segs)
         if settled is not None:
             settled = _fill_slots(settled, others, frame)
+            settled = _bridge_observed_wall(settled, ab, sub, floor.value, room_ceil, others, frame)
             # each final wall's evidence, measured where it ended up (merged walls span the old step)
             v = _vertices(settled)
             polished = _refine_walls([dict(s) for s in settled], v, ab, sub, floor.value, Polygon(v),

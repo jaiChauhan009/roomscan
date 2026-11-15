@@ -81,6 +81,28 @@ def test_merged_two_rooms_match_truth(tmp_path):
     assert next(s for s in st["stages"] if s["name"] == "load")["gate"] == "warn"  # no frames
 
 
+def test_wall_reference_is_audited_without_changing_capture_geometry(tmp_path):
+    data = RS.capture('merged')
+    wall = data['rooms'][0]['walls'][0]
+    length = float(np.linalg.norm(np.subtract(wall['end'], wall['start'])))
+    data['rooms'][0]['reference_measurements'] = [
+        {'wall_id': wall['id'], 'metres': length + .2, 'uncertainty_metres': .005, 'source': 'laser'}]
+    result, _ = run(tmp_path, data=data)
+    reference = result['capture']['meta']['rooms'][0]['reference_measurements'][0]
+    assert reference['scan_difference_m'] == pytest.approx(-.2)
+    assert any('differs from its laser reference' in w for w in result['warnings'])
+    assert result['property']['footprint_area']['value'] == pytest.approx(21)
+
+
+@pytest.mark.parametrize('value', [0, -1, float('nan'), 101])
+def test_invalid_reference_measurement_rejected(tmp_path, value):
+    data = RS.capture('merged')
+    data['rooms'][0]['reference_measurements'] = [
+        {'wall_id': 'wall', 'metres': value, 'uncertainty_metres': .005, 'source': 'laser'}]
+    with pytest.raises(pl.InputError):
+        run(tmp_path, data=data)
+
+
 def test_without_floor_polygons_chains_walls(tmp_path):
     """Walls shuffled, one reversed, corners jittered 1.5 cm: the outline is chained from them."""
     res, _ = run(tmp_path, "no_floor")

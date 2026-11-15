@@ -36,13 +36,15 @@ extension PlanRoom {
 }
 
 /// A finished RoomPlan room kept for the session.
-struct ScannedRoom: Identifiable {
-    let id = UUID()
+struct ScannedRoom: Identifiable, Codable {
+    var id = UUID()
     var name: String
     var captured: CapturedRoom
     /// ARSession run this room was scanned in: rooms with the same id share one world frame
     var sessionId: String
     var frames: [FrameRecord]
+    var zipPath: String? = nil
+    var referenceMeasurements: [WallReferenceMeasurement]? = nil
     var plan: PlanRoom { PlanRoom(captured) }
     var stats: RoomStats { RoomStats(plan) }
 }
@@ -56,7 +58,9 @@ enum RoomPlanExport {
         defer { try? FileManager.default.removeItem(at: tmp) }
         let u = tmp.appendingPathComponent("room.usdz")
         let extras: [(name: String, url: URL)] = (try? r.captured.export(to: u, exportOptions: .parametric)) != nil ? [("room.usdz", u)] : []
-        try writeRoomscanZip(rooms: [NamedRoom(name: r.name, room: r.plan, frames: r.frames)], merged: true, sessionId: r.sessionId, extras: extras, to: zipURL)
+        try writeRoomscanZip(rooms: [NamedRoom(name: r.name, room: r.plan, frames: r.frames,
+                                              referenceMeasurements: r.referenceMeasurements ?? [])],
+                             merged: true, sessionId: r.sessionId, extras: extras, to: zipURL)
     }
 
     /// All rooms → one zip; merged with StructureBuilder when there are 2+ rooms and it succeeds.
@@ -65,7 +69,8 @@ enum RoomPlanExport {
         let oneSession = Set(rooms.map(\.sessionId)).count == 1
         var merged = false
         var structure: CapturedStructure? = nil
-        var named = rooms.map { NamedRoom(name: $0.name, room: $0.plan, frames: $0.frames) }
+        var named = rooms.map { NamedRoom(name: $0.name, room: $0.plan, frames: $0.frames,
+                                         referenceMeasurements: $0.referenceMeasurements ?? []) }
         if rooms.count > 1 && oneSession {
             if let s = try? await StructureBuilder(options: [.beautifyObjects]).capturedStructure(from: rooms.map(\.captured)),
                s.rooms.count == rooms.count {
