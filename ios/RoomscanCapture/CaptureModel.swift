@@ -192,7 +192,7 @@ func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenc
             ("yaw", .f(atan2(-c0.z, c0.x))),
         ])
     }
-    return .obj([
+    var fields: [(String, J)] = [
         ("name", .str(name)),
         ("index", .int(index)),
         ("story", .int(r.story)),
@@ -203,8 +203,12 @@ func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenc
         ("floor", floor),
         ("objects", .arr(objects)),
         ("section_labels", .arr(r.sections.map { .str($0) })),
-        ("reference_measurements", .arr(references.filter(\.isValid).map(\.json))),
-    ])
+    ]
+    let validReferences = references.filter(\.isValid)
+    if !validReferences.isEmpty {
+        fields.append(("reference_measurements", .arr(validReferences.map(\.json))))
+    }
+    return .obj(fields)
 }
 
 func systemVersionString() -> String {

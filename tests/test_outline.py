@@ -53,6 +53,19 @@ def test_observed_recess_does_not_expand_into_a_neighbour():
     out = _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6, others, frame)
     assert len(out) == 8
 
+
+def test_repaired_outline_keeps_original_geometry_for_review():
+    from roomscan.export.build import build_output
+    layout = extract_layout(furnished_room([(1.4, 2.6, 0, 1.05, 1.8)]))
+    out = build_output(layout, [], 'lidar',
+                       {'id': 'synthetic', 'tier': 'lidar', 'source': 'synthetic', 'n_frames_used': 0, 'meta': {}},
+                       {'enabled': False})
+    repair = out.capture.meta['outline_repairs'][0]
+    assert repair['updated_area_m2'] == pytest.approx(12, abs=.04)
+    assert repair['original_area_m2'] < repair['updated_area_m2'] - 1
+    assert len(repair['original_polygon']) == 8
+    assert any(issue['code'] == 'outline_adjusted' for issue in out.capture.meta['quality_review']['issues'])
+
 WARDROBE = (1.4, 2.6, 0.0, 0.6, 1.8)  # 1.2 m wide, 0.6 m deep, 1.8 m tall, against the z = 0 wall
 
 
