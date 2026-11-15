@@ -23,9 +23,21 @@ final class PreviewUITests: XCTestCase {
         if UIDevice.current.userInterfaceIdiom == .pad {
             XCUIDevice.shared.orientation = .landscapeLeft
             defer { XCUIDevice.shared.orientation = .portrait }
-            sleep(1)
+            let landscapeReady = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                let bounds = app.frame
+                return bounds.width > bounds.height && label.isHittable
+                    && scene.frame.maxX <= bounds.maxX + 1 && scene.frame.maxY <= bounds.maxY + 1
+                    && scene.frame.minY > label.frame.maxY
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [landscapeReady], timeout: 15), .completed,
+                           "Wait for the actual landscape window and preview to fit inside it")
+            // A settled accessibility frame can precede the compositor's final rotation frame.
+            sleep(2)
             XCTAssertTrue(label.isHittable, "iPad landscape keeps the room header visible")
             XCTAssertGreaterThan(scene.frame.minY, label.frame.maxY)
+            XCTAssertLessThanOrEqual(scene.frame.maxX, app.frame.maxX + 1)
+            XCTAssertLessThanOrEqual(scene.frame.maxY, app.frame.maxY + 1)
+            print("Landscape bounds: app=\(app.frame), header=\(label.frame), preview=\(scene.frame)")
             capture(app, name: "synthetic-room-3d-landscape")
         }
         app.buttons["2D plan"].tap()
@@ -33,7 +45,8 @@ final class PreviewUITests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // Full-screen screenshots avoid application-rectangle cropping during rotation.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
