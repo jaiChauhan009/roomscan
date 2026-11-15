@@ -138,6 +138,11 @@ PYTHONPATH=src .venv/bin/python -m pytest tests/test_outline.py tests/test_wall_
 PYTHONPATH=src .venv/bin/python bench/wall_diagnostics.py \
   runs/release-validation/arkit_42446532/result.json \
   bench/ground_truth/arkit_42446532.yaml --out runs/release-validation/wall-diagnostics-42446532.json
+
+ROOMSCAN_DATA=/home/jai/Documents/yc_proj/data PYTHONPATH=src .venv/bin/python bench/run_all.py \
+  --only apt_lidar_a apt_lidar_b room_lidar arkit_42446532 arkit_44358446 arkit_47332890 \
+  arkit_47331988 own_lidar_1 own_lidar_2 own_lidar_3 \
+  --no-damage --no-cache --skip-ablation --out runs/geometry-benchmark
 ```
 
 The local validation environment uses Python 3.12, whereas `pyproject.toml` specifies Python 3.11.

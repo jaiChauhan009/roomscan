@@ -50,6 +50,7 @@ def main():
     ap.add_argument("--out", default=str(HERE / "reports"))
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--no-cache", action="store_true")
+    ap.add_argument("--no-damage", action="store_true", help="Replay geometry/openings without loading damage models")
     ap.add_argument("--tag", default="")
     ap.add_argument("--skip-ablation", action="store_true")
     ap.add_argument("--eval-only", action="store_true",
@@ -82,7 +83,8 @@ def main():
                 continue
             res = json.loads(f.read_text(encoding="utf-8"))
         else:
-            res = run(src, runs / c["name"], tier=c["tier"], use_cache=not a.no_cache, progress=False)
+            res = run(src, runs / c["name"], tier=c["tier"], damage=not a.no_damage,
+                      use_cache=not a.no_cache, progress=False)
         wall = round(time.time() - t, 1)
         if a.eval_only:
             wall = prev_timing.get(c["name"], {}).get("wall_s") or round(sum(res["timing_s"].values()), 1)
@@ -133,7 +135,9 @@ def main():
             ablation[name] = rows
     from roomscan.uncertainty.intervals import calibration
     report = {"tag": a.tag, "timing": timing, "evaluations": evals, "repeatability": reps, "drift_ablation": ablation,
-              "calibration_used": calibration()}  # lets bench/calibrate.py refit from this run without compounding
+              "calibration_used": calibration(),
+              "run_configuration": {"eval_only": a.eval_only, "damage_requested": not a.no_damage,
+                                    "cache_enabled": not a.no_cache}}  # records the scope alongside results
     (out / "benchmark.json").write_text(json.dumps(report, indent=2))
 
     md = [f"# Benchmark report {a.tag}".rstrip(), "",
