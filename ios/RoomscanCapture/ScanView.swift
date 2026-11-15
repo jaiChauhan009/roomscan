@@ -5,6 +5,14 @@ import CoreImage
 import UIKit
 import AVFoundation
 
+/// ARKit owns these buffers and exposes each captured frame as immutable input.
+/// Retain at most one frame, read it only on the serial encoder queue, and never mutate
+/// either buffer. CoreVideo predates Sendable, so this narrowly scoped owner bridges it.
+private struct ReadOnlyCameraPixels: @unchecked Sendable {
+    let image: CVPixelBuffer
+    let depth: ARDepthData?
+}
+
 /// Saves keyframes from the RoomPlan ARSession: every ~0.7 s if the camera moved > 0.25 m
 /// or turned > 15° since the last saved frame, at most 120 per room. JPEG encoding runs on a
 /// background queue; the ARSession delegate (owned by RoomPlan) is never touched.
@@ -49,6 +57,10 @@ final class KeyframeRecorder {
     func finish() async -> [FrameRecord] {
         stop()
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in queue.async { c.resume() } }
+        return sortedRecords()
+    }
+
+    private func sortedRecords() -> [FrameRecord] {
         lock.lock(); defer { lock.unlock() }
         return records.sorted { $0.file < $1.file }
     }
@@ -91,8 +103,7 @@ final class KeyframeRecorder {
         count += 1
         if startT == nil { startT = frame.timestamp }
         let t = frame.timestamp - (startT ?? frame.timestamp)
-        let pixels = frame.capturedImage
-        let depth = frame.sceneDepth
+        let input = ReadOnlyCameraPixels(image: frame.capturedImage, depth: frame.sceneDepth)
         let K = frame.camera.intrinsics
         let idx = nextIndex()
         let name = String(format: "%06d.jpg", idx)
@@ -100,6 +111,8 @@ final class KeyframeRecorder {
         queue.async { [self] in
             defer { encodeSlot.signal() }
             autoreleasepool {
+                let pixels = input.image
+                let depth = input.depth
                 let w = CVPixelBufferGetWidth(pixels), h = CVPixelBufferGetHeight(pixels)
                 let s = min(1, 1920 / CGFloat(max(w, h)))
                 var img = CIImage(cvPixelBuffer: pixels)  // sensor orientation (landscape), not rotated
