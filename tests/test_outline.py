@@ -43,26 +43,15 @@ def test_recess_without_observed_ceiling_is_not_filled():
     assert _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, None) is segs
 
 
-def test_step_is_removed_only_when_one_upper_plane_spans_both_parts():
-    from roomscan.geometry.layout import _merge_observed_steps
-    # Furniture hides the lower part of the x=4 wall; the upper wall is fully visible.
-    cloud = furnished_room([])
-    segs = _raster_segs([(0, 0), (4, 0), (4, 1.3), (4.25, 1.3), (4.25, 3), (0, 3)])
-    for s in segs:
-        s['_nrm'] = cloud.normals[:, [0, 2]]
-    out = _merge_observed_steps(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6)
-    assert len(out) == 4
-    assert Polygon(_vertices(out)).area == pytest.approx(12, abs=.04)
-
-
-def test_real_step_with_two_distinct_upper_planes_is_preserved():
-    from roomscan.geometry.layout import _merge_observed_steps
-    cloud = furnished_room([])
-    cloud.points[(cloud.points[:, 0] > 3.9) & (cloud.points[:, 2] > 1.3), 0] += .25
-    segs = _raster_segs([(0, 0), (4, 0), (4, 1.3), (4.25, 1.3), (4.25, 3), (0, 3)])
-    for s in segs:
-        s['_nrm'] = cloud.normals[:, [0, 2]]
-    assert len(_merge_observed_steps(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6)) == 6
+def test_observed_recess_does_not_expand_into_a_neighbour():
+    from roomscan.geometry.layout import _bridge_observed_wall, PlanFrame
+    segs, cloud = _deep_recess()
+    frame = PlanFrame(yaw=0, a0=-1, b0=-1, res=.02, shape=(300, 350))
+    others = np.zeros(frame.shape, bool)
+    row, col = frame.to_cell(np.array([[2, .5]]))
+    others[row[0], col[0]] = True
+    out = _bridge_observed_wall(segs, cloud.points[:, [0, 2]], cloud, -1.4, 2.6, others, frame)
+    assert len(out) == 8
 
 WARDROBE = (1.4, 2.6, 0.0, 0.6, 1.8)  # 1.2 m wide, 0.6 m deep, 1.8 m tall, against the z = 0 wall
 

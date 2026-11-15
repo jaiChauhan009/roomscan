@@ -70,7 +70,7 @@ final class AppModel: ObservableObject {
     let uiTesting = ProcessInfo.processInfo.arguments.contains("-uitesting")
     private(set) lazy var arSession = ARSession()
     private var frameCounter = 0
-    let sessionDir: String = "sessions/\(stamp())"
+    let sessionDir: String = "sessions/\(stamp())-\(UUID().uuidString.lowercased())"
     /// One id per continuous ARSession (renewed when the app went to the background, since
     /// ARKit may restart its world frame then).
     private(set) var arSessionId = UUID().uuidString.lowercased()

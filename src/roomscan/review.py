@@ -30,6 +30,8 @@ def review_output(output) -> None:
         add('wide_wall_intervals', 'Some wall lengths have uncertainty exceeding 10%. Measure those walls independently before using their dimensions.')
     if any(room.ceiling_height.value is None for room in output.rooms):
         add('ceiling_unobserved', 'Some ceilings were not observed. Include the wall tops and ceilings in a new scan.')
+    if meta.get('outline_repairs'):
+        add('outline_adjusted', 'Some boundaries were adjusted using upper-wall evidence. Review those room outlines against the property.')
     meta['quality_review'] = {'status': 'needs_review' if issues else 'unvalidated',
                               'accuracy_verified': False, 'issues': issues,
                               'note': 'Processing completion and absence of warnings do not verify measurement accuracy.'}

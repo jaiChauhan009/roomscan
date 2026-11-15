@@ -370,6 +370,8 @@ def scale_room(room, s: float) -> None:
     from dataclasses import replace
 
     room.polygon = room.polygon * s
+    if getattr(room, 'original_polygon', None) is not None:
+        room.original_polygon = room.original_polygon * s
     for w in room.walls:
         w.start, w.end = w.start * s, w.end * s
         w.sigma, w.spread = w.sigma * s, w.spread * s

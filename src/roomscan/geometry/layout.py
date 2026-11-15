@@ -96,6 +96,7 @@ class Room:
     ceiling: Level | None
     ceiling_source: str  # "ceiling_plane" | "wall_top" | "none"
     mask: np.ndarray = field(repr=False, default=None)  # grid mask (rows, cols)
+    original_polygon: np.ndarray | None = field(repr=False, default=None)
 
     @property
     def area(self) -> float:
@@ -571,67 +572,6 @@ def _bridge_observed_wall(segs: list[dict], ab: np.ndarray, cloud: Cloud, floor_
     return out
 
 
-def _merge_observed_steps(segs: list[dict], ab: np.ndarray, cloud: Cloud, floor_y: float,
-                          ceiling_h: float | None, others=None, frame=None) -> list[dict]:
-    """Join a stepped wall only if one upper plane supports its entire span.
-
-    Unlike distance-only simplification this preserves true L-shaped boundaries: the
-    two parts of a real step do not supply one continuous inward-facing wall plane.
-    """
-    if ceiling_h is None:
-        return segs
-    out = list(segs)
-    height = cloud.points[:, 1] - floor_y
-    changed = True
-    while changed and len(out) >= 6:
-        changed = False
-        for i in range(len(out)):
-            rot = out[i:] + out[:i]
-            a, b, c = rot[:3]
-            if not (a['orient'] == c['orient'] in ('H', 'V') and b['orient'] in ('H', 'V')
-                    and b['orient'] != a['orient'] and abs(a['coord'] - c['coord']) <= .5):
-                continue
-            v = _vertices(rot)
-            axis = 1 if a['orient'] == 'H' else 0
-            along = 1 - axis
-            if (v[1, along] - v[0, along]) * (v[3, along] - v[2, along]) <= 0:
-                continue
-            direction = v[1] - v[0]
-            inward = np.array([-direction[1], direction[0]]) / max(np.linalg.norm(direction), 1e-9)
-            lo, hi = sorted([v[0, along], v[3, along]])
-            mask = ((ab[:, along] >= lo) & (ab[:, along] <= hi)
-                    & (ab[:, axis] >= min(a['coord'], c['coord']) - .04)
-                    & (ab[:, axis] <= max(a['coord'], c['coord']) + .04)
-                    & (height >= ceiling_h - .6) & (height <= ceiling_h - .08)
-                    & (np.abs(cloud.normals[:, 1]) < WALL_T) & (a['_nrm'] @ inward > .8))
-            if mask.sum() < 30 or hi - lo < .4:
-                continue
-            bins = int(np.ceil((hi - lo) / .05))
-            values = ab[mask, axis]
-            hist, edges = np.histogram(values, bins=np.arange(values.min() - .01, values.max() + .021, .01))
-            best = None
-            for pk in np.argsort(hist)[::-1][:8]:
-                plane = mask & (np.abs(ab[:, axis] - (edges[pk] + .005)) < .025)
-                coverage = len(np.unique(np.clip(((ab[plane, along] - lo) / .05).astype(int), 0, bins - 1))) / bins
-                if plane.sum() < 30 or coverage < .9:
-                    continue
-                coord = float(np.median(ab[plane, axis]))
-                if best is None or coverage > best[0]:
-                    best = coverage, coord, plane
-            if best is None:
-                continue
-            coverage, coord, plane = best
-            merged = {**a, 'coord': coord, 'len': hi - lo, 'support': int(plane.sum()),
-                      'coverage': coverage, 'sigma': max(float(np.std(ab[plane, axis])) / np.sqrt(plane.sum()), .002)}
-            candidate = [merged] + rot[3:]
-            if not _outline_ok(candidate) or _overlaps(candidate, out, others, frame):
-                continue
-            out = candidate
-            changed = True
-            break
-    return out
-
-
 def _revert(segs: list[dict], i: int) -> list[dict]:
     """The outline with edge i back where the raster put it, as an edge without evidence."""
     out = list(segs)
@@ -778,8 +718,10 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
         settled = _settle(segs)
         if settled is not None:
             settled = _fill_slots(settled, others, frame)
+            before_repair = _vertices(settled).copy()
             settled = _bridge_observed_wall(settled, ab, sub, floor.value, room_ceil, others, frame)
-            settled = _merge_observed_steps(settled, ab, sub, floor.value, room_ceil, others, frame)
+            if Polygon(before_repair).symmetric_difference(Polygon(_vertices(settled))).area <= .001:
+                before_repair = None
             # each final wall's evidence, measured where it ended up (merged walls span the old step)
             v = _vertices(settled)
             polished = _refine_walls([dict(s) for s in settled], v, ab, sub, floor.value, Polygon(v),
@@ -787,6 +729,7 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
             segs = polished if _outline_ok(polished) else settled
             verts = _vertices(segs)
         else:  # last resort: the raster contour, without snapping
+            before_repair = None
             segs = _fallback_segments(m, frame)
             verts = _vertices(segs)
             if not Polygon(verts).is_valid:
@@ -802,7 +745,9 @@ def extract_layout(cloud: Cloud, res: float = RES, adaptive_band: bool = True) -
                               sigma=float(s.get("sigma", 0.03)), support=int(s.get("support", 0)),
                               coverage=float(s.get("coverage", 0.0)), spread=float(s.get("spread", 0.0))))
         rooms.append(Room(id=rid, label_id=len(rooms) + 1, polygon=verts, walls=walls, floor=floor,
-                          ceiling=ceil, ceiling_source=ceil_src, mask=m))
+                          ceiling=ceil, ceiling_source=ceil_src, mask=m,
+                          original_polygon=before_repair if before_repair is not None and
+                          Polygon(before_repair).symmetric_difference(Polygon(verts)).area > .001 else None))
 
     _per_room_levels(rooms, sub, ab, frame, floor, ceil_src)
     return Layout(frame=frame, floor=floor, ceiling=ceil, rooms=rooms, labels=labels,

@@ -182,6 +182,16 @@ def build_output(layout: Layout, openings: list[Opening], tier: str, capture_inf
         bbox=measure(diag, 0.02, tier, "wall_length", scale_rel=bbox_rel),
         room_ids=[r.id for r in rooms_out], adjacency=adjacency,
         stitch_method=stitch_method, drift_correction=drift_info)
+    repairs = []
+    for room in layout.rooms:
+        original = getattr(room, 'original_polygon', None)
+        if original is not None:
+            repairs.append({'room_id': room.id, 'method': 'observed_upper_wall_plane',
+                            'original_polygon': [P(p) for p in original],
+                            'original_area_m2': round(float(Polygon(original).area), 4),
+                            'updated_area_m2': round(room.area, 4)})
+    if repairs:
+        capture_info = {**capture_info, 'meta': {**capture_info.get('meta', {}), 'outline_repairs': repairs}}
     result = S.Output(
         capture=S.CaptureInfo(**capture_info), property=prop, rooms=rooms_out,
         damage=damage or [], concealed_damage_flags=flags or [], scope=scope or [],
