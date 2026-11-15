@@ -33,6 +33,16 @@ func syntheticRoom() -> PlanRoom {
 
 final class CaptureTests: XCTestCase {
 
+    func testEmptyHomeExportThrows() async {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("empty.roomscan.zip")
+        do {
+            _ = try await RoomPlanExport.homeZip([], to: url)
+            XCTFail("An empty home must not access rooms[0]")
+        } catch {
+            XCTAssertTrue(error is CocoaError)
+        }
+    }
+
     func testRoomStats() {
         let s = RoomStats(syntheticRoom())
         XCTAssertEqual(s.walls, 4)
@@ -41,6 +51,33 @@ final class CaptureTests: XCTestCase {
         XCTAssertEqual(s.width, 3, accuracy: 1e-4)
         XCTAssertEqual(s.length, 4, accuracy: 1e-4)
         XCTAssertEqual(s.height, 2.6, accuracy: 1e-4)
+    }
+
+    func testConcaveWallOutlineDoesNotReportBoundingBoxArea() {
+        // L shaped room: bounding box 16 m², actual floor 7 m².
+        let corners: [SIMD2<Float>] = [SIMD2(0, 0), SIMD2(4, 0), SIMD2(4, 1),
+                                      SIMD2(1, 1), SIMD2(1, 4), SIMD2(0, 4)]
+        var room = PlanRoom()
+        room.walls = corners.indices.map { i in
+            let a = corners[i], b = corners[(i + 1) % corners.count]
+            let d = b - a, length = simd_length(d)
+            var t = matrix_identity_float4x4
+            t.columns.0 = SIMD4(d.x / length, 0, d.y / length, 0)
+            t.columns.3 = SIMD4((a.x + b.x) / 2, 1.3, (a.y + b.y) / 2, 1)
+            return PlanSurface(id: "l\(i)", transform: t, dimensions: SIMD3(length, 2.6, 0.1))
+        }
+        room.walls = [room.walls[3], room.walls[0], room.walls[5], room.walls[2], room.walls[1], room.walls[4]]
+        XCTAssertNotNil(room.wallOutline)
+        XCTAssertEqual(RoomStats(room).area, 7, accuracy: 1e-4)
+        room.walls.removeLast()
+        XCTAssertNil(room.wallOutline, "Missing walls must not be silently bridged")
+    }
+
+    func testPolygonAreaFarFromOrigin() {
+        let p: [SIMD2<Float>] = [SIMD2(10000, 10000), SIMD2(10004, 10000),
+                                SIMD2(10004, 10003), SIMD2(10000, 10003)]
+        XCTAssertEqual(PlanRoom.polygonArea(p), 12, accuracy: 1e-6)
+        XCTAssertEqual(PlanRoom.polygonArea(Array(p.reversed())), 12, accuracy: 1e-6)
     }
 
     func testCaptureJSONContract() throws {

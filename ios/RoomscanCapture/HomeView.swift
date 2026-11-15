@@ -110,7 +110,11 @@ struct HomeView: View {
             ForEach(model.lidarRooms) { r in
                 let s = r.stats
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(r.name).font(.headline)
+                    NavigationLink {
+                        PlanPreview(room: r.plan).padding().navigationTitle(r.name)
+                    } label: {
+                        Label(r.name, systemImage: "viewfinder").font(.headline)
+                    }
                     Text(s.summary).font(.callout.monospacedDigit())
                     Text(s.counts + " · \(r.frames.count) photos").font(.caption).foregroundStyle(.secondary)
                     if let uid = model.roomUpload[r.id], let u = model.uploads.first(where: { $0.id == uid }) {

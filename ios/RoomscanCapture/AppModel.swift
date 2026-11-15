@@ -51,7 +51,7 @@ final class AppModel: ObservableObject {
     /// One id per continuous ARSession (renewed when the app went to the background, since
     /// ARKit may restart its world frame then).
     private(set) var arSessionId = UUID().uuidString.lowercased()
-    func appWentToBackground() { arSessionId = UUID().uuidString.lowercased() }
+    func appWentToBackground() { arSession.pause(); arSessionId = UUID().uuidString.lowercased() }
 
     var api: API { API(base: baseURL) }
 
@@ -162,8 +162,8 @@ final class AppModel: ObservableObject {
     func nextFrameIndex() -> Int { frameCounter += 1; return frameCounter }
     var framesDir: String { sessionDir + "/frames" }
 
-    func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord]) {
-        let r = ScannedRoom(name: name, captured: room, sessionId: arSessionId, frames: frames)
+    func addLidarRoom(name: String, room: CapturedRoom, frames: [FrameRecord], sessionId: String? = nil) {
+        let r = ScannedRoom(name: name, captured: room, sessionId: sessionId ?? arSessionId, frames: frames)
         lidarRooms.append(r)
         guard let pid = projectId else { return }
         let n = lidarRooms.count

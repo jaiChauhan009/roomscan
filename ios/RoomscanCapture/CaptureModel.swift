@@ -37,6 +37,47 @@ struct PlanRoom {
         return (SIMD2(a.x, a.z), SIMD2(b.x, b.z))
     }
 
+    /// Chain unordered/reversed wall edges without bridging an unobserved gap.
+    /// Used only when all edges form a closed boundary within 8 cm.
+    var wallOutline: [SIMD2<Float>]? {
+        guard walls.count >= 3 else { return nil }
+        var remaining = walls.map(Self.ends)
+        let first = remaining.removeFirst()
+        var points = [first.0, first.1]
+        while !remaining.isEmpty {
+            let end = points.last!
+            var bestIndex = 0
+            var bestDistance = Float.infinity
+            var reverse = false
+            for (i, edge) in remaining.enumerated() {
+                for (p, reversed) in [(edge.0, false), (edge.1, true)] {
+                    let distance = simd_distance(end, p)
+                    if distance < bestDistance {
+                        bestIndex = i; bestDistance = distance; reverse = reversed
+                    }
+                }
+            }
+            guard bestDistance <= 0.08 else { return nil }
+            let edge = remaining.remove(at: bestIndex)
+            points.append(reverse ? edge.0 : edge.1)
+        }
+        guard simd_distance(points.last!, points[0]) <= 0.08 else { return nil }
+        points.removeLast()
+        return points
+    }
+
+    /// Double precision, relative to the first vertex to avoid cancellation far from origin.
+    static func polygonArea(_ points: [SIMD2<Float>]) -> Double {
+        guard points.count >= 3 else { return 0 }
+        let origin = points[0]
+        var sum: Double = 0
+        for i in points.indices {
+            let p = points[i] - origin, q = points[(i + 1) % points.count] - origin
+            sum += Double(p.x) * Double(q.y) - Double(q.x) * Double(p.y)
+        }
+        return abs(sum) / 2
+    }
+
     /// Floor corners in world coordinates, or nil if there is no usable floor.
     var floorWorld: [SIMD3<Float>]? {
         guard let f = floors.first, f.polygon.count >= 3 else { return nil }
@@ -75,12 +116,9 @@ struct RoomStats: Equatable {
         width = min(a, b)
         length = max(a, b)
         if fromFloor {
-            var sum: Float = 0
-            for i in 0..<pts.count {
-                let p = pts[i], q = pts[(i + 1) % pts.count]
-                sum += p.x * q.y - q.x * p.y
-            }
-            area = Double(abs(sum) / 2)
+            area = PlanRoom.polygonArea(pts)
+        } else if let outline = r.wallOutline {
+            area = PlanRoom.polygonArea(outline)
         } else {
             area = width * length
         }
@@ -101,6 +139,7 @@ struct FrameRecord: Codable, Equatable {
     var intrinsics: [Float]   // 9, column-major
     var width: Int
     var height: Int
+    var depth: DepthAttachment? = nil
 }
 
 struct NamedRoom {
@@ -175,11 +214,21 @@ func captureJSON(rooms: [NamedRoom], merged: Bool, sessionId: String, capturedAt
     var frames: [J] = []
     for (i, r) in rooms.enumerated() {
         for f in r.frames {
-            frames.append(.obj([
+            var fields: [(String, J)] = [
                 ("file", .str(f.file)), ("room_index", .int(i)), ("t", .f(f.t)),
                 ("transform", .xs(f.transform)), ("intrinsics", .xs(f.intrinsics)),
                 ("width", .int(f.width)), ("height", .int(f.height)),
-            ]))
+            ]
+            if let depth = f.depth {
+                fields.append(("depth", .obj([
+                    ("file", .str(depth.file)), ("format", .str("float32_le_metres")),
+                    ("width", .int(depth.width)), ("height", .int(depth.height)),
+                    ("intrinsics", .xs(depth.intrinsics)), ("valid_fraction", .f(depth.validFraction)),
+                    ("confidence_file", depth.confidenceFile.map { .str($0) } ?? .null),
+                    ("confidence_format", .str("uint8_arkit_confidence")),
+                ])))
+            }
+            frames.append(.obj(fields))
         }
     }
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
@@ -204,6 +253,12 @@ func writeRoomscanZip(rooms: [NamedRoom], merged: Bool, sessionId: String, extra
     for r in rooms {
         for f in r.frames {
             try zw.addFile(name: f.file, url: documentsDir.appendingPathComponent(f.path))
+            if let depth = f.depth {
+                try zw.addFile(name: depth.file, url: documentsDir.appendingPathComponent(depth.path))
+                if let file = depth.confidenceFile, let path = depth.confidencePath {
+                    try zw.addFile(name: file, url: documentsDir.appendingPathComponent(path))
+                }
+            }
         }
     }
     for e in extras { try zw.addFile(name: e.name, url: e.url) }

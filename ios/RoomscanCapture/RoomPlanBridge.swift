@@ -61,15 +61,25 @@ enum RoomPlanExport {
 
     /// All rooms → one zip; merged with StructureBuilder when there are 2+ rooms and it succeeds.
     static func homeZip(_ rooms: [ScannedRoom], to zipURL: URL) async throws -> Bool {
+        guard !rooms.isEmpty else { throw CocoaError(.fileWriteInvalidFileName) }
+        let oneSession = Set(rooms.map(\.sessionId)).count == 1
         var merged = false
         var structure: CapturedStructure? = nil
         var named = rooms.map { NamedRoom(name: $0.name, room: $0.plan, frames: $0.frames) }
-        if rooms.count > 1 {
+        if rooms.count > 1 && oneSession {
             if let s = try? await StructureBuilder(options: [.beautifyObjects]).capturedStructure(from: rooms.map(\.captured)),
                s.rooms.count == rooms.count {
                 structure = s
                 merged = true
-                for i in named.indices { named[i].room = PlanRoom(s.rooms[i]) }
+                // StructureBuilder need not preserve input order. Keep names and photos
+                // attached to their original room by identifier, never by array position.
+                let byID = Dictionary(uniqueKeysWithValues: s.rooms.map { ($0.identifier, $0) })
+                if rooms.allSatisfy({ byID[$0.captured.identifier] != nil }) {
+                    for i in named.indices { named[i].room = PlanRoom(byID[rooms[i].captured.identifier]!) }
+                } else {
+                    structure = nil
+                    merged = false
+                }
             }
         }
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
