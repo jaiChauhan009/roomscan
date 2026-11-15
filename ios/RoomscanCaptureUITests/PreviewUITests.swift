@@ -13,6 +13,11 @@ final class PreviewUITests: XCTestCase {
         // Give SceneKit one second to render the initial camera and lighting.
         sleep(1)
         XCTAssertEqual(app.state, .runningForeground)
+        let label = app.staticTexts["syntheticRoom"]
+        XCTAssertTrue(label.isHittable, "3D layout must keep the room header on screen")
+        let scene = app.otherElements["room3DPreview"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(scene.frame.minY, label.frame.maxY, "The 3D view must stay below the header")
         capture(app, name: "synthetic-room-3d")
         app.buttons["2D plan"].tap()
         XCTAssertTrue(app.staticTexts["syntheticRoom"].exists)

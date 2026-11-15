@@ -18,6 +18,8 @@ struct PlanPreview: View {
             }
             if show3D {
                 NativeRoomScene(room: room)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             } else {
                 Canvas { context, size in
                     let segments = room.walls.map(PlanRoom.ends)
@@ -63,12 +65,23 @@ private struct NativeRoomScene: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> SCNView {
-        let view = SCNView()
+        let view = FittedRoomSceneView()
+        view.isAccessibilityElement = true
+        view.accessibilityLabel = "3D room model"
+        view.accessibilityIdentifier = "room3DPreview"
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
         view.backgroundColor = .secondarySystemBackground
         view.isPlaying = false
         return view
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: SCNView, context: Context) -> CGSize? {
+        // SceneKit must accept the space remaining below the picker, rather than
+        // imposing its own ideal size and pushing navigation/header content off screen.
+        CGSize(width: proposal.width ?? 0, height: proposal.height ?? 0)
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
@@ -93,17 +106,30 @@ private struct NativeRoomScene: UIViewRepresentable {
         let z0 = points.map(\.y).min()!, z1 = points.map(\.y).max()!
         let span = max(max(x1 - x0, z1 - z0), 2)
         let target = SCNNode()
-        target.position = SCNVector3((x0 + x1) / 2, 0, (z0 + z1) / 2)
+        let height = room.walls.map { $0.dimensions.y }.max() ?? 2.6
+        target.position = SCNVector3((x0 + x1) / 2, height / 2, (z0 + z1) / 2)
         scene.rootNode.addChildNode(target)
         let camera = SCNNode()
         camera.camera = SCNCamera()
         camera.camera?.zFar = Double(span * 20)
-        camera.position = SCNVector3(target.position.x + span, span * 1.5, target.position.z + span)
+        camera.camera?.fieldOfView = 60
+        camera.camera?.projectionDirection = .horizontal
+        camera.position = SCNVector3(target.position.x + span * 1.5, height + span * 1.5,
+                                     target.position.z + span * 1.5)
         let look = SCNLookAtConstraint(target: target)
         look.isGimbalLockEnabled = true
         camera.constraints = [look]
         scene.rootNode.addChildNode(camera)
         view.scene = scene
         view.pointOfView = camera
+    }
+}
+
+/// Keep the smaller viewport dimension as the camera's field-of-view constraint.
+/// Portrait phones and landscape iPads must both show the entire room initially.
+private final class FittedRoomSceneView: SCNView {
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        pointOfView?.camera?.projectionDirection = bounds.width > bounds.height ? .vertical : .horizontal
     }
 }
