@@ -96,6 +96,9 @@ No signing, TestFlight publication, AWS allocation or physical LiDAR testing is 
 2. **Freeze a holdout set.** Split by property/device session, not by frames from the same room.
    Keep the four current laser rooms in the development set. Do not tune thresholds or refit
    uncertainty using held-out results. More device generations and iPad orientations are needed.
+   `scripts/prepare_device_validation.py` copies an original native ZIP with a verified checksum,
+   records provenance and creates an unfilled measurement sheet. It refuses to put the same
+   property ID into both splits. It never fills ground truth with the scanner's estimates.
 3. **Resolve remaining geometry and segmentation failures.** Investigate 47332890's residual step
    against its raw depth and laser shape; preserve ambiguity when evidence is insufficient.
    The sample-flat scans still split into 9 versus 7 regions. A one-room input still splits into two.
@@ -143,6 +146,10 @@ ROOMSCAN_DATA=/home/jai/Documents/yc_proj/data PYTHONPATH=src .venv/bin/python b
   --only apt_lidar_a apt_lidar_b room_lidar arkit_42446532 arkit_44358446 arkit_47332890 \
   arkit_47331988 own_lidar_1 own_lidar_2 own_lidar_3 \
   --no-damage --no-cache --skip-ablation --out runs/geometry-benchmark
+
+# After collecting a real native scan; use a stable identifier for the physical property:
+.venv/bin/python scripts/prepare_device_validation.py /path/to/scan.roomscan.zip \
+  --property-id flat-a --split holdout --dataset runs/device-validation
 ```
 
 The local validation environment uses Python 3.12, whereas `pyproject.toml` specifies Python 3.11.
