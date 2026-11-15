@@ -152,6 +152,24 @@ struct JobView: View {
             if let res = jm.results[prefix] {
                 let rooms = res["rooms"] as? [JSONObject] ?? []
                 let prop = res["property"] as? JSONObject ?? [:]
+                if let capture = res["capture"] as? JSONObject,
+                   let meta = capture["meta"] as? JSONObject,
+                   let review = meta["quality_review"] as? JSONObject,
+                   let issues = review["issues"] as? [JSONObject], !issues.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Measurements need review").bold()
+                        ForEach(Array(issues.enumerated()), id: \.offset) { _, issue in
+                            Text(issue["message"] as? String ?? "Check this capture.").font(.callout)
+                        }
+                    }.foregroundStyle(.orange)
+                }
+                if let warnings = res["warnings"] as? [String], !warnings.isEmpty {
+                    DisclosureGroup("Capture notes (\(warnings.count))") {
+                        ForEach(Array(warnings.enumerated()), id: \.offset) { _, warning in
+                            Text(warning).font(.caption)
+                        }
+                    }
+                }
                 Text("Footprint: " + Measure(prop["footprint_area"]).text("m²", 1))
                 Text("Damage found: \((res["damage"] as? [Any])?.count ?? 0)")
                 ForEach(Array(rooms.enumerated()), id: \.offset) { _, room in

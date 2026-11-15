@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// Entirely offline. Real camera/LiDAR accuracy is deliberately outside this fixture test.
 final class PreviewUITests: XCTestCase {
@@ -19,6 +20,14 @@ final class PreviewUITests: XCTestCase {
         XCTAssertTrue(scene.waitForExistence(timeout: 5))
         XCTAssertGreaterThan(scene.frame.minY, label.frame.maxY, "The 3D view must stay below the header")
         capture(app, name: "synthetic-room-3d")
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            defer { XCUIDevice.shared.orientation = .portrait }
+            sleep(1)
+            XCTAssertTrue(label.isHittable, "iPad landscape keeps the room header visible")
+            XCTAssertGreaterThan(scene.frame.minY, label.frame.maxY)
+            capture(app, name: "synthetic-room-3d-landscape")
+        }
         app.buttons["2D plan"].tap()
         XCTAssertTrue(app.staticTexts["syntheticRoom"].exists)
     }

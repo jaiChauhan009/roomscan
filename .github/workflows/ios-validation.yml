@@ -53,8 +53,17 @@ jobs:
           retention-days: 3
 
   native-tests:
+    name: native-tests-${{ matrix.family }}
     runs-on: macos-15
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - family: iphone
+            artifact: ios-native-test-evidence
+          - family: ipad
+            artifact: ios-ipad-test-evidence
     steps:
       - uses: actions/checkout@v4
       - name: Generate Xcode project
@@ -65,7 +74,7 @@ jobs:
           xcodegen generate
       - name: Select and boot simulator
         id: simulator
-        run: python3 ios/ci/pick_simulator.py >> "$GITHUB_OUTPUT"
+        run: python3 ios/ci/pick_simulator.py --family '${{ matrix.family }}' >> "$GITHUB_OUTPUT"
       - name: Native unit tests and offline preview UI tests
         working-directory: ios
         run: |
@@ -94,7 +103,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ios-native-test-evidence
+          name: ${{ matrix.artifact }}
           path: |
             ios/test.log
             ios/tests.json

@@ -72,7 +72,7 @@ final class ScanLibraryTests: XCTestCase {
     func testMeasuredReferencesAreValidatedAndExportedSeparately() throws {
         let room = syntheticRoom()
         var measurement = WallReferenceMeasurement(wallId: room.walls[0].id, metres: 4.2,
-                                                   uncertaintyMetres: .005, source: "laser")
+                                                   uncertaintyMetres: 0.005, source: "laser")
         XCTAssertTrue(measurement.isValid)
         let json = captureJSON(rooms: [NamedRoom(name: "Test", room: room, frames: [],
                                                 referenceMeasurements: [measurement])], merged: true, sessionId: "s").text
