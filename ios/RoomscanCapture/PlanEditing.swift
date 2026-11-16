@@ -131,8 +131,10 @@ enum PlanPolygon {
         while changed && simplified.count>3 {
             changed=false
             for i in simplified.indices {
-                let previous=simplified[(i+ simplified.count-1)%simplified.count]
-                let current=simplified[i],next=simplified[(i+1)%simplified.count]
+                let previousIndex=(i + simplified.count - 1) % simplified.count
+                let nextIndex=(i + 1) % simplified.count
+                let previous=simplified[previousIndex]
+                let current=simplified[i],next=simplified[nextIndex]
                 if abs(cross(previous,current,next))<0.000001 && onSegment(current,previous,next) {
                     simplified.remove(at:i);changed=true;break
                 }
