@@ -126,7 +126,19 @@ enum PlanPolygon {
             end=remaining.remove(at:j).1
         }
         guard remaining.isEmpty else { throw PlanEditError.invalid("Merging would create a hole or overlapping boundary.") }
-        let result=try validated(ring)
+        var simplified=ring
+        var changed=true
+        while changed && simplified.count>3 {
+            changed=false
+            for i in simplified.indices {
+                let previous=simplified[(i+ simplified.count-1)%simplified.count]
+                let current=simplified[i],next=simplified[(i+1)%simplified.count]
+                if abs(cross(previous,current,next))<0.000001 && onSegment(current,previous,next) {
+                    simplified.remove(at:i);changed=true;break
+                }
+            }
+        }
+        let result=try validated(simplified)
         guard abs(signedArea(result)-signedArea(a)-signedArea(b)) < 0.001 else {
             throw PlanEditError.invalid("These rooms overlap. Adjust their corners before merging.")
         }

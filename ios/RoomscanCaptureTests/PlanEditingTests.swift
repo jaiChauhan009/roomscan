@@ -26,6 +26,14 @@ final class PlanEditingTests:XCTestCase {
         XCTAssertThrowsError(try PlanPolygon.merge(left,[PlanPoint(x:3,z:0),PlanPoint(x:5,z:0),PlanPoint(x:5,z:3),PlanPoint(x:3,z:3)]))
     }
 
+    func testMergeSupportsPartiallySharedWall() throws {
+        let lower=[PlanPoint(x:0,z:0),PlanPoint(x:2,z:0),PlanPoint(x:2,z:3),PlanPoint(x:0,z:3)]
+        let upper=[PlanPoint(x:2,z:1),PlanPoint(x:4,z:1),PlanPoint(x:4,z:4),PlanPoint(x:2,z:4)]
+        let merged=try PlanPolygon.merge(lower,upper)
+        XCTAssertEqual(PlanPolygon.signedArea(merged),12,accuracy:1e-8)
+        XCTAssertEqual(merged.count,8)
+    }
+
     func testBoundaryEditKeepsMeasuredOpeningAndCreatesLowConfidenceWalls() throws {
         let room=try syntheticRoom().replacingOutline(rectangle.map{PlanPoint(x:$0.x+1,z:$0.z+2)})
         XCTAssertEqual(room.walls.count,4)
