@@ -333,6 +333,8 @@ final class AppModel: ObservableObject {
             var room=original;room.id=UUID();room.name=original.name+(index==0 ? " A" : " B")
             room.editedRoom=try base.replacingOutline(points,partition:true)
             room.originalSources=original.sources;room.referenceMeasurements=[];room.zipPath=nil;room.frames=[]
+            let retained=Set(room.editedRoom?.walls.map(\.id) ?? [])
+            room.referenceMeasurements=(original.referenceMeasurements ?? []).filter{retained.contains($0.wallId)}
             return room
         }
         for frame in original.frames {
@@ -356,6 +358,15 @@ final class AppModel: ObservableObject {
         if let fa=floorHeight(a.plan),let fb=floorHeight(b.plan),abs(fa-fb)>0.15 {
             throw PlanEditError.invalid("The room floors differ by more than 15 cm. Align the scans before merging.")
         }
+        func ceilingHeight(_ room:PlanRoom)->Float? {
+            let heights=room.walls.map(\.dimensions.y).filter{$0.isFinite && $0>0}.sorted()
+            guard !heights.isEmpty else{return nil}
+            return heights[heights.count/2]
+        }
+        let ceilingA=ceilingHeight(a.plan),heightB=ceilingHeight(b.plan)
+        if let ceilingA,let heightB,abs(ceilingA-heightB)>0.15 {
+            throw PlanEditError.invalid("The room ceilings differ by more than 15 cm. Merge only rooms on the same level.")
+        }
         let outline=try PlanPolygon.merge(a.plan.editableOutline,b.plan.editableOutline)
         var combined=a.plan
         combined.walls += b.plan.walls;combined.doors += b.plan.doors;combined.windows += b.plan.windows
@@ -371,7 +382,9 @@ final class AppModel: ObservableObject {
         combined=try combined.replacingOutline(outline)
         var room=a;room.id=UUID();room.name=a.name+" + "+b.name;room.editedRoom=combined;room.placement=nil
         room.sessionId=a.worldFrameId;room.alignmentGroup=a.alignmentGroup;room.zipPath=nil
-        room.referenceMeasurements=[];room.originalSources=a.sources+b.sources
+        let retained=Set(combined.walls.map(\.id))
+        room.referenceMeasurements=((a.referenceMeasurements ?? [])+(b.referenceMeasurements ?? [])).filter{retained.contains($0.wallId)}
+        room.originalSources=a.sources+b.sources
         room.frames=try (a.exportedFrames()+b.exportedFrames()).sorted{$0.t<$1.t}.map { frame in
             var copy=frame
             let stem=UUID().uuidString.lowercased()
