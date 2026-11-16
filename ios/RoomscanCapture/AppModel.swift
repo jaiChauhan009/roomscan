@@ -61,6 +61,11 @@ final class AppModel: ObservableObject {
             persistLibrary()
         }
     }
+    var hasUnuploadedEdits: Bool {
+        guard let i=library.selectedIndex else { return false }
+        return (library.properties[i].planRevision ?? 0) != (library.properties[i].uploadedPlanRevision ?? 0)
+    }
+    var canUndoPlanEdit: Bool { library.selectedIndex.map{!(library.properties[$0].editHistory ?? []).isEmpty} ?? false }
     @Published var verifyResult: JSONObject? = nil
     @Published var jobId: String? { didSet { UserDefaults.standard.set(jobId, forKey: "jobId") } }
     @Published var busy: String? = nil
@@ -277,7 +282,159 @@ final class AppModel: ObservableObject {
         references.removeAll { $0.wallId == reference.wallId }
         references.append(reference)
         rooms[index].referenceMeasurements = references
-        lidarRooms = rooms
+        do { try commitPlanRooms(rooms) }
+        catch { self.error = "The reference measurement could not be saved: \(error.localizedDescription)" }
+    }
+
+    private func commitPlanRooms(_ rooms:[ScannedRoom]) throws {
+        guard libraryReadable, let i=library.selectedIndex, packingRooms==0 else {
+            throw PlanEditError.invalid("Wait for the room export to finish before editing the property.")
+        }
+        var next=library
+        var history=next.properties[i].editHistory ?? []
+        history.append(LocalPlanRevision(rooms:next.properties[i].rooms,roomUploads:next.properties[i].roomUploads))
+        next.properties[i].editHistory=Array(history.suffix(10))
+        next.properties[i].rooms=rooms
+        next.properties[i].planRevision=(next.properties[i].planRevision ?? 0)+1
+        try libraryStore.save(next)
+        library=next;jobId=nil;verifyResult=nil;libraryError=nil
+    }
+
+    func editRoom(_ id:UUID, points:[PlanPoint], height:Double?) throws {
+        guard let i=lidarRooms.firstIndex(where:{$0.id==id}) else { return }
+        var rooms=lidarRooms
+        let localPoints:[PlanPoint]
+        if let placement=rooms[i].placement {
+            _ = try placement.validated()
+            let angle=placement.degrees * .pi / 180,c=cos(angle),s=sin(angle)
+            localPoints=points.map { point in
+                let x=point.x-placement.x,z=point.z-placement.z
+                return PlanPoint(x:c*x+s*z,z:-s*x+c*z)
+            }
+        } else { localPoints=points }
+        rooms[i].editedRoom=try rooms[i].basePlan.replacingOutline(localPoints,height:height)
+        try commitPlanRooms(rooms)
+    }
+
+    func splitRoom(_ id:UUID, alongX:Bool, at value:Double) throws {
+        guard let i=lidarRooms.firstIndex(where:{$0.id==id}) else { return }
+        let original=lidarRooms[i], base=original.basePlan
+        guard original.frames.allSatisfy({ $0.transform.count == 16 && $0.transform.allSatisfy(\.isFinite) }) else {
+            throw PlanEditError.invalid("This room has a damaged camera pose. Keep the original scan and repair its capture data first.")
+        }
+        for opening in base.doors+base.windows+base.openings {
+            let ends=PlanRoom.ends(opening)
+            let a=Double(alongX ? ends.0.x : ends.0.y)-value
+            let b=Double(alongX ? ends.1.x : ends.1.y)-value
+            if a*b <= 0 { throw PlanEditError.invalid("Move the split line away from doors and windows.") }
+        }
+        let polygons=try PlanPolygon.split(base.editableOutline,alongX:alongX,at:value)
+        var children=try polygons.enumerated().map { index, points -> ScannedRoom in
+            var room=original;room.id=UUID();room.name=original.name+(index==0 ? " A" : " B")
+            room.editedRoom=try base.replacingOutline(points,partition:true)
+            room.originalSources=original.sources;room.referenceMeasurements=[];room.zipPath=nil;room.frames=[]
+            return room
+        }
+        for frame in original.frames {
+            let point=PlanPoint(x:Double(frame.transform[12]),z:Double(frame.transform[14]))
+            let side=PlanPolygon.contains(point,polygons[0]) ? 0 : 1
+            children[side].frames.append(frame)
+        }
+        var rooms=lidarRooms;rooms.replaceSubrange(i...i,with:children)
+        try commitPlanRooms(rooms)
+    }
+
+    func mergeRooms(_ first:UUID,_ second:UUID) throws {
+        guard first != second,let a=lidarRooms.first(where:{$0.id==first}),let b=lidarRooms.first(where:{$0.id==second}) else { return }
+        guard a.worldFrameId==b.worldFrameId, a.plan.story==b.plan.story else {
+            throw PlanEditError.invalid("Align these scans into one property layout before merging rooms.")
+        }
+        func floorHeight(_ room:PlanRoom)->Float? {
+            guard let floor=room.floorWorld,!floor.isEmpty else { return nil }
+            return floor.map(\.y).reduce(0,+)/Float(floor.count)
+        }
+        if let fa=floorHeight(a.plan),let fb=floorHeight(b.plan),abs(fa-fb)>0.15 {
+            throw PlanEditError.invalid("The room floors differ by more than 15 cm. Align the scans before merging.")
+        }
+        let outline=try PlanPolygon.merge(a.plan.editableOutline,b.plan.editableOutline)
+        var combined=a.plan
+        combined.walls += b.plan.walls;combined.doors += b.plan.doors;combined.windows += b.plan.windows
+        combined.openings += b.plan.openings;combined.objects += b.plan.objects
+        func touchesExterior(_ opening:PlanSurface)->Bool {
+            let c=opening.transform.position
+            let p=PlanPoint(x:Double(c.x),z:Double(c.z))
+            return outline.indices.contains { PlanPolygon.onSegment(p,outline[$0],outline[($0+1)%outline.count]) }
+        }
+        combined.doors=combined.doors.filter(touchesExterior)
+        combined.windows=combined.windows.filter(touchesExterior)
+        combined.openings=combined.openings.filter(touchesExterior)
+        combined=try combined.replacingOutline(outline)
+        var room=a;room.id=UUID();room.name=a.name+" + "+b.name;room.editedRoom=combined;room.placement=nil
+        room.sessionId=a.worldFrameId;room.alignmentGroup=a.alignmentGroup;room.zipPath=nil
+        room.referenceMeasurements=[];room.originalSources=a.sources+b.sources
+        room.frames=try (a.exportedFrames()+b.exportedFrames()).sorted{$0.t<$1.t}.map { frame in
+            var copy=frame
+            let stem=UUID().uuidString.lowercased()
+            copy.file="frames/\(stem).jpg"
+            if var depth=copy.depth {
+                let depthExt=(depth.file as NSString).pathExtension
+                depth.file="frames/\(stem).depth"+(depthExt.isEmpty ? ".bin" : ".\(depthExt)")
+                if let confidence=depth.confidenceFile {
+                    let ext=(confidence as NSString).pathExtension
+                    depth.confidenceFile="frames/\(stem).confidence"+(ext.isEmpty ? ".bin" : ".\(ext)")
+                }
+                copy.depth=depth
+            }
+            return copy
+        }
+        var rooms=lidarRooms.filter{$0.id != first && $0.id != second};rooms.append(room)
+        try commitPlanRooms(rooms)
+    }
+
+    func placeRooms(_ placements:[UUID:PlanPlacement]) throws {
+        var rooms=lidarRooms
+        let group="manual-\(library.selectedId.uuidString.lowercased())"
+        for i in rooms.indices {
+            guard let placement=placements[rooms[i].id] else { throw PlanEditError.invalid("Confirm a position for every room in this layout.") }
+            rooms[i].placement=try placement.validated();rooms[i].alignmentGroup=group
+        }
+        try commitPlanRooms(rooms)
+    }
+
+    func undoPlanEdit() {
+        guard let i=library.selectedIndex,var history=library.properties[i].editHistory,
+              let revision=history.popLast(),packingRooms==0 else { return }
+        var next=library
+        next.properties[i].rooms=revision.rooms;next.properties[i].roomUploads=revision.roomUploads
+        next.properties[i].editHistory=history;next.properties[i].planRevision=(next.properties[i].planRevision ?? 0)+1
+        do { try libraryStore.save(next);library=next;jobId=nil;verifyResult=nil }
+        catch { self.error="Could not restore the previous plan: \(error.localizedDescription)" }
+    }
+
+    @discardableResult
+    func uploadCurrentPlan() async -> Bool {
+        guard !lidarRooms.isEmpty,packingRooms==0 else { return false }
+        let propertyID=library.selectedId,revision=library.selectedIndex.map{library.properties[$0].planRevision ?? 0} ?? 0
+        guard let file=await homeZip() else { return false }
+        busy="Uploading current property…"
+        defer { busy=nil }
+        do {
+            // A new server revision keeps the old raw uploads and reports intact.
+            let pid=try await api.createProject()
+            try await api.setCapture(pid,kind:"lidar")
+            let hash=try await Task.detached { try sha256Hex(of:file) }.value
+            _ = try await api.upload(pid:pid,target:"captures/lidar",file:file,name:"property.roomscan.zip",sha256:hash){_ in}
+            guard propertyID==library.selectedId,let i=library.selectedIndex else { return false }
+            var next=library
+            if let previous=next.properties[i].projectId {
+                next.properties[i].previousProjectIds=(next.properties[i].previousProjectIds ?? [])+[previous]
+            }
+            next.properties[i].projectId=pid;next.properties[i].uploadedPlanRevision=revision
+            try libraryStore.save(next)
+            library=next;projectId=pid;jobId=nil;verifyResult=nil;spaces=[];error=nil
+            await refresh()
+            return true
+        } catch { self.error="The current plan is saved locally, but upload failed: \(error.localizedDescription)";return false }
     }
 
     private func packRoom(_ r: ScannedRoom) {
@@ -310,7 +467,7 @@ final class AppModel: ObservableObject {
 
     private func queueSavedRooms() {
         guard uploadsReadable, let pid = projectId else { return }
-        for room in lidarRooms where roomUpload[room.id] == nil {
+        for room in lidarRooms where roomUpload[room.id] == nil && !room.isModified {
             // The server accepts five capture files. Further rooms remain in the local
             // library and are included in the whole-property share export.
             guard roomUpload.count < 5 else { break }
@@ -416,6 +573,7 @@ final class AppModel: ObservableObject {
     // MARK: verify / run
 
     func verify() async {
+        if hasUnuploadedEdits && !(await uploadCurrentPlan()) { return }
         guard let pid = projectId else { return }
         busy = "Checking captures…"
         defer { busy = nil }
@@ -432,6 +590,7 @@ final class AppModel: ObservableObject {
 
     /// Start computing; returns the job id.
     func run(force: Bool) async -> String? {
+        if hasUnuploadedEdits && !(await uploadCurrentPlan()) { return nil }
         guard let pid = projectId else { return nil }
         busy = "Starting…"
         defer { busy = nil }

@@ -22,6 +22,8 @@ def review_output(output) -> None:
         if isinstance(candidates, (int, float)) and candidates > 0 and isinstance(tracked, (int, float)):
             if tracked / candidates < .8:
                 add('partial_tracking', 'Tracking retained only part of this walkthrough. The plan may omit rooms; retake the missing sections slowly.')
+    if any(isinstance(room, dict) and room.get('manual_edit') for room in (meta.get('rooms') or [])):
+        add('manual_geometry', 'Some room boundaries were edited after scanning. Compare them with independent measurements; adjusted geometry does not validate sensor accuracy.')
     walls = [wall for room in output.rooms for wall in room.walls]
     if any(w.evidence_coverage < .5 for w in walls):
         add('weak_wall_evidence', 'Some wall boundaries have limited surface evidence. Check their positions and corners.')

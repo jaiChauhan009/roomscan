@@ -34,6 +34,15 @@ struct LocalScanProperty: Identifiable, Codable {
     var projectId: String? = nil
     var rooms: [ScannedRoom] = []
     var roomUploads: [UUID: UUID] = [:]
+    var editHistory: [LocalPlanRevision]? = nil
+    var previousProjectIds: [String]? = nil
+    var planRevision: Int? = nil
+    var uploadedPlanRevision: Int? = nil
+}
+
+struct LocalPlanRevision: Codable {
+    var rooms:[ScannedRoom]
+    var roomUploads:[UUID:UUID]
 }
 
 struct ScanLibrary: Codable {

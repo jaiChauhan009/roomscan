@@ -102,9 +102,11 @@ No signing, TestFlight publication, AWS allocation or physical LiDAR testing is 
 3. **Resolve remaining geometry and segmentation failures.** Investigate 47332890's residual step
    against its raw depth and laser shape; preserve ambiguity when evidence is insufficient.
    The sample-flat scans still split into 9 versus 7 regions. A one-room input still splits into two.
-4. **Build a reversible plan editor.** Add explicit corner movement, opening corrections, room
-   split/merge and deliberate room joining. Preserve the original capture, validate polygon topology,
-   and recompute affected areas, openings and adjacency. The reference-length feature is not this editor.
+4. **Expand and validate the reversible plan editor.** The native app now supports draggable/numeric
+   boundary corners, ceiling-height edits, split/merge, measured property placement, undo, and explicit
+   whole-plan upload. It keeps original geometry in `original_capture.json`; edited boundaries are
+   low-confidence and backend review labels them as manually adjusted. New topology and export tests
+   are being added. Explicit opening placement and real measured-layout usability still need follow-up.
 5. **Improve photo/video reconstruction.** The new review reasons expose failures; they do not fix
    the models. Tracking recovery across segments, coverage estimation, scale-reference capture and
    independently measured evaluation remain necessary. Re-score against tape/laser truth, not just

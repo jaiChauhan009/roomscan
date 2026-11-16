@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var confirmForce = false
     @State private var openJob: String? = nil
     @State private var showLidarHelp = false
+    @State private var showPlanEditor = false
 
     var body: some View {
         NavigationStack {
@@ -42,6 +43,15 @@ struct HomeView: View {
                             .disabled(model.connectingProject)
                         if model.connectingProject { Text("Connecting… You can scan rooms while waiting.").font(.caption) }
                     }
+                    if !model.lidarRooms.isEmpty {
+                        Button("Edit property layout") { showPlanEditor=true }
+                        if model.canUndoPlanEdit { Button("Undo last plan edit",role:.destructive){model.undoPlanEdit()} }
+                        if model.hasUnuploadedEdits {
+                            Label("Plan changes saved on this device",systemImage:"pencil.circle").font(.caption)
+                            Button("Upload current plan") { Task { _ = await model.uploadCurrentPlan() } }
+                                .disabled(model.packingRooms>0 || model.busy != nil)
+                        }
+                    }
                 }
 
                 extraSections
@@ -49,14 +59,14 @@ struct HomeView: View {
                 verifySection
 
                 Section {
-                    Button("Check captures") { Task { await model.verify() } }
-                        .disabled(model.projectId == nil || model.pendingUploads > 0)
+                    Button(model.hasUnuploadedEdits ? "Upload and check captures" : "Check captures") { Task { await model.verify() } }
+                        .disabled((model.projectId == nil && !model.hasUnuploadedEdits) || model.pendingUploads > 0 || model.busy != nil)
                         .accessibilityIdentifier("verify")
                     Button("Start computing") {
                         if model.verifyHasRetake { confirmForce = true } else { Task { await start(force: false) } }
                     }
                     .bold()
-                    .disabled(model.projectId == nil || model.pendingUploads > 0)
+                    .disabled((model.projectId == nil && !model.hasUnuploadedEdits) || model.pendingUploads > 0 || model.busy != nil)
                     .accessibilityIdentifier("run")
                     if model.pendingUploads > 0 { Text("Waiting for \(model.pendingUploads) upload(s)…").font(.caption) }
                     if let j = model.jobId {
@@ -81,6 +91,7 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $scanning) { ScanScreen(roomName: scanName).environmentObject(model) }
             .sheet(item: $share) { ShareSheet(items: [$0.url]) }
             .navigationDestination(item: $openJob) { jid in JobView(api: model.api, jid: jid) }
+            .navigationDestination(isPresented:$showPlanEditor) { PropertyPlanEditor().environmentObject(model) }
             .confirmationDialog("Some captures need a retake. Results for them may be wrong or missing. Compute anyway?",
                                 isPresented: $confirmForce, titleVisibility: .visible) {
                 Button("Compute anyway") { Task { await start(force: true) } }
@@ -132,6 +143,7 @@ struct HomeView: View {
                     }
                     Text(s.summary).font(.callout.monospacedDigit())
                     Text(s.counts + " · \(r.frames.count) photos").font(.caption).foregroundStyle(.secondary)
+                    if r.isModified { Label("Plan edited · original scan retained",systemImage:"pencil").font(.caption).foregroundStyle(.orange) }
                     if let uid = model.roomUpload[r.id], let u = model.uploads.first(where: { $0.id == uid }) {
                         UploadRow(item: u)
                     } else if r.zipPath == nil {

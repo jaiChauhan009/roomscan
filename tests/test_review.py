@@ -29,3 +29,11 @@ def test_clean_synthetic_geometry_is_still_not_accuracy_certified():
     review_output(result)
     assert result.capture.meta['quality_review']['status'] == 'unvalidated'
     assert result.capture.meta['quality_review']['accuracy_verified'] is False
+
+
+def test_user_adjusted_geometry_needs_independent_check():
+    result = output('roomplan', {'rooms': [{'manual_edit': {'source': 'user'}}]})
+    review_output(result)
+    review = result.capture.meta['quality_review']
+    assert review['accuracy_verified'] is False
+    assert any(issue['code'] == 'manual_geometry' for issue in review['issues'])

@@ -94,6 +94,25 @@ def test_wall_reference_is_audited_without_changing_capture_geometry(tmp_path):
     assert result['property']['footprint_area']['value'] == pytest.approx(21)
 
 
+def test_manual_geometry_provenance_is_retained_and_reviewed(tmp_path):
+    data = RS.capture('merged')
+    data['rooms'][0]['manual_edit'] = {'source': 'user', 'original_geometry_file': 'original_capture.json'}
+    folder = RS.write_folder(tmp_path / 'edited', 'merged', 0, data=data)
+    (folder / 'original_capture.json').write_text(json.dumps(RS.capture('merged')))
+    result = pl.run(folder, tmp_path / 'out', damage=False)
+    meta_rooms = result['capture']['meta']['rooms']
+    assert meta_rooms[0]['manual_edit']['source'] == 'user'
+    assert any(x['code'] == 'manual_geometry' for x in result['capture']['meta']['quality_review']['issues'])
+
+
+def test_manual_geometry_requires_known_audit_filename(tmp_path):
+    data = RS.capture('merged')
+    data['rooms'][0]['manual_edit'] = {'source': 'user', 'original_geometry_file': '../capture.json'}
+    folder = RS.write_folder(tmp_path / 'edited-invalid', 'merged', 0, data=data)
+    with pytest.raises(RP.InputError, match='manual_edit'):
+        RP.parse_capture(folder, [])
+
+
 @pytest.mark.parametrize('value', [0, -1, float('nan'), 101])
 def test_invalid_reference_measurement_rejected(tmp_path, value):
     data = RS.capture('merged')

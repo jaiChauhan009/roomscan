@@ -20,7 +20,7 @@ struct PlanObject {
     var dimensions: SIMD3<Float>
 }
 
-struct PlanRoom {
+struct PlanRoom: Codable {
     var walls: [PlanSurface] = []
     var doors: [PlanSurface] = []
     var windows: [PlanSurface] = []
@@ -147,6 +147,8 @@ struct NamedRoom {
     var room: PlanRoom
     var frames: [FrameRecord]
     var referenceMeasurements: [WallReferenceMeasurement] = []
+    var manuallyEdited = false
+    var sourceSessionId: String? = nil
 }
 
 // MARK: - capture.json ("roomscan.roomplan/1")
@@ -165,7 +167,8 @@ private func surfaceJSON(_ s: PlanSurface, door: Bool) -> J {
     return .obj(kv)
 }
 
-func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenceMeasurement] = []) -> J {
+func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenceMeasurement] = [],
+              manuallyEdited: Bool = false, sourceSessionId: String? = nil) -> J {
     let walls: [J] = r.walls.map { w in
         let (a, b) = PlanRoom.ends(w)
         return .obj([
@@ -208,6 +211,11 @@ func roomJSON(_ r: PlanRoom, name: String, index: Int, references: [WallReferenc
     if !validReferences.isEmpty {
         fields.append(("reference_measurements", .arr(validReferences.map(\.json))))
     }
+    if manuallyEdited {
+        fields.append(("manual_edit", .obj([("source", .str("user")),
+                                            ("original_geometry_file", .str("original_capture.json"))])))
+    }
+    if let sourceSessionId { fields.append(("source_session_id", .str(sourceSessionId))) }
     return .obj(fields)
 }
 
@@ -248,7 +256,9 @@ func captureJSON(rooms: [NamedRoom], merged: Bool, sessionId: String, capturedAt
         ("coordinate_frame", .str("arkit_world_y_up")),
         ("merged", .bool(merged)),
         ("rooms", .arr(rooms.enumerated().map { roomJSON($0.element.room, name: $0.element.name, index: $0.offset,
-                                                       references: $0.element.referenceMeasurements) })),
+                                                       references: $0.element.referenceMeasurements,
+                                                       manuallyEdited: $0.element.manuallyEdited,
+                                                       sourceSessionId: $0.element.sourceSessionId) })),
         ("frames", .arr(frames)),
     ])
 }

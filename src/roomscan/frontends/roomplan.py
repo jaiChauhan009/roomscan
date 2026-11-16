@@ -181,6 +181,7 @@ class RPRoom:
     section_labels: list[str]
     capture: str  # name of the capture (folder) it came from
     reference_measurements: list[dict] = field(default_factory=list)
+    manual_edit: dict | None = None
 
 
 @dataclass
@@ -291,6 +292,13 @@ def parse_capture(root: Path, notes: list[str]) -> tuple[dict, list[RPRoom], lis
         if not isinstance(r, dict):
             raise InputError(f"capture.json: {where} must be an object")
         name = str(r.get("name") or f"Room {i + 1}").strip() or f"Room {i + 1}"
+        manual_edit = r.get("manual_edit")
+        if manual_edit is not None:
+            if (not isinstance(manual_edit, dict) or manual_edit.get("source") != "user"
+                    or manual_edit.get("original_geometry_file") != "original_capture.json"):
+                raise InputError(f"capture.json: {where}.manual_edit must identify a user edit and original_capture.json")
+            if not (root / "original_capture.json").is_file():
+                notes.append(f"{name}: edited outline has no original_capture.json audit geometry")
         walls = []
         for k, w in enumerate(_list(r, "walls", where)):
             ww = f"{where}.walls[{k}]"
@@ -368,7 +376,8 @@ def parse_capture(root: Path, notes: list[str]) -> tuple[dict, list[RPRoom], lis
         rooms.append(RPRoom(name=name, index=int(r.get("index", i)) if isinstance(r.get("index", i), int) else i,
                             story=int(r.get("story") or 0) if isinstance(r.get("story") or 0, int) else 0,
                             walls=walls, openings=ops, floor_poly=floor_poly, floor_y=floor_y, objects=objects,
-                            section_labels=labels, capture=root.name, reference_measurements=references))
+                            section_labels=labels, capture=root.name, reference_measurements=references,
+                            manual_edit=manual_edit))
     by_index = {r.index: k for k, r in enumerate(rooms)}
     frames: list[RPFrame] = []
     missing = bad_size = 0
@@ -685,6 +694,7 @@ def build_layout(rp: RoomPlanCapture) -> Built:
                      "outline": "floor_polygon" if r.floor_poly is not None else
                      ("walls" if ch is not None else "convex_hull"),
                      "objects": r.objects, "reference_measurements": r.reference_measurements,
+                     "manual_edit": r.manual_edit,
                      "_k": k, "_heights": [w.height for w, _ in seq]})
     if rooms:
         allp = np.concatenate([r.polygon for r in rooms])

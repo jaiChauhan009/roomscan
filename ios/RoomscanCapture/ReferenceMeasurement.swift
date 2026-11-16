@@ -43,6 +43,8 @@ struct SavedRoomView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if let error = model.libraryError { Text(error).foregroundStyle(.red) }
                     PlanPreview(room: saved.plan).frame(height: 350)
+                    NavigationLink("Edit room boundary") { RoomBoundaryEditor(room:saved).environmentObject(model) }
+                        .buttonStyle(.borderedProminent)
                     ForEach(saved.plan.reviewIssues) { issue in
                         Text(issue.message).font(.callout).foregroundStyle(.orange)
                     }
