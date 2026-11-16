@@ -119,7 +119,7 @@ struct PropertyPlanEditor:View {
                     }
                 }
                 Button("Save room positions") {
-                    do { try model.placeRooms(Dictionary(uniqueKeysWithValues:model.lidarRooms.map{($0.id,placements[$0.id] ?? PlanPlacement())}));message=nil }
+                    do { try model.placeRooms(Dictionary(uniqueKeysWithValues:model.lidarRooms.map{($0.id,placements[$0.id] ?? $0.placement ?? PlanPlacement())}));message=nil }
                     catch { message=error.localizedDescription }
                 }
             }

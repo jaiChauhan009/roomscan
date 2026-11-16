@@ -155,8 +155,13 @@ struct PlanPlacement: Codable, Equatable {
 
 extension PlanRoom {
     var editableOutline: [PlanPoint] {
-        let points = wallOutline ?? floorWorld?.map { SIMD2($0.x,$0.z) } ?? []
-        return points.map { PlanPoint(x:Double($0.x),z:Double($0.y)) }
+        let points = floorWorld?.map { SIMD2($0.x,$0.z) } ?? wallOutline ?? []
+        if points.count >= 3 { return points.map { PlanPoint(x:Double($0.x),z:Double($0.y)) } }
+        let endpoints=walls.flatMap { [PlanRoom.ends($0).0,PlanRoom.ends($0).1] }
+        guard let loX=endpoints.map(\.x).min(),let hiX=endpoints.map(\.x).max(),
+              let loZ=endpoints.map(\.y).min(),let hiZ=endpoints.map(\.y).max(),hiX-loX>=0.1,hiZ-loZ>=0.1 else { return [] }
+        return [PlanPoint(x:Double(loX),z:Double(loZ)),PlanPoint(x:Double(hiX),z:Double(loZ)),
+                PlanPoint(x:Double(hiX),z:Double(hiZ)),PlanPoint(x:Double(loX),z:Double(hiZ))]
     }
     func placed(_ placement: PlanPlacement?) -> PlanRoom {
         guard let placement else { return self }

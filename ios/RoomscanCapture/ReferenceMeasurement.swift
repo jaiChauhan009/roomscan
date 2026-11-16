@@ -90,7 +90,7 @@ struct SavedRoomView: View {
                 }.padding()
             }.navigationTitle(saved.name)
         } else {
-            Text("Select the property containing this room.")
+            Text("This room was split or merged. Go back to the property to open the updated plan.")
         }
     }
 }

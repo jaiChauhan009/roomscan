@@ -11,6 +11,7 @@ DEPTH_SCALE_BIAS (refit by bench/calibrate.py).
 """
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 import numpy as np
