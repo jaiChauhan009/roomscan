@@ -17,10 +17,12 @@ os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
 @lru_cache(maxsize=1)
 def _model():
+    import torch
     from transformers import AutoImageProcessor, AutoModelForKeypointMatching
 
-    from roomscan.ml.hub import pretrained
+    from roomscan.ml.hub import configure_cpu_inference, pretrained
 
+    configure_cpu_inference(torch)
     return pretrained(AutoImageProcessor, MODEL_ID), pretrained(AutoModelForKeypointMatching, MODEL_ID).eval()
 
 

@@ -8,6 +8,18 @@ downloaded.
 """
 from __future__ import annotations
 
+import os
+
+
+def configure_cpu_inference(torch) -> None:
+    """Avoid oversubscribing large shared hosts; allow measured deployments to override."""
+    try:
+        requested = int(os.environ.get("ROOMSCAN_TORCH_THREADS", "8"))
+    except ValueError:
+        requested = 8
+    threads = max(1, min(requested, os.cpu_count() or 1, 32))
+    torch.set_num_threads(threads)
+
 
 def pretrained(cls, model_id: str, **kwargs):
     try:

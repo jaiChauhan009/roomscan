@@ -66,22 +66,24 @@ private struct PlanCornerCanvas:View {
         let loX=xs.min() ?? 0,loZ=zs.min() ?? 0
         _extent=State(initialValue:CGRect(x:loX,y:loZ,width:max((xs.max() ?? 1)-loX,0.1),height:max((zs.max() ?? 1)-loZ,0.1)))
     }
+    private func location(_ p:PlanPoint, box:CGSize, scale:Double)->CGPoint {
+        CGPoint(x:24+(p.x-extent.minX)*scale,y:box.height-24-(p.z-extent.minY)*scale)
+    }
     var body:some View {
         GeometryReader { geo in
             let box=geo.size
             let scale=min((box.width-48)/extent.width,(box.height-48)/extent.height)
-            func location(_ p:PlanPoint)->CGPoint { CGPoint(x:24+(p.x-extent.minX)*scale,y:box.height-24-(p.z-extent.minY)*scale) }
             ZStack {
                 RoundedRectangle(cornerRadius:12).fill(Color(uiColor:.secondarySystemBackground))
                 Path { path in
-                    guard let first=points.first else{return};path.move(to:location(first));for p in points.dropFirst(){path.addLine(to:location(p))};path.closeSubpath()
+                    guard let first=points.first else{return};path.move(to:location(first,box:box,scale:scale));for p in points.dropFirst(){path.addLine(to:location(p,box:box,scale:scale))};path.closeSubpath()
                 }.fill(Color.blue.opacity(0.13))
                 Path { path in
-                    guard let first=points.first else{return};path.move(to:location(first));for p in points.dropFirst(){path.addLine(to:location(p))};path.closeSubpath()
+                    guard let first=points.first else{return};path.move(to:location(first,box:box,scale:scale));for p in points.dropFirst(){path.addLine(to:location(p,box:box,scale:scale))};path.closeSubpath()
                 }.stroke(Color.blue,lineWidth:3)
                 ForEach(points.indices,id:\.self) { i in
                     Circle().fill(.blue).frame(width:22,height:22).overlay(Circle().stroke(.white,lineWidth:2))
-                        .position(location(points[i])).gesture(DragGesture(minimumDistance:0).onChanged { value in
+                        .position(location(points[i],box:box,scale:scale)).gesture(DragGesture(minimumDistance:0).onChanged { value in
                             if dragIndex != i { dragIndex=i;dragOrigin=points[i] }
                             points[i].x=dragOrigin.x+value.translation.width/scale
                             points[i].z=dragOrigin.z-value.translation.height/scale
@@ -106,7 +108,7 @@ struct PropertyPlanEditor:View {
                 Text("Offsets default to zero. Use shared measured corners; the preview shows overlaps but does not estimate alignment.").font(.caption).foregroundStyle(.orange)
                 PropertyLayoutPreview(rooms:model.lidarRooms,placements:placements).frame(height:250)
                 ForEach(model.lidarRooms) { room in
-                    let binding=Binding(get:{placements[room.id] ?? PlanPlacement()},set:{placements[room.id]=$0})
+                    let binding=Binding(get:{placements[room.id] ?? room.placement ?? PlanPlacement()},set:{placements[room.id]=$0})
                     VStack(alignment:.leading) {
                         Text(room.name).bold()
                         HStack {
@@ -139,6 +141,9 @@ private struct PropertyLayoutPreview:View {
     let rooms:[ScannedRoom]
     let placements:[UUID:PlanPlacement]
     private let colors:[Color]=[.blue,.orange,.green,.purple,.pink,.teal]
+    private func point(_ pair:(Double,Double),loX:Double,loZ:Double,box:CGSize,scale:Double)->CGPoint {
+        CGPoint(x:20+(pair.0-loX)*scale,y:box.height-20-(pair.1-loZ)*scale)
+    }
     var body:some View {
         GeometryReader { geo in
             let rings=rooms.map { room -> [(Double,Double)] in
@@ -150,26 +155,19 @@ private struct PropertyLayoutPreview:View {
             let loX=all.map{$0.0}.min() ?? 0,hiX=all.map{$0.0}.max() ?? 1
             let loZ=all.map{$0.1}.min() ?? 0,hiZ=all.map{$0.1}.max() ?? 1
             let scale=min((geo.size.width-40)/max(hiX-loX,0.1),(geo.size.height-40)/max(hiZ-loZ,0.1))
-            func point(_ pair:(Double,Double))->CGPoint { CGPoint(x:20+(pair.0-loX)*scale,y:geo.size.height-20-(pair.1-loZ)*scale) }
             ZStack {
                 RoundedRectangle(cornerRadius:12).fill(Color(uiColor:.secondarySystemBackground))
                 ForEach(rings.indices,id:\.self) { i in
                     Path { path in
                         guard let first=rings[i].first else{return}
-                        path.move(to:point(first));for p in rings[i].dropFirst(){path.addLine(to:point(p))};path.closeSubpath()
+                        path.move(to:point(first,loX:loX,loZ:loZ,box:geo.size,scale:scale));for p in rings[i].dropFirst(){path.addLine(to:point(p,loX:loX,loZ:loZ,box:geo.size,scale:scale))};path.closeSubpath()
                     }.fill(colors[i%colors.count].opacity(0.18))
                     Path { path in
                         guard let first=rings[i].first else{return}
-                        path.move(to:point(first));for p in rings[i].dropFirst(){path.addLine(to:point(p))};path.closeSubpath()
+                        path.move(to:point(first,loX:loX,loZ:loZ,box:geo.size,scale:scale));for p in rings[i].dropFirst(){path.addLine(to:point(p,loX:loX,loZ:loZ,box:geo.size,scale:scale))};path.closeSubpath()
                     }.stroke(colors[i%colors.count],lineWidth:2)
                 }
             }
         }
     }
-}
-
-private extension Binding where Value==PlanPlacement {
-    var x:Binding<Double>{Binding(get:{wrappedValue.x},set:{wrappedValue.x=$0})}
-    var z:Binding<Double>{Binding(get:{wrappedValue.z},set:{wrappedValue.z=$0})}
-    var degrees:Binding<Double>{Binding(get:{wrappedValue.degrees},set:{wrappedValue.degrees=$0})}
 }

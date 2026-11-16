@@ -174,8 +174,14 @@ extension PlanRoom {
         if let height, !height.isFinite || height < 0.5 || height > 20 {
             throw PlanEditError.invalid("Use a ceiling height from 0.5 to 20 m.")
         }
-        let floorY=floorWorld.map { $0.reduce(Float(0)){$0+$1.y}/Float($0.count) }
-            ?? walls.map{$0.transform.position.y-$0.dimensions.y/2}.min() ?? 0
+        let observedFloor=floorWorld
+        let floorY:Float
+        if let observedFloor,!observedFloor.isEmpty {
+            let total=observedFloor.reduce(Float(0)) { partial,point in partial+point.y }
+            floorY=total/Float(observedFloor.count)
+        } else {
+            floorY=walls.map{$0.transform.position.y-$0.dimensions.y/2}.min() ?? 0
+        }
         var result=self, used=Set<String>()
         result.walls=ring.indices.map { i in
             let p=ring[i].vector, q=ring[(i+1)%ring.count].vector, delta=q-p, width=simd_length(delta)

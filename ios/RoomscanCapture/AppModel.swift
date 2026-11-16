@@ -573,7 +573,10 @@ final class AppModel: ObservableObject {
     // MARK: verify / run
 
     func verify() async {
-        if hasUnuploadedEdits && !(await uploadCurrentPlan()) { return }
+        if hasUnuploadedEdits {
+            let uploaded=await uploadCurrentPlan()
+            guard uploaded else { return }
+        }
         guard let pid = projectId else { return }
         busy = "Checking captures…"
         defer { busy = nil }
@@ -590,7 +593,10 @@ final class AppModel: ObservableObject {
 
     /// Start computing; returns the job id.
     func run(force: Bool) async -> String? {
-        if hasUnuploadedEdits && !(await uploadCurrentPlan()) { return nil }
+        if hasUnuploadedEdits {
+            let uploaded=await uploadCurrentPlan()
+            guard uploaded else { return nil }
+        }
         guard let pid = projectId else { return nil }
         busy = "Starting…"
         defer { busy = nil }

@@ -11,7 +11,6 @@ DEPTH_SCALE_BIAS (refit by bench/calibrate.py).
 """
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 
 import numpy as np
@@ -29,9 +28,9 @@ def _model(px: int = DEPTH_PX):
     import torch
     from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
-    from roomscan.ml.hub import pretrained
+    from roomscan.ml.hub import configure_cpu_inference, pretrained
 
-    torch.set_num_threads(max(1, os.cpu_count() or 4))
+    configure_cpu_inference(torch)
     # 392 px short side instead of 518: ~2x faster on CPU; walls are large smooth surfaces
     proc = pretrained(AutoImageProcessor, MODEL_ID, size={"height": px, "width": px})
     model = pretrained(AutoModelForDepthEstimation, MODEL_ID).eval()
